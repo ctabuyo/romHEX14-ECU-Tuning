@@ -30,7 +30,8 @@ class KpImporter {
     Q_DECLARE_TR_FUNCTIONS(ols::KpImporter)
 public:
     static KpImportResult importFromBytes(const QByteArray &fileData,
-                                           uint32_t baseAddress = 0);
+                                           uint32_t baseAddress = 0,
+                                           uint32_t romSize = 0);
 
 private:
     static bool extractInternEntry(const QByteArray &fileData,

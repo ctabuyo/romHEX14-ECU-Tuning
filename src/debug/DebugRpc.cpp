@@ -12,6 +12,7 @@
 #include "logger.h"
 #include "mainwindow.h"
 #include "io/ols/OlsImporter.h"
+#include "io/ols/KpImporter.h"
 #include "io/winols/SimilarityIndex.h"
 #include "io/winols/WinOlsConfig.h"
 
@@ -168,6 +169,7 @@ QJsonObject DebugRpc::dispatch(const QJsonObject &request)
     else if (cmd == "lua_run")      resp = cmdRunLua(args);
     else if (cmd == "rebuild_index") resp = cmdRebuildIndex(args);
     else if (cmd == "find_files")    resp = cmdFindFiles(args);
+    else if (cmd == "import_kp")     resp = cmdImportKp(args);
     else {
         resp.insert("ok", false);
         resp.insert("error", QStringLiteral("unknown cmd: %1").arg(cmd));
@@ -743,6 +745,58 @@ QJsonObject DebugRpc::cmdFindFiles(const QJsonObject &args)
     res.insert("ms", int(ms));
     res.insert("count", arr.size());
     res.insert("matches", arr);
+    r.insert("ok", true);
+    r.insert("result", res);
+    return r;
+}
+
+// .kp mappack import test - reports per-map decoded address (issue #18).
+// args: { "path": "...", "limit": 30, "romSize": optional }
+QJsonObject DebugRpc::cmdImportKp(const QJsonObject &args)
+{
+    QJsonObject r;
+    const QString path = args.value(QStringLiteral("path")).toString();
+    const int limit = args.value(QStringLiteral("limit")).toInt(30);
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly)) {
+        r.insert("ok", false);
+        r.insert("error", QStringLiteral("cannot open ") + path);
+        return r;
+    }
+    const QByteArray data = f.readAll();
+    f.close();
+
+    const uint32_t romSize = static_cast<uint32_t>(
+        qMax(0, args.value(QStringLiteral("romSize")).toInt(0)));
+    const ols::KpImportResult kr =
+        ols::KpImporter::importFromBytes(data, 0, romSize);
+    QJsonObject res;
+    res.insert("fmtVer", int(kr.formatVersion));
+    res.insert("mapCount", int(kr.mapCount));
+    res.insert("error", kr.error);
+    QJsonArray warns;
+    for (const QString &w : kr.warnings) warns.append(w);
+    res.insert("warnings", warns);
+
+    int zeroAddr = 0;
+    for (const MapInfo &m : kr.maps)
+        if (m.address == 0) ++zeroAddr;
+    res.insert("zeroAddrCount", zeroAddr);
+
+    QJsonArray maps;
+    int n = 0;
+    for (const MapInfo &m : kr.maps) {
+        if (n++ >= limit) break;
+        QJsonObject o;
+        o.insert("name", m.name);
+        o.insert("address", QStringLiteral("0x%1").arg(quint64(m.address), 0, 16));
+        o.insert("rawAddress", QStringLiteral("0x%1").arg(quint64(m.rawAddress), 0, 16));
+        o.insert("x", int(m.dimensions.x));
+        o.insert("y", int(m.dimensions.y));
+        o.insert("type", m.type);
+        maps.append(o);
+    }
+    res.insert("maps", maps);
     r.insert("ok", true);
     r.insert("result", res);
     return r;

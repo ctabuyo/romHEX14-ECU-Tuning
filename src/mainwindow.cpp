@@ -4120,7 +4120,9 @@ void MainWindow::actImportKP()
     const QByteArray data = f.readAll();
     f.close();
 
-    auto result = ols::KpImporter::importFromBytes(data, proj->baseAddress);
+    auto result = ols::KpImporter::importFromBytes(
+        data, proj->baseAddress,
+        static_cast<uint32_t>(qMax(0, proj->currentData.size())));
     if (!result.error.isEmpty()) {
         QMessageBox::critical(this, tr("Import Error"), result.error);
         return;

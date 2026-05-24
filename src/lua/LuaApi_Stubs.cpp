@@ -275,7 +275,9 @@ void bindStubApi(sol::state &L, LuaEngine *engine)
             engine->setLastError(f.errorString());
             return false;
         }
-        auto r = ols::KpImporter::importFromBytes(f.readAll(), baseAddr);
+        auto r = ols::KpImporter::importFromBytes(
+            f.readAll(), baseAddr,
+            static_cast<uint32_t>(qMax(0, p->currentData.size())));
         f.close();
         if (!r.error.isEmpty()) {
             engine->setLastError(r.error);
