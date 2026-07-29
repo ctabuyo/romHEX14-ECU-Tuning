@@ -251,6 +251,37 @@ bool normalizeKpAddress(uint32_t raw, uint32_t end, uint32_t universalBase,
     return false;
 }
 
+// Axis records use the same address convention as their parent map, but do
+// not carry an end/base triplet.  Normalise them directly instead of deriving
+// an offset from MapInfo::rawAddress: that field is presentation-oriented and
+// may include the project's ECU base even when the KP stores file offsets.
+bool normalizeKpAxisAddress(uint32_t raw, int count, int dataSize,
+                            uint32_t projectBase, uint32_t romSize,
+                            uint32_t *fileOffset)
+{
+    if (raw == 0 || count <= 0 || dataSize <= 0)
+        return false;
+    const uint64_t end = uint64_t(raw) + uint64_t(count) * uint64_t(dataSize);
+    if (end > 0x100000000ull)
+        return false;
+
+    if (romSize == 0) {
+        *fileOffset = raw >= projectBase && projectBase != 0
+            ? raw - projectBase : raw;
+        return true;
+    }
+    if (end <= romSize) {
+        *fileOffset = raw;
+        return true;
+    }
+    if (projectBase != 0 && raw >= projectBase
+        && end <= uint64_t(projectBase) + romSize) {
+        *fileOffset = raw - projectBase;
+        return true;
+    }
+    return false;
+}
+
 bool hasRepeatedAddress(const QByteArray &record, qsizetype off, uint32_t raw)
 {
     const qsizetype end = qMin(record.size() - 4, off + 64);
@@ -765,11 +796,13 @@ QVector<MapInfo> parseKpIntern(const QByteArray &payload,
         m.linkConfidence = 100;
         m.columnMajor    = true;
 
-        // Schema-750: import the axis sub-blocks (X = columns, then Y = rows)
+        // Schema-750: import the axis sub-blocks (X = columns, then Y = rows).
+        // Do not use m.rawAddress - m.address as an axis delta here: rawAddress
+        // can be displayed in ECU space while the KP axis entries stay in file
+        // space, which would silently discard every axis on a based project.
         if (hdr.schema750 && hdr.kind != 2) {
             const QVector<Kp750Axis> axes =
                 parseSchema750Axes(record, addr.off + 12);
-            const uint32_t delta = m.rawAddress - m.address;
             auto fillAxis = [&](AxisInfo &dst, const Kp750Axis &src, int count) {
                 dst.inputName = src.unit.isEmpty()
                     ? src.name
@@ -782,14 +815,11 @@ QVector<MapInfo> parseKpIntern(const QByteArray &payload,
                 }
                 dst.ptsDataSize = src.dataSize;
                 dst.ptsCount    = count;
-                if (src.rawAddr >= delta) {
-                    const uint32_t fileOff = src.rawAddr - delta;
-                    if (romSize == 0
-                        || uint64_t(fileOff) + uint64_t(count) * src.dataSize
-                               <= romSize) {
-                        dst.ptsAddress    = fileOff;
-                        dst.hasPtsAddress = true;
-                    }
+                uint32_t fileOff = 0;
+                if (normalizeKpAxisAddress(src.rawAddr, count, src.dataSize,
+                                           baseAddress, romSize, &fileOff)) {
+                    dst.ptsAddress    = fileOff;
+                    dst.hasPtsAddress = true;
                 }
             };
             if (axes.size() >= 1)
@@ -963,12 +993,13 @@ QVector<MapInfo> parseSchema750Deterministic(
         }
 
         // Axis sub-blocks (X = columns, then Y = rows) via the shared parser.
+        // See the compact-layout path above: map display addresses and KP axis
+        // addresses need independent normalisation when the project has a base.
         if (kind != 2 && sizeOk) {
             const QByteArray record = payload.mid(int(meta), int(objEnd - meta));
             const qsizetype addrOffInRec = pos - meta;   // offset of mapStart
             const QVector<Kp750Axis> axes =
                 parseSchema750Axes(record, addrOffInRec + 12);
-            const uint32_t delta = m.rawAddress - m.address;
             auto fillAxis = [&](AxisInfo &dst, const Kp750Axis &src, int count) {
                 dst.inputName = src.unit.isEmpty()
                     ? src.name
@@ -981,13 +1012,11 @@ QVector<MapInfo> parseSchema750Deterministic(
                 }
                 dst.ptsDataSize = src.dataSize;
                 dst.ptsCount    = count;
-                if (src.rawAddr >= delta) {
-                    const uint32_t fo = src.rawAddr - delta;
-                    if (romSize == 0
-                        || uint64_t(fo) + uint64_t(count) * src.dataSize <= romSize) {
-                        dst.ptsAddress    = fo;
-                        dst.hasPtsAddress = true;
-                    }
+                uint32_t fileOff = 0;
+                if (normalizeKpAxisAddress(src.rawAddr, count, src.dataSize,
+                                           baseAddress, romSize, &fileOff)) {
+                    dst.ptsAddress    = fileOff;
+                    dst.hasPtsAddress = true;
                 }
             };
             if (axes.size() >= 1)
