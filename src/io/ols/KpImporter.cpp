@@ -945,6 +945,8 @@ QVector<MapInfo> parseKpIntern(const QByteArray &payload,
                     dst.scaling.type = CompuMethod::Type::Linear;
                     dst.scaling.linA = src.factor;
                     dst.scaling.linB = src.offset;
+                    if (src.precision >= 0)
+                        dst.scaling.format = QStringLiteral("1.%1f").arg(src.precision);
                 }
                 dst.ptsDataSize = src.dataSize;
                 dst.ptsCount    = count;
@@ -1123,6 +1125,12 @@ QVector<MapInfo> parseSchema750Deterministic(
             m.scaling.type = CompuMethod::Type::Linear;
             m.scaling.linA = factor;
             m.scaling.linB = offset;
+            // The last u32 of the fixed main header is the map's displayed
+            // decimal precision.  It is distinct from the X/Y fields stored
+            // in the respective axis blocks.
+            const uint32_t precision = peekU32(payload, P + 132);
+            if (precision <= 6)
+                m.scaling.format = QStringLiteral("1.%1f").arg(precision);
         }
 
         // Axis sub-blocks (X = columns, then Y = rows) via the shared parser.
@@ -1142,6 +1150,8 @@ QVector<MapInfo> parseSchema750Deterministic(
                     dst.scaling.type = CompuMethod::Type::Linear;
                     dst.scaling.linA = src.factor;
                     dst.scaling.linB = src.offset;
+                    if (src.precision >= 0)
+                        dst.scaling.format = QStringLiteral("1.%1f").arg(src.precision);
                 }
                 dst.ptsDataSize = src.dataSize;
                 dst.ptsCount    = count;
