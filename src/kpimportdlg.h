@@ -86,7 +86,6 @@ private:
     QCheckBox          *m_chkMapStruct   = nullptr;
     QCheckBox          *m_chkStructDims  = nullptr;
     QCheckBox          *m_chkStructPrec  = nullptr;
-    QCheckBox          *m_chkStructSign  = nullptr;
 
     QLineEdit          *m_iconMapEdit    = nullptr;
     QLineEdit          *m_prefixEdit     = nullptr;
