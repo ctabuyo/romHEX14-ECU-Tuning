@@ -4305,6 +4305,14 @@ void MainWindow::actImportKP(const QString &droppedPath)
         if (duplicate) {
             for (auto &existingMap : proj->maps) {
                 if (existingMap.name == m.name && existingMap.address == m.address) {
+                    if (existingMap.columnMajor != m.columnMajor) {
+                        existingMap.columnMajor = m.columnMajor;
+                        existingMetadataUpdated = true;
+                    }
+                    if (existingMap.dataSigned != m.dataSigned) {
+                        existingMap.dataSigned = m.dataSigned;
+                        existingMetadataUpdated = true;
+                    }
                     if (existingMap.xAxis.ptsSigned != m.xAxis.ptsSigned) {
                         existingMap.xAxis.ptsSigned = m.xAxis.ptsSigned;
                         existingMetadataUpdated = true;

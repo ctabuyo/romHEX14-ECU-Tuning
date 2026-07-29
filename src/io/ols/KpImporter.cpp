@@ -11,6 +11,7 @@
 #include <QHash>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 
@@ -284,7 +285,7 @@ bool normalizeKpAxisAddress(uint32_t raw, int count, int dataSize,
 
 // Schema-750 stores a single packed byte stream after a 0x98728833 sentinel
 // in the outer KP file. Each map contributes its value bytes, followed by its
-// X-axis bytes and then its Y-axis bytes when those axes are address-backed.
+// X-axis bytes and then its Y-axis bytes for genuine two-dimensional maps.
 // Preserve offsets on the parsed maps; the caller can then honour the dialog's
 // map selection and address relocation while applying values safely.
 bool attachSchema750CarriedData(const QByteArray &fileData,
@@ -300,14 +301,15 @@ bool attachSchema750CarriedData(const QByteArray &fileData,
     qsizetype total = 0;
     for (const MapInfo &map : *maps) {
         Span span;
-        // One observed schema-750 scalar deliberately carries an empty
-        // address span. The structural importer represents it as a 1-byte
-        // fallback map so it remains visible in the tree, but it contributes
-        // no bytes to the packed value stream.
+        // WinOLS retains a cell-sized payload for the one zero-range scalar
+        // in the reference pack. Its display address remains usable even
+        // though the serialized end address equals the start address.
         span.value = map.rawAddress == 0 ? 0 : qMax(0, map.length);
         if (map.xAxis.hasPtsAddress)
             span.x = qMax(0, map.dimensions.x) * qMax(0, map.xAxis.ptsDataSize);
-        if (map.yAxis.hasPtsAddress)
+        // A kind-4 record with one row still serializes a Y descriptor, but
+        // WinOLS omits that singleton from the packed relocation vector.
+        if (map.yAxis.hasPtsAddress && map.dimensions.y > 1)
             span.y = qMax(0, map.dimensions.y) * qMax(0, map.yAxis.ptsDataSize);
         total += qsizetype(span.value) + span.x + span.y;
         spans.append(span);
@@ -334,15 +336,7 @@ bool attachSchema750CarriedData(const QByteArray &fileData,
     }
 
     *carriedData = fileData.mid(payloadStart, total);
-    auto isMonotonic = [](const QVector<qint64> &values) {
-        bool ascending = true, descending = true;
-        for (int i = 1; i < values.size(); ++i) {
-            ascending  = ascending  && values[i] >= values[i - 1];
-            descending = descending && values[i] <= values[i - 1];
-        }
-        return ascending || descending;
-    };
-    auto inferSignedAxis = [&](AxisInfo &axis, int count, qsizetype source) {
+    auto chooseNativeAxisSignedness = [&](AxisInfo &axis, int count, qsizetype source) {
         if (!axis.hasPtsAddress || count < 2
             || (axis.ptsDataSize != 1 && axis.ptsDataSize != 2
                 && axis.ptsDataSize != 4)
@@ -350,41 +344,45 @@ bool attachSchema750CarriedData(const QByteArray &fileData,
             || source + qsizetype(count) * axis.ptsDataSize > carriedData->size())
             return;
 
-        QVector<qint64> unsignedValues, signedValues;
-        unsignedValues.reserve(count);
-        signedValues.reserve(count);
-        bool hasSignBit = false;
         const auto *bytes = reinterpret_cast<const uchar *>(carriedData->constData());
-        for (int i = 0; i < count; ++i) {
-            const auto *p = bytes + source + i * axis.ptsDataSize;
+        auto readValue = [&](int index, bool isSigned) -> double {
+            const auto *p = bytes + source + index * axis.ptsDataSize;
+            qint64 raw = 0;
             switch (axis.ptsDataSize) {
-            case 1: {
-                const uint8_t raw = p[0];
-                hasSignBit = hasSignBit || (raw & 0x80);
-                unsignedValues.append(raw);
-                signedValues.append(int8_t(raw));
-                break;
-            }
+            case 1: raw = isSigned ? qint64(int8_t(p[0])) : qint64(uint8_t(p[0])); break;
             case 2: {
-                const uint16_t raw = qFromLittleEndian<uint16_t>(p);
-                hasSignBit = hasSignBit || (raw & 0x8000);
-                unsignedValues.append(raw);
-                signedValues.append(int16_t(raw));
+                const uint16_t v = qFromLittleEndian<uint16_t>(p);
+                raw = isSigned ? qint64(int16_t(v)) : qint64(v);
                 break;
             }
             case 4: {
-                const uint32_t raw = qFromLittleEndian<uint32_t>(p);
-                hasSignBit = hasSignBit || (raw & 0x80000000u);
-                unsignedValues.append(raw);
-                signedValues.append(int32_t(raw));
+                const uint32_t v = qFromLittleEndian<uint32_t>(p);
+                raw = isSigned ? qint64(int32_t(v)) : qint64(v);
                 break;
             }
             }
+            return axis.hasScaling ? raw * axis.scaling.linA + axis.scaling.linB
+                                   : double(raw);
+        };
+
+        // KpMapObjectCodec calls FUN_7ff6e2427d24 after deserialization. It
+        // evaluates both interpretations, sums abs(int(delta)) across each
+        // adjacent pair, and selects one only when its total is less than half
+        // the other's. Preserve the serialized flag for a tie.
+        qint64 variation[2] = {0, 0};
+        for (int signedCandidate = 0; signedCandidate <= 1; ++signedCandidate) {
+            for (int i = 0; i + 1 < count; ++i) {
+                const double delta = readValue(i, signedCandidate)
+                    - readValue(i + 1, signedCandidate);
+                // Native code truncates the floating-point delta to a 32-bit
+                // int before taking its absolute value.
+                const int truncatedDelta = int(delta);
+                variation[signedCandidate] += std::llabs(qint64(truncatedDelta));
+            }
         }
-        // Infer signedness only when it resolves an unsigned wrap into a
-        // monotonic breakpoint axis. This is deliberately conservative: axes
-        // already monotonic as unsigned are left exactly as serialized.
-        if (hasSignBit && isMonotonic(signedValues) && !isMonotonic(unsignedValues))
+        if (variation[0] * 2 < variation[1])
+            axis.ptsSigned = false;
+        else if (variation[1] * 2 < variation[0])
             axis.ptsSigned = true;
     };
     qsizetype offset = 0;
@@ -396,11 +394,11 @@ bool attachSchema750CarriedData(const QByteArray &fileData,
         offset += span.value;
         map.setSideProp(QStringLiteral("kpXAxisOffset"), uint(offset));
         map.setSideProp(QStringLiteral("kpXAxisLength"), span.x);
-        inferSignedAxis(map.xAxis, map.dimensions.x, offset);
+        chooseNativeAxisSignedness(map.xAxis, map.dimensions.x, offset);
         offset += span.x;
         map.setSideProp(QStringLiteral("kpYAxisOffset"), uint(offset));
         map.setSideProp(QStringLiteral("kpYAxisLength"), span.y);
-        inferSignedAxis(map.yAxis, map.dimensions.y, offset);
+        chooseNativeAxisSignedness(map.yAxis, map.dimensions.y, offset);
         offset += span.y;
     }
     return true;
@@ -517,6 +515,7 @@ MapDimensions dimensionsFromLegacyRecord(const QByteArray &record,
 // applied.
 struct Kp750Axis {
     uint32_t rawAddr = 0;
+    uint32_t dataType = 0;
     int      dataSize = 2;
     int      precision = -1;
     QString  name;
@@ -524,6 +523,7 @@ struct Kp750Axis {
     double   factor = 0.0;
     double   offset = 0.0;
     bool     hasFactor = false;
+    bool     pointsSigned = false;
 };
 
 // A length-prefixed string candidate: printable Latin-1 with at least one
@@ -554,7 +554,7 @@ QVector<Kp750Axis> parseSchema750Axes(const QByteArray &record, qsizetype start)
     QVector<Kp750Axis> axes;
     qsizetype segStart = start;
     qsizetype q = start;
-    while (q + 20 <= record.size() && axes.size() < 2) {
+    while (q + 47 <= record.size() && axes.size() < 2) {
         const uint32_t pre = peekU32(record, q);
         if (pre <= 1) {
             const uint32_t addr = peekU32(record, q + 4);
@@ -566,7 +566,12 @@ QVector<Kp750Axis> parseSchema750Axes(const QByteArray &record, qsizetype start)
                 && (ds == 1 || ds == 2 || ds == 4)) {
                 Kp750Axis ax;
                 ax.rawAddr  = addr;
+                ax.dataType = f3;
                 ax.dataSize = int(ds);
+                // KpAxisDescriptorCodec serializes its source signed flag
+                // after the two post-anchor integers, raw64, and two more
+                // integer fields: anchor + 46 for schema 750.
+                ax.pointsSigned = record.at(int(q + 46)) != 0;
                 // The axis display precision is an unaligned u32 in the
                 // otherwise undocumented 31-byte area following the anchor.
                 // Correlated against WinOLS: 3 / 1 gives X / Y labels such
@@ -927,7 +932,9 @@ QVector<MapInfo> parseKpIntern(const QByteArray &payload,
         m.type           = typeFromKpKind(hdr.kind, m.dimensions.x, m.dimensions.y);
         m.length         = qMax(1, addr.dataBytes);
         m.linkConfidence = 100;
-        m.columnMajor    = true;
+        // KP carries cells in row-major order: the consecutive first cells
+        // are the first displayed WinOLS row, not its first column.
+        m.columnMajor    = false;
 
         // Schema-750: import the axis sub-blocks (X = columns, then Y = rows).
         // Do not use m.rawAddress - m.address as an axis delta here: rawAddress
@@ -949,6 +956,9 @@ QVector<MapInfo> parseKpIntern(const QByteArray &payload,
                         dst.scaling.format = QStringLiteral("1.%1f").arg(src.precision);
                 }
                 dst.ptsDataSize = src.dataSize;
+                dst.ptsDataType = src.dataType;
+                dst.ptsBigEndian = false;
+                dst.ptsSigned   = src.pointsSigned;
                 dst.ptsCount    = count;
                 uint32_t fileOff = 0;
                 if (normalizeKpAxisAddress(src.rawAddr, count, src.dataSize,
@@ -959,7 +969,7 @@ QVector<MapInfo> parseKpIntern(const QByteArray &payload,
             };
             if (axes.size() >= 1)
                 fillAxis(m.xAxis, axes[0], m.dimensions.x);
-            if (axes.size() >= 2)
+            if (axes.size() >= 2 && m.dimensions.y > 1)
                 fillAxis(m.yAxis, axes[1], m.dimensions.y);
         }
 
@@ -1085,7 +1095,8 @@ QVector<MapInfo> parseSchema750Deterministic(
         m.dimensions     = { dx, dy };
         m.type           = typeFromKpKind(kind, dx, dy);
         m.linkConfidence = 100;
-        m.columnMajor    = true;
+        // Schema-750 packed value spans are row-major (X changes fastest).
+        m.columnMajor    = false;
 
         if (idLen >= 1 && idLen <= 200 && meta + 0x27 + qsizetype(idLen) <= sz) {
             const QByteArray idb = payload.mid(int(meta + 0x27), int(idLen));
@@ -1104,6 +1115,7 @@ QVector<MapInfo> parseSchema750Deterministic(
         const bool sizeOk = mapEnd > mapStart
             && uint64_t(mapEnd - mapStart)
                    == uint64_t(dx) * uint64_t(dy) * uint64_t(ds);
+        const bool zeroSpan = mapStart != 0 && mapEnd == mapStart;
         uint32_t fileOffset = 0;
         if (sizeOk && normalizeKpAddress(mapStart, mapEnd, romBase,
                                          baseAddress, romSize, &fileOffset)) {
@@ -1112,6 +1124,16 @@ QVector<MapInfo> parseSchema750Deterministic(
             m.address          = fileOffset;
             m.olsUniversalBase = romBase;
             m.length           = int(mapEnd - mapStart);
+        } else if (zeroSpan && normalizeKpAxisAddress(
+                       mapStart, qMax(1, dx * dy), ds,
+                       baseAddress, romSize, &fileOffset)) {
+            // KpMapObjectCodec's packed relocation vector still carries the
+            // logical cell for this explicit zero-range scalar.
+            m.rawAddress = (baseAddress != 0 && fileOffset == mapStart)
+                ? baseAddress + fileOffset : mapStart;
+            m.address          = fileOffset;
+            m.olsUniversalBase = romBase;
+            m.length           = qMax(1, dx * dy * ds);
         } else {
             m.address = 0;
             m.rawAddress = 0;
@@ -1132,6 +1154,12 @@ QVector<MapInfo> parseSchema750Deterministic(
             if (precision <= 6)
                 m.scaling.format = QStringLiteral("1.%1f").arg(precision);
         }
+
+        // KpMapObjectCodec serializes map flags directly before [columns]
+        // [rows]. The second byte is the signed-cell flag (model +0x105).
+        // It is independent of the displayed value range and must not be
+        // inferred from the payload values.
+        m.dataSigned = payload.at(int(P + 113)) != 0;
 
         // Axis sub-blocks (X = columns, then Y = rows) via the shared parser.
         // See the compact-layout path above: map display addresses and KP axis
@@ -1154,6 +1182,9 @@ QVector<MapInfo> parseSchema750Deterministic(
                         dst.scaling.format = QStringLiteral("1.%1f").arg(src.precision);
                 }
                 dst.ptsDataSize = src.dataSize;
+                dst.ptsDataType = src.dataType;
+                dst.ptsBigEndian = false;
+                dst.ptsSigned   = src.pointsSigned;
                 dst.ptsCount    = count;
                 uint32_t fileOff = 0;
                 if (normalizeKpAxisAddress(src.rawAddr, count, src.dataSize,
@@ -1164,7 +1195,7 @@ QVector<MapInfo> parseSchema750Deterministic(
             };
             if (axes.size() >= 1)
                 fillAxis(m.xAxis, axes[0], m.dimensions.x);
-            if (axes.size() >= 2)
+            if (axes.size() >= 2 && m.dimensions.y > 1)
                 fillAxis(m.yAxis, axes[1], m.dimensions.y);
         }
 
@@ -1316,20 +1347,19 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
         parseKpFolderTable(fileData, &result.warnings);
     const QHash<uint32_t, QString> folderPaths = resolveKpFolderPaths(folders);
 
-    // OLS 5.x (schema >= 700): deterministic object walk. Fall back to the
-    // heuristic parser if the walk fails to cover the declared object count
-    // (e.g. a minimal/older intern layout) so no file can regress.
+    // OLS 5.x (schema >= 700): use only the schema-specific object walk.
+    // Do not substitute the legacy recovery parser: it can produce plausible
+    // but wrong maps when the schema has not been fully characterized.
     const uint32_t internMapCount = intern.size() >= 5 ? peekU32(intern, 1) : 0;
     if (result.formatVersion >= 700) {
         result.maps = parseSchema750Deterministic(intern, baseAddress, romSize,
                                                   folderPaths, &result.warnings);
-        if (internMapCount > 0
-            && result.maps.size() < int(internMapCount) * 3 / 4) {
-            result.warnings.append(KpImporter::tr(
-                "schema-750 walk covered %1/%2 objects; using heuristic parser")
-                    .arg(result.maps.size()).arg(internMapCount));
-            result.maps = parseKpIntern(intern, baseAddress, romSize,
-                                        folderPaths, &result.warnings);
+        if (internMapCount > 0 && result.maps.size() != int(internMapCount)) {
+            result.error = KpImporter::tr(
+                "Schema-750 parser recognized %1 of %2 maps; refusing an "
+                "incomplete import rather than guessing the remaining layout")
+                .arg(result.maps.size()).arg(internMapCount);
+            return result;
         }
     } else {
         result.maps = parseKpIntern(intern, baseAddress, romSize,
