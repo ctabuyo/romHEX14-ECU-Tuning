@@ -9,8 +9,17 @@
 #include <QVector>
 #include <QByteArray>
 #include <QWidget>
+#include <cstdint>
 #include "romdata.h"
-#include "kpparser.h"
+
+// Presentation-only project information shown by the KP review dialog. This
+// intentionally does not depend on the retired heuristic KP parser.
+struct KPVehicleInfo {
+    QString manufacturer, model, variant, year, power;
+    QString ecuBrand, partNumber, swVersion;
+    uint32_t romWordCount = 0;
+    uint32_t romByteSize = 0;
+};
 
 class QTableWidget;
 class QPushButton;

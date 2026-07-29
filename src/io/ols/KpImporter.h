@@ -41,6 +41,8 @@ private:
                                     QByteArray &compressed,
                                     uint32_t &uncompressedSize,
                                     uint16_t &method,
+                                    uint32_t &expectedCrc,
+                                    qsizetype &archiveEnd,
                                     QString &err);
 };
 

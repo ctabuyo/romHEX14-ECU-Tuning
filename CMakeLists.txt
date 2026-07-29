@@ -16,6 +16,8 @@ set(RX14_VERSION_NUMERIC "${RX14_VERSION_MAJOR}.${RX14_VERSION_MINOR}.${RX14_VER
 
 project(RX14 VERSION ${RX14_VERSION_NUMERIC} LANGUAGES C CXX)
 
+include(CTest)
+
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/version.h"
@@ -150,7 +152,6 @@ set(SOURCES
     src/hexcomparedlg.cpp
     src/alignmentmap.cpp
     src/olsparser.cpp
-    src/kpparser.cpp
     src/kpimportdlg.cpp
     src/map3dsimwidget.cpp
     src/vehicledb.cpp
@@ -163,7 +164,6 @@ set(SOURCES
     src/io/ols/OlsKennfeldParser.cpp
     src/io/ols/OlsImporter.cpp
     src/io/ols/KpImporter.cpp
-    src/io/ols/KpExporter.cpp
     src/module/ModuleRegistry.cpp
     src/module/BcmProfile.cpp
     src/module/ModulePanel.cpp
@@ -282,7 +282,6 @@ set(HEADERS
     src/diffpanel.h
     src/alignmentmap.h
     src/olsparser.h
-    src/kpparser.h
     src/kpimportdlg.h
     src/map3dsimwidget.h
     src/vehicledb.h
@@ -545,4 +544,23 @@ if(ZLIB_FOUND)
     target_link_libraries(test_mapdetect_corpus PRIVATE ZLIB::ZLIB)
 else()
     target_link_libraries(test_mapdetect_corpus PRIVATE z)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(test_kp_schema750 tests/test_kp_schema750.cpp
+        src/io/ols/KpImporter.cpp
+        src/io/ols/ZipDecompressor.cpp
+    )
+    target_include_directories(test_kp_schema750 PRIVATE src)
+    target_compile_definitions(test_kp_schema750 PRIVATE
+        KP_SCHEMA750_PRIMARY_FIXTURE="${CMAKE_SOURCE_DIR}/TC1793_10SW10605393D2V180-20250125-154817.kp"
+        KP_SCHEMA750_SECONDARY_FIXTURE="${CMAKE_SOURCE_DIR}/mappacks/TC1793_10SW10605393D2V180-20250125-154817 CIVIC FK6 1.0 3 CILINDER AMT MAP PACK V1.kp"
+    )
+    target_link_libraries(test_kp_schema750 PRIVATE Qt6::Core Qt6::Gui)
+    if(ZLIB_FOUND)
+        target_link_libraries(test_kp_schema750 PRIVATE ZLIB::ZLIB)
+    else()
+        target_link_libraries(test_kp_schema750 PRIVATE z)
+    endif()
+    add_test(NAME kp_schema750_codec COMMAND test_kp_schema750)
 endif()

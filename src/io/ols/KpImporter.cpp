@@ -9,11 +9,12 @@
 
 #include <QtEndian>
 #include <QHash>
-#include <algorithm>
+#include <QStringDecoder>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <zlib.h>
 
 namespace ols {
 
@@ -24,6 +25,11 @@ uint32_t peekU32(const QByteArray &data, qsizetype off)
     if (off < 0 || off + 4 > data.size()) return 0;
     return qFromLittleEndian<uint32_t>(
         reinterpret_cast<const uchar *>(data.constData() + off));
+}
+
+int32_t peekI32(const QByteArray &data, qsizetype off)
+{
+    return static_cast<int32_t>(peekU32(data, off));
 }
 
 double peekF64(const QByteArray &data, qsizetype off)
@@ -37,33 +43,13 @@ double peekF64(const QByteArray &data, qsizetype off)
     return v;
 }
 
-bool isText(const char *data, int length)
-{
-    if (length <= 0) return false;
-    int printable = 0;
-    for (int i = 0; i < length; ++i) {
-        const auto b = static_cast<uint8_t>(data[i]);
-        if ((b >= 0x20 && b < 0x7F) || b == 0x09 || b >= 0x80)
-            ++printable;
-    }
-    return printable >= std::max(1, length - 1);
-}
-
 QString decodeKpText(const QByteArray &bytes)
 {
-    return QString::fromLatin1(bytes).trimmed();
-}
-
-int bytesFromCellBits(uint32_t bits)
-{
-    switch (bits) {
-    case 2:  return 1;
-    case 8:  return 1;
-    case 10: return 2;
-    case 16: return 2;
-    case 32: return 4;
-    default: return 2;
-    }
+    const auto encoding = QStringConverter::encodingForName("Windows-1252");
+    if (!encoding)
+        return QString::fromLatin1(bytes).trimmed();
+    QStringDecoder decoder(*encoding);
+    return QString(decoder.decode(bytes)).trimmed();
 }
 
 QString typeFromKpKind(uint32_t kind, int x, int y)
@@ -74,133 +60,6 @@ QString typeFromKpKind(uint32_t kind, int x, int y)
     if (y <= 1) return QStringLiteral("CURVE");
     return QStringLiteral("MAP");
 }
-
-struct KpRecordStart {
-    qsizetype offset = -1;
-    uint32_t nameLen = 0;
-    qsizetype metaOffset = -1;
-};
-
-struct KpHeader {
-    uint32_t kind = 0;
-    uint32_t cellBits = 10;
-    int dataSizeBytes = 0;
-    uint32_t hintY = 0;
-    uint32_t hintX = 0;
-    bool legacyLayout = false;
-    bool schema750 = false;
-};
-
-bool readKpHeader(const QByteArray &payload, qsizetype metaOff, KpHeader *out)
-{
-    if (metaOff < 0 || metaOff + 48 > payload.size()) return false;
-
-    uint32_t v[12] = {};
-    for (int i = 0; i < 12; ++i)
-        v[i] = peekU32(payload, metaOff + i * 4);
-
-    // Newer .kp map records start with a compact header, not the richer .ols
-    // Kennfeld record.  This gate deliberately rejects axis labels/units that
-    // are also length-prefixed strings inside the same record.
-    if (v[0] == 0 && v[1] == 0 && v[2] == 0
-        && v[3] >= 1 && v[3] <= 5
-        && (v[7] == 2 || v[7] == 8 || v[7] == 10
-            || v[7] == 16 || v[7] == 32)
-        && v[8] <= 256 && v[11] <= 256) {
-        if (out) {
-            out->kind = v[3];
-            out->cellBits = v[7];
-            out->dataSizeBytes = 0;
-            out->hintY = v[8];
-            out->hintX = v[11];
-            out->legacyLayout = false;
-        }
-        return true;
-    }
-
-    // OLS 5.x .kp records (schema/format version 750, "OLS 5.0 (Windows)"
-    // creator string): the name's NUL is followed by 11 zero padding bytes
-    // (folder references), then kind at +11, cell size in bytes at +23 and a
-    // constant 0x0A marker at +27. A length-prefixed id string follows at
-    // +35. Dimensions live near the end of the record as a [cols][rows]
-    // uint32 pair, so only kind + data size come from this header.
-    // Cannot collide with the compact gate above: these records always have
-    // v[2] != 0 (kind's low byte lands in v[2]'s top byte).
-    if (v[0] == 0 && peekU32(payload, metaOff + 27) == 0x0A) {
-        const uint32_t kind = peekU32(payload, metaOff + 11);
-        const uint32_t cellBytes = peekU32(payload, metaOff + 23);
-        if (kind >= 1 && kind <= 10
-            && (cellBytes == 1 || cellBytes == 2 || cellBytes == 4)) {
-            if (out) {
-                out->kind = kind;
-                out->cellBits = 10;
-                out->dataSizeBytes = int(cellBytes);
-                out->hintY = 0;
-                out->hintX = 0;
-                out->legacyLayout = false;
-                out->schema750 = true;
-            }
-            return true;
-        }
-    }
-
-    // Older WinOLS 4.x .kp intern records are length-prefixed, NUL-terminated
-    // names followed directly by: kind, data-size, dim hints and a group id.
-    if (v[0] >= 1 && v[0] <= 10
-        && (v[1] == 0 || v[1] == 1 || v[1] == 2 || v[1] == 4)
-        && v[2] >= 1 && v[2] <= 999
-        && v[3] >= 1 && v[3] <= 999
-        && v[4] <= 9999) {
-        if (out) {
-            out->kind = v[0];
-            out->cellBits = 10;
-            out->dataSizeBytes = (v[1] == 0) ? 1 : int(v[1]);
-            out->hintY = 0;
-            out->hintX = 0;
-            out->legacyLayout = true;
-        }
-        return true;
-    }
-
-    return false;
-}
-
-QVector<KpRecordStart> findKpRecordStarts(const QByteArray &payload,
-                                          uint32_t expectedCount)
-{
-    QVector<KpRecordStart> starts;
-    const qsizetype sz = payload.size();
-    for (qsizetype pos = 14; pos + 52 < sz; ++pos) {
-        const uint32_t len = peekU32(payload, pos);
-        if (len == 0 || len > 240) continue;
-        const qsizetype textOff = pos + 4;
-        if (!isText(payload.constData() + textOff, static_cast<int>(len)))
-            continue;
-        const qsizetype textEnd = textOff + static_cast<qsizetype>(len);
-        qsizetype metaOff = textEnd;
-        if (!readKpHeader(payload, metaOff, nullptr)) {
-            if (textEnd >= sz || payload.at(textEnd) != '\0')
-                continue;
-            metaOff = textEnd + 1;
-            if (!readKpHeader(payload, metaOff, nullptr))
-                continue;
-        }
-        starts.append({pos, len, metaOff});
-        if (expectedCount > 0 && starts.size() >= static_cast<int>(expectedCount))
-            break;
-    }
-    return starts;
-}
-
-struct AddressCandidate {
-    qsizetype off = -1;
-    uint32_t raw = 0;
-    uint32_t end = 0;
-    uint32_t universalBase = 0;
-    uint32_t fileOffset = 0;
-    int dataBytes = 0;
-    int score = 0;
-};
 
 bool normalizeKpAddress(uint32_t raw, uint32_t end, uint32_t universalBase,
                         uint32_t projectBase, uint32_t romSize,
@@ -283,11 +142,14 @@ bool normalizeKpAxisAddress(uint32_t raw, int count, int dataSize,
     return false;
 }
 
-// Schema-750 stores a single packed byte stream after a 0x98728833 sentinel
-// in the outer KP file. Each map contributes its value bytes, followed by its
-// X-axis bytes and then its Y-axis bytes for genuine two-dimensional maps.
-// Preserve offsets on the parsed maps; the caller can then honour the dialog's
-// map selection and address relocation while applying values safely.
+// Schema-750 stores its relocation byte stream after the 0x98728833 sentinel
+// in the outer KP file. This is native code, not a discovered marker:
+// LoadMapPackIntoImportModel at 0x7ff6e29401d2 calls
+// CheckSerializedSentinelConstant(0x98728833) immediately before consuming
+// the relocation vectors. Each map contributes its value bytes, followed by
+// its X-axis bytes and then its Y-axis bytes for genuine two-dimensional
+// maps. Preserve offsets on parsed maps so the caller can apply selected data
+// without reconstructing these ranges from visible values.
 bool attachSchema750CarriedData(const QByteArray &fileData,
                                 QVector<MapInfo> *maps,
                                 QByteArray *carriedData,
@@ -404,102 +266,6 @@ bool attachSchema750CarriedData(const QByteArray &fileData,
     return true;
 }
 
-bool hasRepeatedAddress(const QByteArray &record, qsizetype off, uint32_t raw)
-{
-    const qsizetype end = qMin(record.size() - 4, off + 64);
-    for (qsizetype p = off + 12; p <= end; ++p) {
-        if (peekU32(record, p) == raw)
-            return true;
-    }
-    return false;
-}
-
-bool chooseAddress(const QByteArray &record, uint32_t projectBase,
-                   uint32_t romSize, int dataSize, AddressCandidate *out)
-{
-    AddressCandidate best;
-    for (qsizetype off = 0; off + 12 <= record.size(); ++off) {
-        if (off < 0x40)
-            continue;
-
-        const uint32_t raw = peekU32(record, off);
-        const uint32_t end = peekU32(record, off + 4);
-        const uint32_t base = peekU32(record, off + 8);
-        uint32_t fileOffset = 0;
-        if (!normalizeKpAddress(raw, end, base, projectBase, romSize, &fileOffset))
-            continue;
-
-        const uint32_t dataBytes = end - raw;
-        if (dataBytes == 0) continue;
-
-        int score = 0;
-        const bool repeated = hasRepeatedAddress(record, off, raw);
-        if (repeated) score += 35;
-        if (romSize > 0 && base == romSize) score += 80;
-        if (projectBase != 0 && romSize > 0 && base == projectBase + romSize)
-            score += 80;
-        if (romSize > 0 && base <= romSize && base >= raw) score += 15;
-        if (romSize > 0 && base <= romSize && base + 0x20000u >= romSize)
-            score += 10;
-        if (romSize == 0 && base > raw) score += 40;
-        if (dataSize > 0 && dataBytes % uint32_t(dataSize) == 0) score += 20;
-        if (dataBytes <= 0x1000) score += 12;
-        else if (dataBytes <= 0x10000) score += 6;
-        else if (dataBytes > 0x40000) score -= 30;
-        if (fileOffset == raw) score += 5; // common KP layout: offsets, not absolute flash addrs
-        if (off >= 16) score += 2;         // avoids very early false positives
-
-        if (best.off < 0 || score > best.score) {
-            best.off = off;
-            best.raw = raw;
-            best.end = end;
-            best.universalBase = base;
-            best.fileOffset = fileOffset;
-            best.dataBytes = static_cast<int>(dataBytes);
-            best.score = score;
-        }
-    }
-    if (best.off < 0) return false;
-    if (best.score < 45) return false;
-    if (out) *out = best;
-    return true;
-}
-
-uint32_t dimensionHintFromName(const QString &name, int cells)
-{
-    if (cells <= 0) return 0;
-    const QString lower = name.toLower();
-    const uint32_t hints[] = { 32, 24, 20, 16, 12, 10, 8, 6, 4 };
-    for (uint32_t h : hints) {
-        if (cells % int(h) != 0)
-            continue;
-        if (lower.contains(QString::number(h)))
-            return h;
-    }
-    return 0;
-}
-
-MapDimensions dimensionsFromLegacyRecord(const QByteArray &record,
-                                         const AddressCandidate &addr,
-                                         int cells)
-{
-    MapDimensions dims;
-    if (cells <= 1 || addr.off <= 8)
-        return dims;
-
-    for (qsizetype off = 0; off + 8 <= addr.off; ++off) {
-        const uint32_t x = peekU32(record, off);
-        const uint32_t y = peekU32(record, off + 4);
-        if (x >= 2 && x <= 256 && y >= 2 && y <= 256
-            && uint64_t(x) * uint64_t(y) == uint64_t(cells)) {
-            dims.x = int(x);
-            dims.y = int(y);
-            return dims;
-        }
-    }
-    return dims;
-}
-
 // ── Schema-750 axis sub-blocks ────────────────────────────────────────────
 // After the main address triplet, kind-3 records carry one axis sub-block
 // (X) and kind-4/5 records carry two (X = columns first, then Y = rows).
@@ -526,195 +292,118 @@ struct Kp750Axis {
     bool     pointsSigned = false;
 };
 
-// A length-prefixed string candidate: printable Latin-1 with at least one
-// ASCII-printable byte (rejects the FF FF FF FF sentinel read as "ÿÿÿÿ").
-static bool readKpString(const QByteArray &rec, qsizetype pos, qsizetype limit,
-                         bool requireNul, QString *out, qsizetype *end)
+// Schema-750 uses a signed 32-bit string marker. Non-negative markers carry
+// exactly that many CP-1252 bytes; negative values are serialized references
+// or absent values and carry no inline bytes. This is the native
+// DecodeOrEncodeStringField contract, not a printable-text scan.
+struct Kp750SerializedString {
+    qsizetype start = 0;
+    qsizetype end = 0;
+    int32_t marker = 0;
+    QString text;
+};
+
+bool readSchema750String(const QByteArray &data, qsizetype pos, qsizetype limit,
+                         Kp750SerializedString *out)
 {
-    const uint32_t len = peekU32(rec, pos);
-    if (len < 1 || len > 100) return false;
-    const qsizetype textEnd = pos + 4 + qsizetype(len);
-    if (textEnd > limit || textEnd > rec.size()) return false;
-    if (requireNul && (textEnd >= rec.size() || rec.at(int(textEnd)) != '\0'))
+    if (!out || pos < 0 || pos + 4 > limit || limit > data.size())
         return false;
-    bool hasAscii = false;
-    for (qsizetype i = pos + 4; i < textEnd; ++i) {
-        const auto b = static_cast<uint8_t>(rec.at(int(i)));
-        if (b < 0x20 || b == 0x7F) return false;
-        if (b >= 0x21 && b <= 0x7E) hasAscii = true;
+    Kp750SerializedString value;
+    value.start = pos;
+    value.marker = peekI32(data, pos);
+    value.end = pos + 4;
+    if (value.marker >= 0) {
+        // The native string codec uses the signed marker verbatim.  Bound it
+        // only by the enclosing serialized object, not by a guessed text
+        // length, so valid long labels and identifiers remain representable.
+        if (value.end + qsizetype(value.marker) > limit)
+            return false;
+        value.text = decodeKpText(data.mid(int(value.end), value.marker));
+        value.end += value.marker;
     }
-    if (!hasAscii) return false;
-    if (out) *out = decodeKpText(rec.mid(int(pos + 4), int(len)));
-    if (end) *end = textEnd + (requireNul ? 1 : 0);
+    *out = value;
     return true;
 }
 
-QVector<Kp750Axis> parseSchema750Axes(const QByteArray &record, qsizetype start)
+// This is the exact schema-750 axis stream framed by KpAxisDescriptorCodec.
+// The fixed 20-byte anchor is followed by a 31-byte descriptor tail, then a
+// serialized identifier, an inline-record count/reserved pair, and 16-byte
+// records. The parser returns raw inline data as well as map-facing fields so
+// no boundaries are recovered by searching for text or plausible doubles.
+struct Kp750AxisBlock {
+    Kp750Axis descriptor;
+    Kp750SerializedString identifier;
+    uint32_t inlineCount = 0;
+    QByteArray inlineData;
+    qsizetype nextAxis = 0;
+    qsizetype tailStart = 0;
+};
+
+bool parseSchema750AxisBlock(const QByteArray &data, qsizetype start,
+                             qsizetype limit, Kp750AxisBlock *out)
 {
-    QVector<Kp750Axis> axes;
-    qsizetype segStart = start;
-    qsizetype q = start;
-    while (q + 47 <= record.size() && axes.size() < 2) {
-        const uint32_t pre = peekU32(record, q);
-        if (pre <= 1) {
-            const uint32_t addr = peekU32(record, q + 4);
-            const uint32_t f3   = peekU32(record, q + 8);
-            const uint32_t ds   = peekU32(record, q + 12);
-            const uint32_t mark = peekU32(record, q + 16);
-            if (addr >= 0x1000 && addr < 0x10000000 && mark == 0x0A
-                && (f3 == 1 || f3 == 3 || f3 == 5 || f3 == 7)
-                && (ds == 1 || ds == 2 || ds == 4)) {
-                Kp750Axis ax;
-                ax.rawAddr  = addr;
-                ax.dataType = f3;
-                ax.dataSize = int(ds);
-                // KpAxisDescriptorCodec serializes its source signed flag
-                // after the two post-anchor integers, raw64, and two more
-                // integer fields: anchor + 46 for schema 750.
-                ax.pointsSigned = record.at(int(q + 46)) != 0;
-                // The axis display precision is an unaligned u32 in the
-                // otherwise undocumented 31-byte area following the anchor.
-                // Correlated against WinOLS: 3 / 1 gives X / Y labels such
-                // as 1.600 and 45.0 for the compressor-efficiency map.
-                const uint32_t precision = peekU32(record, q + 34);
-                if (precision <= 6)
-                    ax.precision = int(precision);
+    if (!out || start < 0 || limit > data.size())
+        return false;
 
-                // Strings between the previous sub-block and this anchor:
-                // first is the axis name, second (if any) the unit.
-                for (qsizetype b = segStart; b + 5 < q; ) {
-                    QString s;
-                    qsizetype e = 0;
-                    if (readKpString(record, b, q, false, &s, &e)) {
-                        if (ax.name.isEmpty())      ax.name = s;
-                        else if (ax.unit.isEmpty()) ax.unit = s;
-                        b = e;
-                    } else {
-                        ++b;
-                    }
-                }
+    Kp750SerializedString name, unit, identifier;
+    if (!readSchema750String(data, start, limit, &name))
+        return false;
+    const qsizetype padding = name.end;
+    if (padding + 12 > limit
+        || data.mid(int(padding), 12) != QByteArray(12, '\0'))
+        return false;
+    if (!readSchema750String(data, padding + 12, limit, &unit))
+        return false;
 
-                // Scaling: the last plausible double before the anchor. When
-                // the axis has an offset, [factor][offset] are adjacent — the
-                // double 8 bytes earlier is then the factor.
-                for (qsizetype fb = q - 8; fb >= q - 40 && fb >= segStart; --fb) {
-                    const double d1 = peekF64(record, fb);
-                    if (std::isfinite(d1) && d1 != 0.0
-                        && std::abs(d1) > 1e-12 && std::abs(d1) < 1e10) {
-                        const double d0 = peekF64(record, fb - 8);
-                        if (fb - 8 >= segStart && std::isfinite(d0) && d0 != 0.0
-                            && std::abs(d0) > 1e-12 && std::abs(d0) < 1e10) {
-                            ax.factor = d0;
-                            ax.offset = d1;
-                        } else {
-                            ax.factor = d1;
-                            ax.offset = 0.0;
-                        }
-                        ax.hasFactor = true;
-                        break;
-                    }
-                }
+    const qsizetype factorPos = unit.end;
+    const qsizetype anchor = factorPos + 16;
+    if (anchor + 51 > limit)
+        return false;
+    const uint32_t prefix = peekU32(data, anchor);
+    const uint32_t address = peekU32(data, anchor + 4);
+    const uint32_t type = peekU32(data, anchor + 8);
+    const uint32_t size = peekU32(data, anchor + 12);
+    const uint32_t marker = peekU32(data, anchor + 16);
+    if ((prefix != 0 && prefix != 1 && prefix != 8)
+        || type < 1 || type > 8
+        || (size != 1 && size != 2 && size != 4)
+        || marker != 10)
+        return false;
+    if (!readSchema750String(data, anchor + 51, limit, &identifier))
+        return false;
+    if (identifier.end + 8 > limit)
+        return false;
+    const uint32_t inlineCount = peekU32(data, identifier.end);
+    const qsizetype inlineStart = identifier.end + 8;
+    if (inlineCount > uint32_t((limit - inlineStart) / 16))
+        return false;
+    const qsizetype inlineEnd = inlineStart + qsizetype(inlineCount) * 16;
+    if (inlineEnd > limit)
+        return false;
 
-                axes.append(ax);
-
-                // Skip past this axis' trailing NUL-terminated id slug so the
-                // next segment's string search starts cleanly after it.
-                qsizetype next = q + 20;
-                for (qsizetype s2 = q + 20;
-                     s2 < qMin(record.size() - 5, q + 120); ++s2) {
-                    qsizetype e = 0;
-                    if (readKpString(record, s2, record.size(), true, nullptr, &e)) {
-                        next = e;
-                        break;
-                    }
-                }
-                segStart = next;
-                q = next;
-                continue;
-            }
-        }
-        ++q;
-    }
-    return axes;
-}
-
-// Schema-750 records store exact dimensions as a [cols][rows] uint32 pair
-// after the address triplet (usually near the end of the record, following
-// the axis sub-records). The product must equal the cell count.
-MapDimensions dimensionsFromSchema750Record(const QByteArray &record,
-                                            const AddressCandidate &addr,
-                                            int cells)
-{
-    MapDimensions dims;
-    if (cells <= 1 || addr.off < 0)
-        return dims;
-
-    for (qsizetype off = addr.off + 12; off + 8 <= record.size(); ++off) {
-        const uint32_t x = peekU32(record, off);
-        const uint32_t y = peekU32(record, off + 4);
-        if (x >= 2 && x <= 999 && y >= 2 && y <= 999
-            && uint64_t(x) * uint64_t(y) == uint64_t(cells)) {
-            dims.x = int(x);
-            dims.y = int(y);
-            return dims;
-        }
-    }
-    return dims;
-}
-
-MapDimensions dimensionsFromRecord(uint32_t kind, uint32_t hintX,
-                                   int cells)
-{
-    MapDimensions dims;
-    if (cells <= 1 || kind == 2) {
-        dims.x = 1;
-        dims.y = 1;
-        return dims;
-    }
-    if (kind == 3) {
-        dims.x = qBound(1, cells, 4096);
-        dims.y = 1;
-        return dims;
-    }
-
-    if (hintX > 1 && hintX <= 256 && cells % int(hintX) == 0) {
-        const int y = cells / int(hintX);
-        if (y >= 1 && y <= 256) {
-            dims.x = int(hintX);
-            dims.y = y;
-            return dims;
-        }
-    }
-
-    const uint32_t standardHints[] = { 16, 12, 10, 8 };
-    for (uint32_t h : standardHints) {
-        if (cells >= int(h) * 2 && cells % int(h) == 0) {
-            const int y = cells / int(h);
-            if (y >= 2 && y <= 256) {
-                dims.x = int(h);
-                dims.y = y;
-                return dims;
-            }
-        }
-    }
-
-    int bestX = cells;
-    int bestY = 1;
-    int bestDelta = std::numeric_limits<int>::max();
-    for (int x = 1; x <= 256; ++x) {
-        if (cells % x != 0) continue;
-        const int y = cells / x;
-        if (y < 1 || y > 256) continue;
-        const int delta = std::abs(x - y);
-        if (delta < bestDelta) {
-            bestDelta = delta;
-            bestX = x;
-            bestY = y;
-        }
-    }
-    dims.x = qBound(1, bestX, 4096);
-    dims.y = qBound(1, bestY, 4096);
-    return dims;
+    Kp750AxisBlock block;
+    block.descriptor.rawAddr = address;
+    block.descriptor.dataType = type;
+    block.descriptor.dataSize = int(size);
+    block.descriptor.name = name.text;
+    block.descriptor.unit = unit.text;
+    block.descriptor.factor = peekF64(data, factorPos);
+    block.descriptor.offset = peekF64(data, factorPos + 8);
+    block.descriptor.hasFactor = true;
+    // These two fields are accessed by KpAxisDescriptorCodec at fixed offsets
+    // within the 31-byte post-anchor descriptor tail.
+    block.descriptor.precision = int(peekU32(data, anchor + 34));
+    block.descriptor.pointsSigned = data.at(int(anchor + 46)) != 0;
+    block.identifier = identifier;
+    block.inlineCount = inlineCount;
+    block.inlineData = data.mid(int(inlineStart), int(inlineEnd - inlineStart));
+    block.nextAxis = inlineEnd;
+    // Six bytes after inline records precede the duplicated dimension pair.
+    block.tailStart = inlineEnd + 6;
+    if (block.tailStart > limit)
+        return false;
+    *out = block;
+    return true;
 }
 
 // ── Folder table (schema-750) ─────────────────────────────────────────────
@@ -734,73 +423,80 @@ struct KpFolder {
 };
 
 QHash<uint32_t, KpFolder> parseKpFolderTable(const QByteArray &fileData,
+                                             qsizetype archiveEnd,
+                                             uint32_t formatVersion,
                                              QStringList *warnings)
 {
     QHash<uint32_t, KpFolder> folders;
-    // This folder-table grammar is the OLS 5.x layout (schema >= 700). Older
-    // schemas embed a folder table too but with a different entry format; their
-    // map records also never carry a schema-750 folder id, so skip (and don't
-    // warn) on them rather than mis-parsing an unsupported layout.
-    if (peekU32(fileData, 16) < 700)
+    if (formatVersion != 750 || archiveEnd < 0 || archiveEnd + 16 > fileData.size())
         return folders;
-    static const uchar sig[12] = { 0x11, 0x88, 0x63, 0x98, 0, 0, 0, 0,
-                                   0x11, 0x88, 0x63, 0x98 };
-    qsizetype tblOff = -1;
-    for (qsizetype i = 0; i + 16 <= fileData.size(); ++i) {
-        if (std::memcmp(fileData.constData() + i, sig, 12) == 0) {
-            tblOff = i;
+    const uint32_t marker1 = peekU32(fileData, archiveEnd);
+    const uint32_t reserved = peekU32(fileData, archiveEnd + 4);
+    const uint32_t marker2 = peekU32(fileData, archiveEnd + 8);
+    const uint32_t count = peekU32(fileData, archiveEnd + 12);
+    // A schema-750 folder record has at least 58 bytes after the table's
+    // count (12-byte header and a 46-byte version-gated suffix). This derives
+    // the only count bound from the stream itself rather than an invented
+    // maximum number of folders.
+    if (marker1 != marker2 || reserved != 0
+        || count > uint32_t((fileData.size() - (archiveEnd + 16)) / 58))
+        return folders;
+
+    qsizetype cursor = archiveEnd + 16;
+    for (uint32_t index = 0; index < count; ++index) {
+        if (cursor + 12 > fileData.size()) {
+            folders.clear();
             break;
         }
-    }
-    if (tblOff < 0) return folders;              // legacy/no folder table
-
-    const uint32_t count = peekU32(fileData, tblOff + 12);
-    if (count == 0 || count > 100000) return folders;
-
-    // Parse the fixed [id][parentId][nameLen][name] header at `q`.
-    auto readEntry = [&](qsizetype q, uint32_t *id, uint32_t *parent,
-                         QString *name, qsizetype *nameEnd) -> bool {
-        if (q + 12 > fileData.size()) return false;
-        const uint32_t fid = peekU32(fileData, q);
-        const uint32_t par = peekU32(fileData, q + 4);
-        const uint32_t nl  = peekU32(fileData, q + 8);
-        // id may be 0 (WinOLS root "My maps"); the name gate below prevents
-        // the all-zero suffix from validating as a spurious entry.
-        if (fid > 0x100000 || par > 0x100000) return false;
-        if (nl < 1 || nl > 200 || q + 12 + qsizetype(nl) > fileData.size())
-            return false;
-        if (!isText(fileData.constData() + q + 12, int(nl))) return false;
-        if (id)      *id     = fid;
-        if (parent)  *parent = par;
-        if (name)    *name   = decodeKpText(fileData.mid(int(q + 12), int(nl)));
-        if (nameEnd) *nameEnd = q + 12 + qsizetype(nl);
-        return true;
-    };
-
-    qsizetype q = tblOff + 16;
-    for (uint32_t i = 0; i < count; ++i) {
-        uint32_t id = 0, parent = 0;
-        QString name;
-        qsizetype nameEnd = 0;
-        if (!readEntry(q, &id, &parent, &name, &nameEnd)) break;
-        folders.insert(id, { parent, name });
-        if (i + 1 >= count) break;
-        // Each entry ends with a fixed 48-byte suffix (variant 2) or 47 bytes
-        // (variant 1). Check exactly those two deterministic positions rather
-        // than scanning a window, so a stray printable pair inside the binary
-        // suffix can never derail the walk.
-        if (readEntry(nameEnd + 48, nullptr, nullptr, nullptr, nullptr))
-            q = nameEnd + 48;
-        else if (readEntry(nameEnd + 47, nullptr, nullptr, nullptr, nullptr))
-            q = nameEnd + 47;
-        else
+        const uint32_t id = peekU32(fileData, cursor);
+        const uint32_t parent = peekU32(fileData, cursor + 4);
+        const uint32_t nameLength = peekU32(fileData, cursor + 8);
+        cursor += 12;
+        if (cursor + qsizetype(nameLength) > fileData.size()) {
+            folders.clear();
             break;
-    }
+        }
+        const QString name = decodeKpText(fileData.mid(int(cursor), int(nameLength)));
+        cursor += nameLength;
 
-    if (warnings && folders.size() != int(count))
-        warnings->append(KpImporter::tr(
-            "KP folder table: parsed %1 of %2 folders")
-                .arg(folders.size()).arg(count));
+        // SerializeMapPackFolderRecord at schema 750: a 13-byte zero prefix,
+        // a byte-vector, v131 fields, v291/v302 fields, then the v750 u32.
+        if (cursor + 17 > fileData.size()
+            || fileData.mid(int(cursor), 13) != QByteArray(13, '\0')) {
+            folders.clear();
+            break;
+        }
+        cursor += 13;
+        const uint32_t variantLength = peekU32(fileData, cursor);
+        cursor += 4;
+        if (cursor + qsizetype(variantLength) > fileData.size()) {
+            folders.clear();
+            break;
+        }
+        cursor += variantLength;
+        if (cursor + 14 > fileData.size()) {
+            folders.clear();
+            break;
+        }
+        cursor += 10; // bool, enum32, enum32, u8
+        const int32_t auxiliaryStringLength = peekI32(fileData, cursor);
+        cursor += 4;
+        if (auxiliaryStringLength >= 0) {
+            if (cursor + qsizetype(auxiliaryStringLength) > fileData.size()) {
+                folders.clear();
+                break;
+            }
+            cursor += auxiliaryStringLength;
+        }
+        if (cursor + 15 > fileData.size()) { // v291 bool + v302 fields + v750 u32
+            folders.clear();
+            break;
+        }
+        cursor += 15;
+        folders.insert(id, { parent, name });
+    }
+    if (folders.size() != int(count) && warnings)
+        warnings->append(KpImporter::tr("schema-750 folder table is incomplete"));
     return folders;
 }
 
@@ -827,176 +523,6 @@ QHash<uint32_t, QString> resolveKpFolderPaths(
     return paths;
 }
 
-QVector<MapInfo> parseKpIntern(const QByteArray &payload,
-                               uint32_t baseAddress,
-                               uint32_t romSize,
-                               const QHash<uint32_t, QString> &folderPaths,
-                               QStringList *warnings)
-{
-    QVector<MapInfo> maps;
-    if (payload.size() < 14) {
-        if (warnings)
-            warnings->append(KpImporter::tr("intern payload too small (%1 bytes)")
-                                 .arg(payload.size()));
-        return maps;
-    }
-
-    const uint32_t mapCount = peekU32(payload, 1);
-    if (mapCount == 0 || mapCount > 100000) {
-        if (warnings)
-            warnings->append(KpImporter::tr("intern payload map count %1 out of range")
-                                 .arg(mapCount));
-        return maps;
-    }
-
-    const QVector<KpRecordStart> starts = findKpRecordStarts(payload, mapCount);
-    maps.reserve(starts.size());
-
-    for (int idx = 0; idx < starts.size(); ++idx) {
-        const KpRecordStart &rs = starts[idx];
-        const qsizetype nameOff = rs.offset + 4;
-        const qsizetype metaOff = rs.metaOffset;
-        const qsizetype recordEnd = (idx + 1 < starts.size())
-            ? starts[idx + 1].offset
-            : payload.size();
-        if (recordEnd <= metaOff) continue;
-
-        KpHeader hdr;
-        if (!readKpHeader(payload, metaOff, &hdr)) continue;
-
-        const QByteArray nameBytes = payload.mid(
-            static_cast<int>(nameOff), static_cast<int>(rs.nameLen));
-        const QString name = decodeKpText(nameBytes);
-        if (name.isEmpty()) continue;
-
-        const QByteArray record = payload.mid(
-            static_cast<int>(metaOff), static_cast<int>(recordEnd - metaOff));
-
-        int dataSize = (hdr.dataSizeBytes > 0)
-            ? hdr.dataSizeBytes
-            : bytesFromCellBits(hdr.cellBits);
-        AddressCandidate addr;
-        if (!chooseAddress(record, baseAddress, romSize, dataSize, &addr))
-            continue;
-
-        if (addr.dataBytes > 0 && dataSize > 0
-            && addr.dataBytes % dataSize != 0
-            && hdr.kind == 2 && addr.dataBytes <= 4)
-            dataSize = addr.dataBytes;
-
-        int cells = dataSize > 0 ? addr.dataBytes / dataSize : 1;
-        if (cells <= 0) cells = 1;
-
-        MapInfo m;
-        m.name           = name;
-        // Like WinOLS: the user-friendly name is what's displayed, so it is
-        // both the name and the description. The internal id slug at +35
-        // (e.g. "med17.9_dwell-time-map_16L-0_0") is kept as a side property.
-        m.description    = name;
-        if (hdr.schema750) {
-            const uint32_t idLen = peekU32(record, 35);
-            if (idLen >= 1 && idLen <= 200
-                && 39 + qsizetype(idLen) <= record.size()) {
-                const QByteArray idBytes = record.mid(39, int(idLen));
-                if (isText(idBytes.constData(), idBytes.size())) {
-                    const QString idStr = decodeKpText(idBytes);
-                    if (!idStr.isEmpty())
-                        m.setSideProp(QStringLiteral("kpIdName"), idStr);
-                }
-            }
-            // Folder id lives at metadata +0x1F; resolve it to the project-tree
-            // path so identically-named maps land in their own (sub)folder.
-            if (!folderPaths.isEmpty()) {
-                const uint32_t folderId = peekU32(record, 31);
-                const QString fp = folderPaths.value(folderId);
-                if (!fp.isEmpty()) m.folderPath = fp;
-            }
-        }
-        m.type           = typeFromKpKind(hdr.kind, 1, 1);
-        m.rawAddress     = (baseAddress != 0 && addr.fileOffset == addr.raw)
-            ? baseAddress + addr.fileOffset
-            : addr.raw;
-        m.address        = addr.fileOffset;
-        m.olsUniversalBase = addr.universalBase;
-        m.dataSize       = dataSize;
-        if (hdr.legacyLayout && hdr.kind != 2 && hdr.kind != 3)
-            m.dimensions = dimensionsFromLegacyRecord(record, addr, cells);
-        if (hdr.schema750 && hdr.kind != 2 && hdr.kind != 3)
-            m.dimensions = dimensionsFromSchema750Record(record, addr, cells);
-        if (m.dimensions.x <= 1 && m.dimensions.y <= 1) {
-            uint32_t hintX = hdr.hintX;
-            if (hintX == 0)
-                hintX = dimensionHintFromName(name, cells);
-            m.dimensions = dimensionsFromRecord(hdr.kind, hintX, cells);
-        }
-        m.type           = typeFromKpKind(hdr.kind, m.dimensions.x, m.dimensions.y);
-        m.length         = qMax(1, addr.dataBytes);
-        m.linkConfidence = 100;
-        // KP carries cells in row-major order: the consecutive first cells
-        // are the first displayed WinOLS row, not its first column.
-        m.columnMajor    = false;
-
-        // Schema-750: import the axis sub-blocks (X = columns, then Y = rows).
-        // Do not use m.rawAddress - m.address as an axis delta here: rawAddress
-        // can be displayed in ECU space while the KP axis entries stay in file
-        // space, which would silently discard every axis on a based project.
-        if (hdr.schema750 && hdr.kind != 2) {
-            const QVector<Kp750Axis> axes =
-                parseSchema750Axes(record, addr.off + 12);
-            auto fillAxis = [&](AxisInfo &dst, const Kp750Axis &src, int count) {
-                dst.inputName = src.unit.isEmpty()
-                    ? src.name
-                    : QStringLiteral("%1 [%2]").arg(src.name, src.unit);
-                if (src.hasFactor) {
-                    dst.hasScaling   = true;
-                    dst.scaling.type = CompuMethod::Type::Linear;
-                    dst.scaling.linA = src.factor;
-                    dst.scaling.linB = src.offset;
-                    if (src.precision >= 0)
-                        dst.scaling.format = QStringLiteral("1.%1f").arg(src.precision);
-                }
-                dst.ptsDataSize = src.dataSize;
-                dst.ptsDataType = src.dataType;
-                dst.ptsBigEndian = false;
-                dst.ptsSigned   = src.pointsSigned;
-                dst.ptsCount    = count;
-                uint32_t fileOff = 0;
-                if (normalizeKpAxisAddress(src.rawAddr, count, src.dataSize,
-                                           baseAddress, romSize, &fileOff)) {
-                    dst.ptsAddress    = fileOff;
-                    dst.hasPtsAddress = true;
-                }
-            };
-            if (axes.size() >= 1)
-                fillAxis(m.xAxis, axes[0], m.dimensions.x);
-            if (axes.size() >= 2 && m.dimensions.y > 1)
-                fillAxis(m.yAxis, axes[1], m.dimensions.y);
-        }
-
-        if (addr.off >= 16) {
-            const double scale = peekF64(record, addr.off - 16);
-            const double offset = peekF64(record, addr.off - 8);
-            if (std::isfinite(scale) && std::isfinite(offset)
-                && std::abs(scale) < 1e12 && std::abs(offset) < 1e12
-                && (scale != 0.0 && scale != 1.0 || offset != 0.0)) {
-                m.hasScaling = true;
-                m.scaling.type = CompuMethod::Type::Linear;
-                m.scaling.linA = scale;
-                m.scaling.linB = offset;
-            }
-        }
-
-        maps.append(m);
-    }
-
-    if (maps.size() != int(mapCount) && warnings) {
-        warnings->append(KpImporter::tr(
-            "intern map_count = %1 but parser decoded %2 records")
-                .arg(mapCount).arg(maps.size()));
-    }
-    return maps;
-}
-
 // ── Deterministic schema-750 (OLS 5.x) object walk ─────────────────────────
 // The .kp intern grammar is self-describing: every object begins with the
 // fixed marker  00 FF FF FF FF  + 17 zero bytes, and every variable field
@@ -1015,197 +541,220 @@ QVector<MapInfo> parseSchema750Deterministic(
 {
     QVector<MapInfo> maps;
     const qsizetype sz = payload.size();
+    if (sz < 5 || payload.at(0) != '\0')
+        return maps;
     const uint32_t mapCount = peekU32(payload, 1);
+    // Every object consumes at least its fixed prefix and display-name length
+    // field, so this is a structural bound rather than a policy limit.
+    if (mapCount == 0 || mapCount > uint32_t((sz - 5) / 27))
+        return maps;
 
-    // Object marker: reserved 0, u32 0xFFFFFFFF, 17 zero bytes, then a valid
-    // length-prefixed display name. This 22-byte structural signature does not
-    // occur inside map data, so it delimits objects deterministically.
-    auto isObjectStart = [&](qsizetype p) -> bool {
-        if (p + 0x1a > sz) return false;
-        if (static_cast<uchar>(payload[p]) != 0x00) return false;
-        if (peekU32(payload, p + 1) != 0xFFFFFFFFu) return false;
-        for (int k = 0; k < 17; ++k)
-            if (static_cast<uchar>(payload[p + 5 + k]) != 0x00) return false;
-        const uint32_t nl = peekU32(payload, p + 0x16);
-        if (nl < 1 || nl > 200 || p + 0x1a + qsizetype(nl) > sz) return false;
-        return isText(payload.constData() + p + 0x1a,
-                      int(qMin<uint32_t>(nl, 8)));
+    static const QByteArray objectPrefix =
+        QByteArray::fromHex("00FFFFFFFF") + QByteArray(17, '\0');
+    auto fail = [&](uint32_t index, const QString &reason) {
+        if (warnings) {
+            warnings->append(KpImporter::tr(
+                "schema-750 object %1: %2").arg(index).arg(reason));
+        }
+        maps.clear();
     };
 
-    QVector<qsizetype> starts;
-    for (qsizetype p = 5; p + 0x1a < sz; ++p)
-        if (isObjectStart(p)) starts.append(p);
-
-    // Serialized string/reference: i32 marker; >=0 means that many inline text
-    // bytes follow, <0 is a reference/absent sentinel with no inline bytes.
-    auto walkString = [&](qsizetype pos) -> qsizetype {
-        if (pos + 4 > sz) return sz;
-        const int32_t m = static_cast<int32_t>(peekU32(payload, pos));
-        return (m >= 0 && pos + 4 + qsizetype(m) <= sz) ? pos + 4 + m : pos + 4;
-    };
-
-    maps.reserve(starts.size());
-    for (int idx = 0; idx < starts.size(); ++idx) {
-        const qsizetype s = starts[idx];
-        const qsizetype objEnd = (idx + 1 < starts.size()) ? starts[idx + 1] : sz;
-
-        const uint32_t nl = peekU32(payload, s + 0x16);
-        const QString name = decodeKpText(payload.mid(int(s + 0x1a), int(nl)));
-        if (name.isEmpty()) continue;
-
-        const qsizetype meta = s + 0x1a + qsizetype(nl) + 1;
-        if (meta + 0x27 > sz) continue;
-        const uint32_t kind     = peekU32(payload, meta + 0x0b);
-        const uint32_t elem     = peekU32(payload, meta + 0x17);
-        const uint32_t folderId = peekU32(payload, meta + 0x1f);
-        const uint32_t idLen    = peekU32(payload, meta + 0x23);
-        const qsizetype P = meta + 0x27 + qsizetype(idLen) + 1;
-        if (P + 124 > sz) continue;
-
-        const uint32_t cols = peekU32(payload, P + 116);
-        const uint32_t rows = peekU32(payload, P + 120);
-
-        // Deterministic address: identifier string, unit string, factor(f64),
-        // offset(f64), then [start][end][romBase] u32s.
-        qsizetype pos = P + 136;
-        pos = walkString(pos);      // optional identifier
-        pos = walkString(pos);      // engineering unit
-        const double factor = (pos + 8 <= sz) ? peekF64(payload, pos) : 0.0;
-        pos += 8;
-        const double offset = (pos + 8 <= sz) ? peekF64(payload, pos) : 0.0;
-        pos += 8;
-        uint32_t mapStart = 0, mapEnd = 0, romBase = 0;
-        if (pos + 12 <= sz) {
-            mapStart = peekU32(payload, pos);
-            mapEnd   = peekU32(payload, pos + 4);
-            romBase  = peekU32(payload, pos + 8);
+    qsizetype cursor = 5;
+    maps.reserve(int(mapCount));
+    for (uint32_t index = 0; index < mapCount; ++index) {
+        const qsizetype objectStart = cursor;
+        if (cursor + 27 > sz || payload.mid(int(cursor), objectPrefix.size()) != objectPrefix) {
+            fail(index, QStringLiteral("invalid object prefix"));
+            return maps;
+        }
+        const uint32_t nameLength = peekU32(payload, cursor + 22);
+        const qsizetype nameStart = cursor + 26;
+        const qsizetype nameEnd = nameStart + nameLength;
+        if (nameEnd >= sz
+            || payload.at(int(nameEnd)) != '\0') {
+            fail(index, QStringLiteral("invalid display name"));
+            return maps;
+        }
+        const QString name = decodeKpText(payload.mid(int(nameStart), int(nameLength)));
+        const qsizetype meta = nameEnd + 1;
+        if (meta + 40 > sz || payload.mid(int(meta), 11) != QByteArray(11, '\0')) {
+            fail(index, QStringLiteral("invalid metadata prefix"));
+            return maps;
+        }
+        const uint32_t kind = peekU32(payload, meta + 11);
+        const uint32_t constant2 = peekU32(payload, meta + 15);
+        const uint32_t subtype = peekU32(payload, meta + 19);
+        const uint32_t elementSize = peekU32(payload, meta + 23);
+        const uint32_t recordType = peekU32(payload, meta + 27);
+        const uint32_t folderId = peekU32(payload, meta + 31);
+        const uint32_t idLength = peekU32(payload, meta + 35);
+        const qsizetype idStart = meta + 39;
+        const qsizetype idEnd = idStart + idLength;
+        if ((kind != 2 && kind != 3 && kind != 4) || constant2 != 2
+            || (subtype != 1 && subtype != 3)
+            || (elementSize != 1 && elementSize != 2)
+            || recordType != 10
+            || idEnd >= sz || payload.at(int(idEnd)) != '\0') {
+            fail(index, QStringLiteral("unsupported schema-750 metadata record"));
+            return maps;
+        }
+        const QString technicalId = decodeKpText(payload.mid(int(idStart), int(idLength)));
+        const qsizetype fixed = idEnd + 1;
+        if (fixed + 136 > sz) {
+            fail(index, QStringLiteral("truncated fixed map descriptor"));
+            return maps;
+        }
+        const uint32_t columns = peekU32(payload, fixed + 116);
+        const uint32_t rows = peekU32(payload, fixed + 120);
+        if (columns == 0 || columns > 999 || rows == 0 || rows > 999) {
+            fail(index, QStringLiteral("invalid dimensions"));
+            return maps;
         }
 
-        const int ds = elem > 0 ? int(elem) : 1;
-        int dx = 1, dy = 1;
-        if (kind != 2) {
-            dx = (cols >= 1 && cols <= 4096) ? int(cols) : 1;
-            dy = (kind == 3) ? 1 : ((rows >= 1 && rows <= 4096) ? int(rows) : 1);
+        Kp750SerializedString identifier, unit;
+        if (!readSchema750String(payload, fixed + 136, sz, &identifier)
+            || !readSchema750String(payload, identifier.end, sz, &unit)) {
+            fail(index, QStringLiteral("invalid map string field"));
+            return maps;
+        }
+        const qsizetype values = unit.end;
+        const qsizetype addressField = values + 16;
+        const qsizetype axisXStart = addressField + 40;
+        if (axisXStart > sz) {
+            fail(index, QStringLiteral("truncated map value block"));
+            return maps;
+        }
+        const double factor = peekF64(payload, values);
+        const double offset = peekF64(payload, values + 8);
+        const uint32_t mapStart = peekU32(payload, addressField);
+        const uint32_t mapEnd = peekU32(payload, addressField + 4);
+        const uint32_t mapBase = peekU32(payload, addressField + 8);
+        Kp750AxisBlock axisX, axisY;
+        if (!parseSchema750AxisBlock(payload, axisXStart, sz, &axisX)
+            || !parseSchema750AxisBlock(payload, axisX.nextAxis, sz, &axisY)) {
+            fail(index, QStringLiteral("invalid axis descriptor"));
+            return maps;
+        }
+        const qsizetype tailStart = axisY.tailStart;
+        const qsizetype objectEnd = tailStart + 142;
+        if (objectEnd > sz
+            || peekU32(payload, tailStart) != columns
+            || peekU32(payload, tailStart + 4) != rows) {
+            fail(index, QStringLiteral("invalid fixed object tail"));
+            return maps;
         }
 
-        MapInfo m;
-        m.name           = name;
-        m.description    = name;
-        m.dataSize       = ds;
-        m.dimensions     = { dx, dy };
-        m.type           = typeFromKpKind(kind, dx, dy);
-        m.linkConfidence = 100;
-        // Schema-750 packed value spans are row-major (X changes fastest).
-        m.columnMajor    = false;
-
-        if (idLen >= 1 && idLen <= 200 && meta + 0x27 + qsizetype(idLen) <= sz) {
-            const QByteArray idb = payload.mid(int(meta + 0x27), int(idLen));
-            if (isText(idb.constData(), idb.size())) {
-                const QString id = decodeKpText(idb);
-                if (!id.isEmpty()) m.setSideProp(QStringLiteral("kpIdName"), id);
-            }
-        }
-        if (!folderPaths.isEmpty()) {
-            const QString fp = folderPaths.value(folderId);
-            if (!fp.isEmpty()) m.folderPath = fp;
-        }
-
-        // Trust the address only when the self-check holds; the lone object
-        // without one keeps address 0 (it still imports, like WinOLS shows it).
-        const bool sizeOk = mapEnd > mapStart
-            && uint64_t(mapEnd - mapStart)
-                   == uint64_t(dx) * uint64_t(dy) * uint64_t(ds);
+        const int dx = kind == 2 ? 1 : int(columns);
+        const int dy = kind == 3 ? 1 : (kind == 2 ? 1 : int(rows));
+        const uint64_t logicalLength = uint64_t(dx) * uint64_t(dy) * elementSize;
+        const bool positiveSpan = mapEnd > mapStart
+            && uint64_t(mapEnd - mapStart) == logicalLength;
         const bool zeroSpan = mapStart != 0 && mapEnd == mapStart;
-        uint32_t fileOffset = 0;
-        if (sizeOk && normalizeKpAddress(mapStart, mapEnd, romBase,
-                                         baseAddress, romSize, &fileOffset)) {
-            m.rawAddress = (baseAddress != 0 && fileOffset == mapStart)
-                ? baseAddress + fileOffset : mapStart;
-            m.address          = fileOffset;
-            m.olsUniversalBase = romBase;
-            m.length           = int(mapEnd - mapStart);
-        } else if (zeroSpan && normalizeKpAxisAddress(
-                       mapStart, qMax(1, dx * dy), ds,
-                       baseAddress, romSize, &fileOffset)) {
-            // KpMapObjectCodec's packed relocation vector still carries the
-            // logical cell for this explicit zero-range scalar.
-            m.rawAddress = (baseAddress != 0 && fileOffset == mapStart)
-                ? baseAddress + fileOffset : mapStart;
-            m.address          = fileOffset;
-            m.olsUniversalBase = romBase;
-            m.length           = qMax(1, dx * dy * ds);
-        } else {
-            m.address = 0;
-            m.rawAddress = 0;
-            m.length = qMax(1, dx * dy * ds);
+        if (!positiveSpan && !zeroSpan) {
+            fail(index, QStringLiteral("map range does not match descriptor"));
+            return maps;
         }
 
-        if (std::isfinite(factor) && std::abs(factor) < 1e12
-            && std::isfinite(offset) && std::abs(offset) < 1e12
-            && ((factor != 0.0 && factor != 1.0) || offset != 0.0)) {
-            m.hasScaling   = true;
-            m.scaling.type = CompuMethod::Type::Linear;
-            m.scaling.linA = factor;
-            m.scaling.linB = offset;
-            // The last u32 of the fixed main header is the map's displayed
-            // decimal precision.  It is distinct from the X/Y fields stored
-            // in the respective axis blocks.
-            const uint32_t precision = peekU32(payload, P + 132);
+        MapInfo map;
+        map.name = name;
+        map.description = name;
+        map.type = typeFromKpKind(kind, dx, dy);
+        map.dataSize = int(elementSize);
+        map.dimensions = { dx, dy };
+        map.linkConfidence = 100;
+        map.columnMajor = false;
+        map.olsUniversalBase = mapBase;
+        map.dataSigned = payload.at(int(fixed + 113)) != 0;
+        map.length = positiveSpan ? int(mapEnd - mapStart) : int(logicalLength);
+        map.setSideProp(QStringLiteral("kpSchemaVersion"), 750);
+        map.setSideProp(QStringLiteral("kpKind"), kind);
+        map.setSideProp(QStringLiteral("kpSubtype"), subtype);
+        map.setSideProp(QStringLiteral("kpRecordType"), recordType);
+        map.setSideProp(QStringLiteral("kpTechnicalId"), technicalId);
+        map.setSideProp(QStringLiteral("kpMapIdentifier"), identifier.text);
+        map.setSideProp(QStringLiteral("kpUnit"), unit.text);
+        map.setSideProp(QStringLiteral("kpMapFactor"), factor);
+        map.setSideProp(QStringLiteral("kpMapOffset"), offset);
+        map.setSideProp(QStringLiteral("kpMapPrecisionRaw"), peekU32(payload, fixed + 132));
+        map.setSideProp(QStringLiteral("kpSerializedTail"),
+                        payload.mid(int(tailStart), int(objectEnd - tailStart)));
+        map.setSideProp(QStringLiteral("kpSerializedRecord"),
+                        payload.mid(int(objectStart), int(objectEnd - objectStart)));
+        if (!technicalId.isEmpty())
+            map.setSideProp(QStringLiteral("kpIdName"), technicalId);
+        if (!folderPaths.isEmpty())
+            map.folderPath = folderPaths.value(folderId);
+
+        if (std::isfinite(factor) && std::isfinite(offset)) {
+            map.scaling.type = CompuMethod::Type::Linear;
+            map.scaling.linA = factor;
+            map.scaling.linB = offset;
+            map.hasScaling = (factor != 1.0 || offset != 0.0);
+            const uint32_t precision = peekU32(payload, fixed + 132);
             if (precision <= 6)
-                m.scaling.format = QStringLiteral("1.%1f").arg(precision);
+                map.scaling.format = QStringLiteral("1.%1f").arg(precision);
         }
 
-        // KpMapObjectCodec serializes map flags directly before [columns]
-        // [rows]. The second byte is the signed-cell flag (model +0x105).
-        // It is independent of the displayed value range and must not be
-        // inferred from the payload values.
-        m.dataSigned = payload.at(int(P + 113)) != 0;
-
-        // Axis sub-blocks (X = columns, then Y = rows) via the shared parser.
-        // See the compact-layout path above: map display addresses and KP axis
-        // addresses need independent normalisation when the project has a base.
-        if (kind != 2 && sizeOk) {
-            const QByteArray record = payload.mid(int(meta), int(objEnd - meta));
-            const qsizetype addrOffInRec = pos - meta;   // offset of mapStart
-            const QVector<Kp750Axis> axes =
-                parseSchema750Axes(record, addrOffInRec + 12);
-            auto fillAxis = [&](AxisInfo &dst, const Kp750Axis &src, int count) {
-                dst.inputName = src.unit.isEmpty()
-                    ? src.name
-                    : QStringLiteral("%1 [%2]").arg(src.name, src.unit);
-                if (src.hasFactor) {
-                    dst.hasScaling   = true;
-                    dst.scaling.type = CompuMethod::Type::Linear;
-                    dst.scaling.linA = src.factor;
-                    dst.scaling.linB = src.offset;
-                    if (src.precision >= 0)
-                        dst.scaling.format = QStringLiteral("1.%1f").arg(src.precision);
-                }
-                dst.ptsDataSize = src.dataSize;
-                dst.ptsDataType = src.dataType;
-                dst.ptsBigEndian = false;
-                dst.ptsSigned   = src.pointsSigned;
-                dst.ptsCount    = count;
-                uint32_t fileOff = 0;
-                if (normalizeKpAxisAddress(src.rawAddr, count, src.dataSize,
-                                           baseAddress, romSize, &fileOff)) {
-                    dst.ptsAddress    = fileOff;
-                    dst.hasPtsAddress = true;
-                }
-            };
-            if (axes.size() >= 1)
-                fillAxis(m.xAxis, axes[0], m.dimensions.x);
-            if (axes.size() >= 2 && m.dimensions.y > 1)
-                fillAxis(m.yAxis, axes[1], m.dimensions.y);
+        uint32_t fileOffset = 0;
+        if (positiveSpan && normalizeKpAddress(mapStart, mapEnd, mapBase,
+                                                baseAddress, romSize, &fileOffset)) {
+            map.rawAddress = (baseAddress != 0 && fileOffset == mapStart)
+                ? baseAddress + fileOffset : mapStart;
+            map.address = fileOffset;
+        } else if (zeroSpan && normalizeKpAxisAddress(mapStart, dx * dy,
+                                                        int(elementSize), baseAddress,
+                                                        romSize, &fileOffset)) {
+            map.rawAddress = (baseAddress != 0 && fileOffset == mapStart)
+                ? baseAddress + fileOffset : mapStart;
+            map.address = fileOffset;
         }
 
-        maps.append(m);
+        auto fillAxis = [&](AxisInfo &destination, const Kp750AxisBlock &source,
+                            int pointCount, const QString &prefix) {
+            const Kp750Axis &axis = source.descriptor;
+            destination.inputName = axis.unit.isEmpty()
+                ? axis.name : QStringLiteral("%1 [%2]").arg(axis.name, axis.unit);
+            destination.scaling.type = CompuMethod::Type::Linear;
+            destination.scaling.linA = axis.factor;
+            destination.scaling.linB = axis.offset;
+            destination.hasScaling = std::isfinite(axis.factor)
+                && std::isfinite(axis.offset)
+                && (axis.factor != 1.0 || axis.offset != 0.0);
+            if (axis.precision >= 0 && axis.precision <= 6)
+                destination.scaling.format = QStringLiteral("1.%1f").arg(axis.precision);
+            destination.ptsDataSize = axis.dataSize;
+            destination.ptsDataType = axis.dataType;
+            destination.ptsBigEndian = false;
+            destination.ptsSigned = axis.pointsSigned;
+            destination.ptsCount = pointCount;
+            map.setSideProp(prefix + QStringLiteral("Identifier"), source.identifier.text);
+            map.setSideProp(prefix + QStringLiteral("InlineData"), source.inlineData);
+            map.setSideProp(prefix + QStringLiteral("InlineCount"), source.inlineCount);
+            map.setSideProp(prefix + QStringLiteral("PrecisionRaw"), axis.precision);
+            uint32_t pointOffset = 0;
+            if (axis.rawAddr != 0
+                && normalizeKpAxisAddress(axis.rawAddr, pointCount, axis.dataSize,
+                                          baseAddress, romSize, &pointOffset)) {
+                destination.ptsAddress = pointOffset;
+                destination.hasPtsAddress = true;
+            }
+        };
+        if (kind != 2)
+            fillAxis(map.xAxis, axisX, dx, QStringLiteral("kpXAxis"));
+        if (kind == 4)
+            fillAxis(map.yAxis, axisY, dy, QStringLiteral("kpYAxis"));
+
+        maps.append(map);
+        cursor = objectEnd;
     }
-
-    if (warnings && maps.size() != int(mapCount))
-        warnings->append(KpImporter::tr(
-            "schema-750 deterministic walk: map_count %1, decoded %2 objects")
-                .arg(mapCount).arg(maps.size()));
+    if (cursor != sz) {
+        if (warnings) {
+            warnings->append(KpImporter::tr(
+                "schema-750 objects end at 0x%1, intern ends at 0x%2")
+                    .arg(cursor, 0, 16).arg(sz, 0, 16));
+        }
+        maps.clear();
+    }
     return maps;
 }
 
@@ -1216,58 +765,66 @@ bool KpImporter::extractInternEntry(const QByteArray &fileData,
                                      QByteArray &compressed,
                                      uint32_t &uncompressedSize,
                                      uint16_t &method,
+                                     uint32_t &expectedCrc,
+                                     qsizetype &archiveEnd,
                                      QString &err)
 {
     static const char pkSig[] = { 'P', 'K', '\x03', '\x04' };
-    int lfhOff = -1;
-    for (qsizetype i = 0; i + 4 <= fileData.size(); ++i) {
-        if (std::memcmp(fileData.constData() + i, pkSig, 4) == 0) {
-            lfhOff = static_cast<int>(i);
+    static const char eocdSig[] = { 'P', 'K', '\x05', '\x06' };
+    for (qsizetype localHeader = 0; localHeader + 30 <= fileData.size(); ) {
+        const int found = fileData.indexOf(QByteArray(pkSig, 4), localHeader);
+        if (found < 0)
             break;
+        localHeader = found;
+        const auto *h = reinterpret_cast<const uchar *>(fileData.constData() + localHeader);
+        const uint16_t entryMethod = qFromLittleEndian<uint16_t>(h + 8);
+        const uint32_t entryCrc = qFromLittleEndian<uint32_t>(h + 14);
+        const uint32_t csize = qFromLittleEndian<uint32_t>(h + 18);
+        const uint32_t usize = qFromLittleEndian<uint32_t>(h + 22);
+        const uint16_t fnLen = qFromLittleEndian<uint16_t>(h + 26);
+        const uint16_t extraLen = qFromLittleEndian<uint16_t>(h + 28);
+        const qsizetype fnStart = localHeader + 30;
+        const qsizetype dataStart = fnStart + fnLen + extraLen;
+        const qsizetype dataEnd = dataStart + qsizetype(csize);
+        if (fnStart + fnLen > fileData.size() || dataEnd > fileData.size()) {
+            ++localHeader;
+            continue;
         }
-    }
-    if (lfhOff < 0) {
-        err = KpImporter::tr("No PKZIP local file header (PK\\x03\\x04) found");
-        return false;
-    }
+        if (QString::fromLatin1(fileData.constData() + fnStart, fnLen)
+            != QStringLiteral("intern")) {
+            ++localHeader;
+            continue;
+        }
 
-    if (lfhOff + 30 > fileData.size()) {
-        err = KpImporter::tr("Truncated ZIP local file header");
-        return false;
+        // Validate the embedded ZIP through its EOCD and central-directory
+        // relation. This identifies the folder-table boundary exactly instead
+        // of finding a later sentinel that merely looks like one.
+        for (qsizetype eocd = dataEnd; eocd + 22 <= fileData.size(); ) {
+            const int eocdFound = fileData.indexOf(QByteArray(eocdSig, 4), eocd);
+            if (eocdFound < 0)
+                break;
+            eocd = eocdFound;
+            const uint16_t commentLength = qFromLittleEndian<uint16_t>(
+                reinterpret_cast<const uchar *>(fileData.constData() + eocd + 20));
+            const qsizetype end = eocd + 22 + commentLength;
+            if (end <= fileData.size()) {
+                const uint32_t directorySize = peekU32(fileData, eocd + 12);
+                const uint32_t directoryOffset = peekU32(fileData, eocd + 16);
+                if (localHeader + qsizetype(directoryOffset) + directorySize == eocd) {
+                    compressed = fileData.mid(int(dataStart), int(csize));
+                    uncompressedSize = usize;
+                    method = entryMethod;
+                    expectedCrc = entryCrc;
+                    archiveEnd = end;
+                    return true;
+                }
+            }
+            ++eocd;
+        }
+        ++localHeader;
     }
-
-    const auto *h = reinterpret_cast<const uchar *>(
-        fileData.constData() + lfhOff);
-
-    method = qFromLittleEndian<uint16_t>(h + 8);
-    uint32_t csize = qFromLittleEndian<uint32_t>(h + 18);
-    uncompressedSize = qFromLittleEndian<uint32_t>(h + 22);
-    uint16_t fnLen = qFromLittleEndian<uint16_t>(h + 26);
-    uint16_t extraLen = qFromLittleEndian<uint16_t>(h + 28);
-
-    qsizetype fnStart = lfhOff + 30;
-    if (fnStart + fnLen > fileData.size()) {
-        err = KpImporter::tr("Truncated ZIP filename");
-        return false;
-    }
-    QString filename = QString::fromLatin1(
-        fileData.constData() + fnStart, fnLen);
-    if (filename != QStringLiteral("intern")) {
-    }
-
-    qsizetype dataStart = fnStart + fnLen + extraLen;
-    if (dataStart + static_cast<qsizetype>(csize) > fileData.size()) {
-        err = KpImporter::tr("ZIP compressed data extends beyond file end "
-                             "(offset 0x%1, size %2, file %3)")
-                  .arg(dataStart, 0, 16)
-                  .arg(csize)
-                  .arg(fileData.size());
-        return false;
-    }
-
-    compressed = fileData.mid(static_cast<int>(dataStart),
-                               static_cast<int>(csize));
-    return true;
+    err = KpImporter::tr("No validated embedded ZIP entry named 'intern' found");
+    return false;
 }
 
 
@@ -1307,10 +864,12 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
     QByteArray compressed;
     uint32_t uncompressedSize = 0;
     uint16_t method = 0;
+    uint32_t expectedCrc = 0;
+    qsizetype archiveEnd = 0;
     QString extractErr;
 
     if (!extractInternEntry(fileData, compressed, uncompressedSize,
-                            method, extractErr)) {
+                            method, expectedCrc, archiveEnd, extractErr)) {
         result.error = extractErr;
         return result;
     }
@@ -1335,23 +894,33 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
     }
 
     if (static_cast<uint32_t>(intern.size()) != uncompressedSize) {
-        result.warnings.append(
-            KpImporter::tr("Decompressed size %1 != declared %2")
-                .arg(intern.size())
-                .arg(uncompressedSize));
+        result.error = KpImporter::tr("Decompressed intern size %1 != declared %2")
+                           .arg(intern.size()).arg(uncompressedSize);
+        return result;
+    }
+    const uint32_t actualCrc = ::crc32(
+        0L, reinterpret_cast<const Bytef *>(intern.constData()), uInt(intern.size()));
+    if (actualCrc != expectedCrc) {
+        result.error = KpImporter::tr("Intern CRC-32 0x%1 != declared 0x%2")
+                           .arg(actualCrc, 8, 16, QLatin1Char('0'))
+                           .arg(expectedCrc, 8, 16, QLatin1Char('0'));
+        return result;
     }
 
     // Folder tree lives in the trailing metadata (after the ZIP), not in
     // `intern` — parse it so maps can be grouped like WinOLS shows them.
     const QHash<uint32_t, KpFolder> folders =
-        parseKpFolderTable(fileData, &result.warnings);
+        parseKpFolderTable(fileData, archiveEnd, result.formatVersion, &result.warnings);
     const QHash<uint32_t, QString> folderPaths = resolveKpFolderPaths(folders);
 
-    // OLS 5.x (schema >= 700): use only the schema-specific object walk.
-    // Do not substitute the legacy recovery parser: it can produce plausible
-    // but wrong maps when the schema has not been fully characterized.
+    // Select a codec by its exact native serialization version. Adjacent
+    // WinOLS versions add gated fields, so treating an arbitrary newer stream
+    // as schema 750 can move every following field while still producing
+    // plausible-looking maps. A version without a traced codec is rejected;
+    // it must never fall back to a scanner.
     const uint32_t internMapCount = intern.size() >= 5 ? peekU32(intern, 1) : 0;
-    if (result.formatVersion >= 700) {
+    switch (result.formatVersion) {
+    case 750:
         result.maps = parseSchema750Deterministic(intern, baseAddress, romSize,
                                                   folderPaths, &result.warnings);
         if (internMapCount > 0 && result.maps.size() != int(internMapCount)) {
@@ -1361,14 +930,17 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
                 .arg(result.maps.size()).arg(internMapCount);
             return result;
         }
-    } else {
-        result.maps = parseKpIntern(intern, baseAddress, romSize,
-                                    folderPaths, &result.warnings);
-    }
-    result.mapCount = static_cast<uint32_t>(result.maps.size());
-    if (result.formatVersion >= 700)
         attachSchema750CarriedData(fileData, &result.maps, &result.carriedData,
                                    &result.warnings);
+        break;
+    default:
+        result.error = KpImporter::tr(
+            "Unsupported KP schema %1: no deterministic native codec is "
+            "implemented for this version")
+            .arg(result.formatVersion);
+        return result;
+    }
+    result.mapCount = static_cast<uint32_t>(result.maps.size());
 
     return result;
 }

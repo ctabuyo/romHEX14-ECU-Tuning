@@ -530,7 +530,6 @@ private:
     // WinOLS-style numeric value search across the active ROM.
     void actFindValue();
     void actExportXdf();
-    void actExportKp();
     void runBulkEdit(const QVector<MapInfo> &maps);
     void runFindSimilar(const MapInfo &reference);
     struct AnnoCtx {
