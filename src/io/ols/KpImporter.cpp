@@ -518,6 +518,7 @@ MapDimensions dimensionsFromLegacyRecord(const QByteArray &record,
 struct Kp750Axis {
     uint32_t rawAddr = 0;
     int      dataSize = 2;
+    int      precision = -1;
     QString  name;
     QString  unit;
     double   factor = 0.0;
@@ -561,10 +562,18 @@ QVector<Kp750Axis> parseSchema750Axes(const QByteArray &record, qsizetype start)
             const uint32_t ds   = peekU32(record, q + 12);
             const uint32_t mark = peekU32(record, q + 16);
             if (addr >= 0x1000 && addr < 0x10000000 && mark == 0x0A
-                && (f3 == 1 || f3 == 3) && (ds == 1 || ds == 2 || ds == 4)) {
+                && (f3 == 1 || f3 == 3 || f3 == 5 || f3 == 7)
+                && (ds == 1 || ds == 2 || ds == 4)) {
                 Kp750Axis ax;
                 ax.rawAddr  = addr;
                 ax.dataSize = int(ds);
+                // The axis display precision is an unaligned u32 in the
+                // otherwise undocumented 31-byte area following the anchor.
+                // Correlated against WinOLS: 3 / 1 gives X / Y labels such
+                // as 1.600 and 45.0 for the compressor-efficiency map.
+                const uint32_t precision = peekU32(record, q + 34);
+                if (precision <= 6)
+                    ax.precision = int(precision);
 
                 // Strings between the previous sub-block and this anchor:
                 // first is the axis name, second (if any) the unit.
@@ -948,7 +957,7 @@ QVector<MapInfo> parseKpIntern(const QByteArray &payload,
             };
             if (axes.size() >= 1)
                 fillAxis(m.xAxis, axes[0], m.dimensions.x);
-            if (axes.size() >= 2 && m.dimensions.y > 1)
+            if (axes.size() >= 2)
                 fillAxis(m.yAxis, axes[1], m.dimensions.y);
         }
 
@@ -1145,7 +1154,7 @@ QVector<MapInfo> parseSchema750Deterministic(
             };
             if (axes.size() >= 1)
                 fillAxis(m.xAxis, axes[0], m.dimensions.x);
-            if (axes.size() >= 2 && m.dimensions.y > 1)
+            if (axes.size() >= 2)
                 fillAxis(m.yAxis, axes[1], m.dimensions.y);
         }
 
