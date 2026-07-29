@@ -40,6 +40,15 @@ int main(int argc, char **argv)
     ok &= require(result.error.isEmpty(), "primary fixture rejected");
     ok &= require(result.formatVersion == 750, "wrong schema version");
     ok &= require(result.maps.size() == 332, "wrong primary map count");
+    ok &= require(result.outerEnvelope.size() == 0x42e,
+                  "wrong outer-envelope boundary");
+    ok &= require(result.trailingMetadata.size() == 0x1c432,
+                  "wrong trailing-metadata boundary");
+    ok &= require(result.folders.size() == 30, "wrong schema-750 folder count");
+    if (!result.folders.isEmpty()) {
+        ok &= require(!result.folders.constFirst().serializedRecord.isEmpty(),
+                      "folder record was not retained");
+    }
     ok &= require(result.carriedData.size() == 0xFC65, "wrong carried-data length");
     ok &= require(result.carriedData.left(16).toHex()
                       == QByteArrayLiteral("0005ffff0082000a0032003200328025"),

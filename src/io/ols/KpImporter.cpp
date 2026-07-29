@@ -425,6 +425,7 @@ struct KpFolder {
 QHash<uint32_t, KpFolder> parseKpFolderTable(const QByteArray &fileData,
                                              qsizetype archiveEnd,
                                              uint32_t formatVersion,
+                                             QVector<KpFolderRecord> *records,
                                              QStringList *warnings)
 {
     QHash<uint32_t, KpFolder> folders;
@@ -444,6 +445,7 @@ QHash<uint32_t, KpFolder> parseKpFolderTable(const QByteArray &fileData,
 
     qsizetype cursor = archiveEnd + 16;
     for (uint32_t index = 0; index < count; ++index) {
+        const qsizetype recordStart = cursor;
         if (cursor + 12 > fileData.size()) {
             folders.clear();
             break;
@@ -478,6 +480,8 @@ QHash<uint32_t, KpFolder> parseKpFolderTable(const QByteArray &fileData,
             folders.clear();
             break;
         }
+        const bool flag131 = fileData.at(int(cursor)) != 0;
+        Q_UNUSED(flag131);
         cursor += 10; // bool, enum32, enum32, u8
         const int32_t auxiliaryStringLength = peekI32(fileData, cursor);
         cursor += 4;
@@ -492,11 +496,43 @@ QHash<uint32_t, KpFolder> parseKpFolderTable(const QByteArray &fileData,
             folders.clear();
             break;
         }
+        const bool flag291 = fileData.at(int(cursor)) != 0;
+        const bool flag302a = fileData.at(int(cursor + 1)) != 0;
+        const bool flag302b = fileData.at(int(cursor + 2)) != 0;
+        const int32_t value302a = peekI32(fileData, cursor + 3);
+        const int32_t value302b = peekI32(fileData, cursor + 7);
+        const int32_t value750 = peekI32(fileData, cursor + 11);
         cursor += 15;
         folders.insert(id, { parent, name });
+        if (records) {
+            KpFolderRecord record;
+            record.id = id;
+            record.parentId = parent;
+            record.name = name;
+            record.byteVector = fileData.mid(int(recordStart + 12 + nameLength + 17),
+                                             int(variantLength));
+            record.auxiliaryStringMarker = auxiliaryStringLength;
+            if (auxiliaryStringLength >= 0) {
+                const qsizetype auxiliaryStart = recordStart + 12 + nameLength + 17
+                    + variantLength + 10 + 4;
+                record.auxiliaryString = decodeKpText(fileData.mid(
+                    int(auxiliaryStart), auxiliaryStringLength));
+            }
+            record.flag291 = flag291;
+            record.flag302a = flag302a;
+            record.flag302b = flag302b;
+            record.value302a = value302a;
+            record.value302b = value302b;
+            record.value750 = value750;
+            record.serializedRecord = fileData.mid(int(recordStart),
+                                                   int(cursor - recordStart));
+            records->append(record);
+        }
     }
     if (folders.size() != int(count) && warnings)
         warnings->append(KpImporter::tr("schema-750 folder table is incomplete"));
+    if (folders.size() != int(count) && records)
+        records->clear();
     return folders;
 }
 
@@ -766,6 +802,7 @@ bool KpImporter::extractInternEntry(const QByteArray &fileData,
                                      uint32_t &uncompressedSize,
                                      uint16_t &method,
                                      uint32_t &expectedCrc,
+                                     qsizetype &archiveStart,
                                      qsizetype &archiveEnd,
                                      QString &err)
 {
@@ -815,6 +852,7 @@ bool KpImporter::extractInternEntry(const QByteArray &fileData,
                     uncompressedSize = usize;
                     method = entryMethod;
                     expectedCrc = entryCrc;
+                    archiveStart = localHeader;
                     archiveEnd = end;
                     return true;
                 }
@@ -865,14 +903,18 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
     uint32_t uncompressedSize = 0;
     uint16_t method = 0;
     uint32_t expectedCrc = 0;
+    qsizetype archiveStart = 0;
     qsizetype archiveEnd = 0;
     QString extractErr;
 
     if (!extractInternEntry(fileData, compressed, uncompressedSize,
-                            method, expectedCrc, archiveEnd, extractErr)) {
+                            method, expectedCrc, archiveStart, archiveEnd, extractErr)) {
         result.error = extractErr;
         return result;
     }
+
+    result.outerEnvelope = fileData.left(int(archiveStart));
+    result.trailingMetadata = fileData.mid(int(archiveEnd));
 
     QByteArray intern;
     if (method == 8) {
@@ -910,7 +952,8 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
     // Folder tree lives in the trailing metadata (after the ZIP), not in
     // `intern` — parse it so maps can be grouped like WinOLS shows them.
     const QHash<uint32_t, KpFolder> folders =
-        parseKpFolderTable(fileData, archiveEnd, result.formatVersion, &result.warnings);
+        parseKpFolderTable(fileData, archiveEnd, result.formatVersion,
+                           &result.folders, &result.warnings);
     const QHash<uint32_t, QString> folderPaths = resolveKpFolderPaths(folders);
 
     // Select a codec by its exact native serialization version. Adjacent
