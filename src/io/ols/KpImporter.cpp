@@ -282,6 +282,130 @@ bool normalizeKpAxisAddress(uint32_t raw, int count, int dataSize,
     return false;
 }
 
+// Schema-750 stores a single packed byte stream after a 0x98728833 sentinel
+// in the outer KP file. Each map contributes its value bytes, followed by its
+// X-axis bytes and then its Y-axis bytes when those axes are address-backed.
+// Preserve offsets on the parsed maps; the caller can then honour the dialog's
+// map selection and address relocation while applying values safely.
+bool attachSchema750CarriedData(const QByteArray &fileData,
+                                QVector<MapInfo> *maps,
+                                QByteArray *carriedData,
+                                QStringList *warnings)
+{
+    if (!maps || !carriedData || maps->isEmpty()) return false;
+
+    struct Span { int value = 0, x = 0, y = 0; };
+    QVector<Span> spans;
+    spans.reserve(maps->size());
+    qsizetype total = 0;
+    for (const MapInfo &map : *maps) {
+        Span span;
+        // One observed schema-750 scalar deliberately carries an empty
+        // address span. The structural importer represents it as a 1-byte
+        // fallback map so it remains visible in the tree, but it contributes
+        // no bytes to the packed value stream.
+        span.value = map.rawAddress == 0 ? 0 : qMax(0, map.length);
+        if (map.xAxis.hasPtsAddress)
+            span.x = qMax(0, map.dimensions.x) * qMax(0, map.xAxis.ptsDataSize);
+        if (map.yAxis.hasPtsAddress)
+            span.y = qMax(0, map.dimensions.y) * qMax(0, map.yAxis.ptsDataSize);
+        total += qsizetype(span.value) + span.x + span.y;
+        spans.append(span);
+    }
+    if (total <= 0 || total > fileData.size()) return false;
+
+    static const QByteArray sentinel = QByteArray::fromHex("33887298");
+    qsizetype payloadStart = -1;
+    for (qsizetype at = fileData.indexOf(sentinel); at >= 0;
+         at = fileData.indexOf(sentinel, at + 1)) {
+        const qsizetype candidate = at + sentinel.size();
+        // The validated schema-750 payload is the complete trailing block.
+        // Require this exact boundary so an accidental sentinel never results
+        // in writes to the target project.
+        if (candidate + total == fileData.size()) {
+            payloadStart = candidate;
+            break;
+        }
+    }
+    if (payloadStart < 0) {
+        if (warnings) warnings->append(KpImporter::tr(
+            "Schema-750 map-value payload was not found; importing structure only"));
+        return false;
+    }
+
+    *carriedData = fileData.mid(payloadStart, total);
+    auto isMonotonic = [](const QVector<qint64> &values) {
+        bool ascending = true, descending = true;
+        for (int i = 1; i < values.size(); ++i) {
+            ascending  = ascending  && values[i] >= values[i - 1];
+            descending = descending && values[i] <= values[i - 1];
+        }
+        return ascending || descending;
+    };
+    auto inferSignedAxis = [&](AxisInfo &axis, int count, qsizetype source) {
+        if (!axis.hasPtsAddress || count < 2
+            || (axis.ptsDataSize != 1 && axis.ptsDataSize != 2
+                && axis.ptsDataSize != 4)
+            || source < 0
+            || source + qsizetype(count) * axis.ptsDataSize > carriedData->size())
+            return;
+
+        QVector<qint64> unsignedValues, signedValues;
+        unsignedValues.reserve(count);
+        signedValues.reserve(count);
+        bool hasSignBit = false;
+        const auto *bytes = reinterpret_cast<const uchar *>(carriedData->constData());
+        for (int i = 0; i < count; ++i) {
+            const auto *p = bytes + source + i * axis.ptsDataSize;
+            switch (axis.ptsDataSize) {
+            case 1: {
+                const uint8_t raw = p[0];
+                hasSignBit = hasSignBit || (raw & 0x80);
+                unsignedValues.append(raw);
+                signedValues.append(int8_t(raw));
+                break;
+            }
+            case 2: {
+                const uint16_t raw = qFromLittleEndian<uint16_t>(p);
+                hasSignBit = hasSignBit || (raw & 0x8000);
+                unsignedValues.append(raw);
+                signedValues.append(int16_t(raw));
+                break;
+            }
+            case 4: {
+                const uint32_t raw = qFromLittleEndian<uint32_t>(p);
+                hasSignBit = hasSignBit || (raw & 0x80000000u);
+                unsignedValues.append(raw);
+                signedValues.append(int32_t(raw));
+                break;
+            }
+            }
+        }
+        // Infer signedness only when it resolves an unsigned wrap into a
+        // monotonic breakpoint axis. This is deliberately conservative: axes
+        // already monotonic as unsigned are left exactly as serialized.
+        if (hasSignBit && isMonotonic(signedValues) && !isMonotonic(unsignedValues))
+            axis.ptsSigned = true;
+    };
+    qsizetype offset = 0;
+    for (int i = 0; i < maps->size(); ++i) {
+        MapInfo &map = (*maps)[i];
+        const Span &span = spans[i];
+        map.setSideProp(QStringLiteral("kpValueOffset"), uint(offset));
+        map.setSideProp(QStringLiteral("kpValueLength"), span.value);
+        offset += span.value;
+        map.setSideProp(QStringLiteral("kpXAxisOffset"), uint(offset));
+        map.setSideProp(QStringLiteral("kpXAxisLength"), span.x);
+        inferSignedAxis(map.xAxis, map.dimensions.x, offset);
+        offset += span.x;
+        map.setSideProp(QStringLiteral("kpYAxisOffset"), uint(offset));
+        map.setSideProp(QStringLiteral("kpYAxisLength"), span.y);
+        inferSignedAxis(map.yAxis, map.dimensions.y, offset);
+        offset += span.y;
+    }
+    return true;
+}
+
 bool hasRepeatedAddress(const QByteArray &record, qsizetype off, uint32_t raw)
 {
     const qsizetype end = qMin(record.size() - 4, off + 64);
@@ -1193,6 +1317,9 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
                                     folderPaths, &result.warnings);
     }
     result.mapCount = static_cast<uint32_t>(result.maps.size());
+    if (result.formatVersion >= 700)
+        attachSchema750CarriedData(fileData, &result.maps, &result.carriedData,
+                                   &result.warnings);
 
     return result;
 }

@@ -55,6 +55,7 @@ public:
                          const QByteArray &romData,
                          QWidget *parent = nullptr);
     QVector<MapInfo> selectedMaps() const;
+    bool importMapValues() const;
 
 protected:
     void closeEvent(QCloseEvent *event) override;

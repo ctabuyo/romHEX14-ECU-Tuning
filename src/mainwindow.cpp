@@ -4254,6 +4254,8 @@ void MainWindow::actImportKP(const QString &droppedPath)
     if (reviewDlg.exec() != QDialog::Accepted)
         return;                              // user cancelled — nothing added
     const QVector<MapInfo> chosenMaps = reviewDlg.selectedMaps();
+    const bool importValues = reviewDlg.importMapValues()
+        && !result.carriedData.isEmpty();
     if (chosenMaps.isEmpty()) {
         statusBar()->showMessage(tr("Import KP: no maps selected."), 4000);
         return;
@@ -4266,19 +4268,78 @@ void MainWindow::actImportKP(const QString &droppedPath)
     for (const auto &m : proj->maps)
         existing.insert({m.name, m.address});
 
-    int added = 0, skipped = 0;
+    int added = 0, skipped = 0, valueRanges = 0;
+    bool existingMetadataUpdated = false;
+    auto transferRange = [&](uint32_t destination, uint32_t source, int length) {
+        if (length <= 0
+            || uint64_t(destination) + uint64_t(length) > uint64_t(proj->currentData.size())
+            || uint64_t(source) + uint64_t(length) > uint64_t(result.carriedData.size()))
+            return false;
+        std::memcpy(proj->currentData.data() + destination,
+                    result.carriedData.constData() + source, size_t(length));
+        ++valueRanges;
+        return true;
+    };
     // Keep every parser-provided field intact here.  In particular, KP folder
     // paths and axis point addresses are consumed by the project tree and map
     // overlay respectively; deriving replacement groups or map records loses
     // that schema-750 metadata.
     for (const auto &m : chosenMaps) {
-        if (existing.contains({m.name, m.address})) { ++skipped; continue; }
+        const bool duplicate = existing.contains({m.name, m.address});
+        if (importValues) {
+            transferRange(m.address,
+                          m.getSideProp(QStringLiteral("kpValueOffset")).toUInt(),
+                          m.getSideProp(QStringLiteral("kpValueLength")).toInt());
+            if (m.xAxis.hasPtsAddress)
+                transferRange(m.xAxis.ptsAddress,
+                              m.getSideProp(QStringLiteral("kpXAxisOffset")).toUInt(),
+                              m.getSideProp(QStringLiteral("kpXAxisLength")).toInt());
+            if (m.yAxis.hasPtsAddress)
+                transferRange(m.yAxis.ptsAddress,
+                              m.getSideProp(QStringLiteral("kpYAxisOffset")).toUInt(),
+                              m.getSideProp(QStringLiteral("kpYAxisLength")).toInt());
+        }
+        // Duplicate avoidance concerns the map definition, not its selected
+        // carried bytes. This lets a user re-import the same pack to apply its
+        // values to an already-present map without creating a second tree row.
+        if (duplicate) {
+            for (auto &existingMap : proj->maps) {
+                if (existingMap.name == m.name && existingMap.address == m.address) {
+                    if (existingMap.xAxis.ptsSigned != m.xAxis.ptsSigned) {
+                        existingMap.xAxis.ptsSigned = m.xAxis.ptsSigned;
+                        existingMetadataUpdated = true;
+                    }
+                    if (existingMap.yAxis.ptsSigned != m.yAxis.ptsSigned) {
+                        existingMap.yAxis.ptsSigned = m.yAxis.ptsSigned;
+                        existingMetadataUpdated = true;
+                    }
+                    if (!m.scaling.format.isEmpty()
+                        && existingMap.scaling.format != m.scaling.format) {
+                        existingMap.scaling.format = m.scaling.format;
+                        existingMetadataUpdated = true;
+                    }
+                    if (!m.xAxis.scaling.format.isEmpty()
+                        && existingMap.xAxis.scaling.format != m.xAxis.scaling.format) {
+                        existingMap.xAxis.scaling.format = m.xAxis.scaling.format;
+                        existingMetadataUpdated = true;
+                    }
+                    if (!m.yAxis.scaling.format.isEmpty()
+                        && existingMap.yAxis.scaling.format != m.yAxis.scaling.format) {
+                        existingMap.yAxis.scaling.format = m.yAxis.scaling.format;
+                        existingMetadataUpdated = true;
+                    }
+                    break;
+                }
+            }
+            ++skipped;
+            continue;
+        }
         proj->maps.append(m);
         existing.insert({m.name, m.address});
         ++added;
     }
 
-    if (added == 0) {
+    if (added == 0 && valueRanges == 0 && !existingMetadataUpdated) {
         QMessageBox::information(this, tr("Import KP"),
             tr("All %1 selected maps were already present in the project.")
                 .arg(chosenMaps.size()));
@@ -4288,10 +4349,13 @@ void MainWindow::actImportKP(const QString &droppedPath)
     proj->modified = true;
     emit proj->dataChanged();   // tree refresh + autosave
 
-    QString msg = tr("Imported %1 maps from %2")
-                      .arg(added).arg(QFileInfo(path).fileName());
+    QString msg = added > 0
+        ? tr("Imported %1 maps from %2").arg(added).arg(QFileInfo(path).fileName())
+        : tr("Updated existing maps from %1").arg(QFileInfo(path).fileName());
     if (skipped > 0)
         msg += tr(" (%1 already present, skipped)").arg(skipped);
+    if (valueRanges > 0)
+        msg += tr("; %1 data range(s) applied").arg(valueRanges);
     statusBar()->showMessage(msg, 6000);
 }
 

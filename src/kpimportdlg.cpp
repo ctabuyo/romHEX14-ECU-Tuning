@@ -636,3 +636,8 @@ QVector<MapInfo> KPImportDlg::selectedMaps() const
 
     return result;
 }
+
+bool KPImportDlg::importMapValues() const
+{
+    return m_chkMapValues && m_chkMapValues->isChecked();
+}

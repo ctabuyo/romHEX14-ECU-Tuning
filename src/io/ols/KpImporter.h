@@ -22,6 +22,9 @@ struct KpImportResult {
     uint32_t       declaredFileSize = 0;
     uint32_t       mapCount = 0;
     QVector<MapInfo> maps;
+    // Schema-750 packs can carry the source bytes for the selected map data
+    // and axes. Per-map offsets are retained as MapInfo side properties.
+    QByteArray      carriedData;
     QString        error;
     QStringList    warnings;
 };
