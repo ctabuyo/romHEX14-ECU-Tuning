@@ -81,6 +81,7 @@
 #include <QTableWidgetItem>
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QStyle>
 #include <QMouseEvent>
 #include <QPointer>
 #include <QPainterPath>
@@ -130,6 +131,7 @@
 #include <QLinearGradient>
 #include <QUrl>
 #include <functional>
+#include <numeric>
 
 // ── Project-tree delegate ─────────────────────────────────────────────────────
 // Two-column layout: fixed address column on the left | icon + text on the right
@@ -5596,6 +5598,9 @@ void MainWindow::refreshProjectTreeNow()
     static const QIcon iconCurve = makeIcon("\u223F", QColor("#bc8cff"), 10);
     static const QIcon iconValue = makeIcon("\u25CF", QColor("#3fb950"), 9);
     static const QIcon iconBlk   = makeIcon("\u25AA", QColor("#6e7681"), 9);
+    // KP folders are navigation nodes. The platform folder glyph makes the
+    // disclosure arrow beside it clearly indicate expand/collapse behavior.
+    static const QIcon iconFolder = QApplication::style()->standardIcon(QStyle::SP_DirIcon);
 
     // Render "My maps (N)" tree for any Project under the given tree item.
     // Shared by top-level projects AND sub-projects (multi-Version .ols
@@ -5629,7 +5634,10 @@ void MainWindow::refreshProjectTreeNow()
                 : (!m.description.isEmpty() && m.description != m.name)
                     ? (m.name + "  " + m.description)
                     : m.name;
-            QString displayName = baseName;
+            // Keep the shape beside every map name so similarly named tables
+            // remain distinguishable without opening the map overlay.
+            QString displayName = QStringLiteral("%1  %2x%3")
+                .arg(baseName).arg(m.dimensions.x).arg(m.dimensions.y);
             if (changed)                displayName.prepend("\u25cf ");
             if (!m.userNotes.isEmpty()) displayName.prepend("\u270e ");
             if (starred)                displayName.prepend("\u2605 ");
@@ -5681,7 +5689,62 @@ void MainWindow::refreshProjectTreeNow()
             for (const auto &m : p->autoDetectedMaps) addLeaf(autoGroup, m);
         }
 
-        if (p->groups.isEmpty()) {
+        const bool hasFolderPaths = std::any_of(
+            p->maps.cbegin(), p->maps.cend(),
+            [](const MapInfo &m) { return !m.folderPath.isEmpty(); });
+        if (hasFolderPaths) {
+            // KP schema-750 stores the actual WinOLS folder path on every
+            // map.  It takes precedence over Project::groups, which may be
+            // legacy A2L data or the former name-prefix heuristic.  Render it
+            // directly so nesting and identically named maps are preserved.
+            QHash<QString, QTreeWidgetItem *> folderNodes;
+            std::function<QTreeWidgetItem *(const QString &)> folderFor =
+                [&](const QString &path) -> QTreeWidgetItem * {
+                if (path.isEmpty()) return myMaps;
+                if (auto it = folderNodes.constFind(path); it != folderNodes.cend())
+                    return it.value();
+                const int slash = path.lastIndexOf(QLatin1Char('/'));
+                const QString parentPath = slash < 0 ? QString() : path.left(slash);
+                const QString name = slash < 0 ? path : path.mid(slash + 1);
+                auto *node = new QTreeWidgetItem(folderFor(parentPath));
+                node->setText(0, name);
+                node->setIcon(0, iconFolder);
+                node->setToolTip(0, tr("Folder — use the arrow to expand or collapse"));
+                node->setFont(0, boldFont);
+                node->setExpanded(forceExpandAll || !isLargeProject);
+                node->setFlags(node->flags() & ~Qt::ItemIsSelectable);
+                folderNodes.insert(path, node);
+                return node;
+            };
+
+            QVector<int> order(p->maps.size());
+            std::iota(order.begin(), order.end(), 0);
+            std::sort(order.begin(), order.end(), [p](int a, int b) {
+                const MapInfo &ma = p->maps[a], &mb = p->maps[b];
+                return ma.folderPath == mb.folderPath
+                    ? ma.address < mb.address : ma.folderPath < mb.folderPath;
+            });
+            for (int i : order)
+                addLeaf(folderFor(p->maps[i].folderPath), p->maps[i]);
+
+            // A folder count represents every map below it, not merely its
+            // direct children, so a nested WinOLS folder is useful at a glance.
+            std::function<int(QTreeWidgetItem *)> countMaps =
+                [&](QTreeWidgetItem *node) -> int {
+                int count = 0;
+                for (int child = 0; child < node->childCount(); ++child) {
+                    QTreeWidgetItem *item = node->child(child);
+                    if (item->data(0, Qt::UserRole + 2).isValid()) ++count;
+                    else count += countMaps(item);
+                }
+                return count;
+            };
+            for (auto it = folderNodes.cbegin(); it != folderNodes.cend(); ++it) {
+                QTreeWidgetItem *node = it.value();
+                node->setText(0, QStringLiteral("%1  (%2)")
+                    .arg(node->text(0)).arg(countMaps(node)));
+            }
+        } else if (p->groups.isEmpty()) {
             for (const auto &m : p->maps) addLeaf(myMaps, m);
         } else {
             QHash<QString, int> lookup;
@@ -7479,8 +7542,14 @@ void MainWindow::onTreeItemClicked(QTreeWidgetItem *item, int)
         return;
     }
 
-    // Only act on map leaves (have UserRole+2 data)
-    if (!mapVar.isValid()) return;
+    // Folder/group nodes deliberately have no map payload.  Toggle them when
+    // the user clicks anywhere on the row, including the folder icon; relying
+    // only on QTreeWidget's small disclosure arrow is too easy to miss.
+    if (!mapVar.isValid()) {
+        if (item->childCount() > 0)
+            item->setExpanded(!item->isExpanded());
+        return;
+    }
 
     auto map   = mapVar.value<MapInfo>();
     auto *proj = static_cast<Project *>(
