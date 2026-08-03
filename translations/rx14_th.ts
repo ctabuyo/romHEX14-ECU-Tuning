@@ -92,544 +92,544 @@
 <context>
     <name>AIAssistant</name>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1460"/>
+        <location filename="../src/aiassistant.cpp" line="1476"/>
         <source>Error: </source>
         <translation>ข้อผิดพลาด: </translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1514"/>
+        <location filename="../src/aiassistant.cpp" line="1530"/>
         <source>Ask</source>
         <translation>ถาม</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1515"/>
+        <location filename="../src/aiassistant.cpp" line="1531"/>
         <source>Permission: Ask before each change
 Click to cycle → Auto</source>
         <translation>สิทธิ์: ถามก่อนแต่ละการเปลี่ยนแปลง
 คลิกเพื่อสลับ → อัตโนมัติ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1520"/>
+        <location filename="../src/aiassistant.cpp" line="1536"/>
         <source>Auto</source>
         <translation>อัตโนมัติ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1521"/>
+        <location filename="../src/aiassistant.cpp" line="1537"/>
         <source>Permission: Auto-accept edits
 Click to cycle → Plan</source>
         <translation>สิทธิ์: ยอมรับการแก้ไขอัตโนมัติ
 คลิกเพื่อสลับ → วางแผน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1526"/>
+        <location filename="../src/aiassistant.cpp" line="1542"/>
         <source>Plan</source>
         <translation>วางแผน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1527"/>
+        <location filename="../src/aiassistant.cpp" line="1543"/>
         <source>Permission: Plan only — no changes will be applied
 Click to cycle → Ask</source>
         <translation>สิทธิ์: วางแผนเท่านั้น — จะไม่มีการเปลี่ยนแปลง
 คลิกเพื่อสลับ → ถาม</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3347"/>
+        <location filename="../src/aiassistant.cpp" line="3543"/>
         <source>AI Provider Settings</source>
         <translation>การตั้งค่าผู้ให้บริการ AI</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3391"/>
+        <location filename="../src/aiassistant.cpp" line="3587"/>
         <source>Provider:</source>
         <translation>ผู้ให้บริการ:</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3397"/>
+        <location filename="../src/aiassistant.cpp" line="3593"/>
         <source>API Key:</source>
         <translation>API Key:</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3402"/>
+        <location filename="../src/aiassistant.cpp" line="3598"/>
         <source>Model:</source>
         <translation>โมเดล:</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3408"/>
+        <location filename="../src/aiassistant.cpp" line="3604"/>
         <source>Base URL:</source>
         <translation>Base URL:</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1888"/>
+        <location filename="../src/aiassistant.cpp" line="1904"/>
         <source>Claude for RX14</source>
         <translation>Claude สำหรับ RX14</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1143"/>
+        <location filename="../src/aiassistant.cpp" line="1153"/>
         <source>Claude</source>
         <translation>Claude</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1173"/>
-        <location filename="../src/aiassistant.cpp" line="1876"/>
+        <location filename="../src/aiassistant.cpp" line="1183"/>
+        <location filename="../src/aiassistant.cpp" line="1892"/>
         <source>More actions</source>
         <translation>การดำเนินการเพิ่มเติม</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1189"/>
-        <location filename="../src/aiassistant.cpp" line="1877"/>
+        <location filename="../src/aiassistant.cpp" line="1199"/>
+        <location filename="../src/aiassistant.cpp" line="1893"/>
         <source>API key &amp; provider…</source>
         <translation>API key และผู้ให้บริการ…</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1190"/>
-        <location filename="../src/aiassistant.cpp" line="1878"/>
+        <location filename="../src/aiassistant.cpp" line="1200"/>
+        <location filename="../src/aiassistant.cpp" line="1894"/>
         <source>Tuning logbook &amp; dyno history…</source>
         <translation>สมุดบันทึกการจูนและประวัติไดโน…</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1191"/>
-        <location filename="../src/aiassistant.cpp" line="1879"/>
+        <location filename="../src/aiassistant.cpp" line="1201"/>
+        <location filename="../src/aiassistant.cpp" line="1895"/>
         <source>Verbose mode</source>
         <translation>โหมดละเอียด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1890"/>
+        <location filename="../src/aiassistant.cpp" line="1906"/>
         <source>ECU calibration assistant</source>
         <translation>ผู้ช่วยการปรับเทียบ ECU</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1194"/>
-        <location filename="../src/aiassistant.cpp" line="1880"/>
+        <location filename="../src/aiassistant.cpp" line="1204"/>
+        <location filename="../src/aiassistant.cpp" line="1896"/>
         <source>Clear conversation</source>
         <translation>ล้างการสนทนา</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1212"/>
+        <location filename="../src/aiassistant.cpp" line="1222"/>
         <source>No API key configured. Set one to start using the AI assistant.</source>
         <translation>ยังไม่ได้ตั้งค่า API key โปรดตั้งค่าก่อนเริ่มใช้งานผู้ช่วย AI</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1216"/>
+        <location filename="../src/aiassistant.cpp" line="1226"/>
         <source>Set API key</source>
         <translation>ตั้งค่า API key</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1304"/>
-        <location filename="../src/aiassistant.cpp" line="1875"/>
+        <location filename="../src/aiassistant.cpp" line="1314"/>
+        <location filename="../src/aiassistant.cpp" line="1891"/>
         <source>Ask about this ECU…  (Ctrl+Enter to send)</source>
         <translation>ถามเกี่ยวกับ ECU นี้…  (Ctrl+Enter เพื่อส่ง)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1324"/>
+        <location filename="../src/aiassistant.cpp" line="1334"/>
         <source>Send  (Ctrl+Enter)</source>
         <translation>ส่ง  (Ctrl+Enter)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1329"/>
+        <location filename="../src/aiassistant.cpp" line="1339"/>
         <source>Stop</source>
         <translation>หยุด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1608"/>
+        <location filename="../src/aiassistant.cpp" line="1624"/>
         <source>Tuning Logbook</source>
         <translation>สมุดบันทึกการจูน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1641"/>
+        <location filename="../src/aiassistant.cpp" line="1657"/>
         <source>No tuning log entries yet.
 The AI logs notes here automatically when you ask it to use append_tuning_note.</source>
         <translation>ยังไม่มีรายการบันทึกการจูน
 AI จะบันทึกหมายเหตุที่นี่โดยอัตโนมัติเมื่อคุณขอให้ใช้ append_tuning_note</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1648"/>
+        <location filename="../src/aiassistant.cpp" line="1664"/>
         <source>Time</source>
         <translation>เวลา</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1648"/>
+        <location filename="../src/aiassistant.cpp" line="1664"/>
         <source>Category</source>
         <translation>หมวดหมู่</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1648"/>
+        <location filename="../src/aiassistant.cpp" line="1664"/>
         <source>Map</source>
         <translation>แผนที่</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1648"/>
+        <location filename="../src/aiassistant.cpp" line="1664"/>
         <source>Message</source>
         <translation>ข้อความ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1677"/>
+        <location filename="../src/aiassistant.cpp" line="1693"/>
         <source>📝 Tuning Log (%1)</source>
         <translation>📝 บันทึกการจูน (%1)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1687"/>
+        <location filename="../src/aiassistant.cpp" line="1703"/>
         <source>No dyno runs logged yet.
 Ask the AI to log a dyno result after a power run.</source>
         <translation>ยังไม่มีรายการไดโน
 ขอให้ AI บันทึกผลไดโนหลังจากทดสอบกำลัง</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1714"/>
+        <location filename="../src/aiassistant.cpp" line="1730"/>
         <source>Run</source>
         <translation>ครั้งที่</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1714"/>
+        <location filename="../src/aiassistant.cpp" line="1730"/>
         <source>Date</source>
         <translation>วันที่</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1714"/>
+        <location filename="../src/aiassistant.cpp" line="1730"/>
         <source>Power</source>
         <translation>กำลัง</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1714"/>
+        <location filename="../src/aiassistant.cpp" line="1730"/>
         <source>Torque</source>
         <translation>แรงบิด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1714"/>
+        <location filename="../src/aiassistant.cpp" line="1730"/>
         <source>RPM</source>
         <translation>RPM</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1714"/>
+        <location filename="../src/aiassistant.cpp" line="1730"/>
         <source>Notes</source>
         <translation>บันทึก</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1737"/>
+        <location filename="../src/aiassistant.cpp" line="1753"/>
         <source>Best run</source>
         <translation>ครั้งที่ดีที่สุด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1746"/>
+        <location filename="../src/aiassistant.cpp" line="1762"/>
         <source>🏁 Dyno Log (%1)</source>
         <translation>🏁 บันทึกไดโน (%1)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1757"/>
+        <location filename="../src/aiassistant.cpp" line="1773"/>
         <source>Keyword</source>
         <translation>คำสำคัญ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1757"/>
+        <location filename="../src/aiassistant.cpp" line="1773"/>
         <source>Action</source>
         <translation>การดำเนินการ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1757"/>
+        <location filename="../src/aiassistant.cpp" line="1773"/>
         <source>Patterns</source>
         <translation>รูปแบบ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1766"/>
+        <location filename="../src/aiassistant.cpp" line="1782"/>
         <source>User Recipes (from recipes.json)</source>
         <translation>สูตรผู้ใช้ (จาก recipes.json)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1777"/>
+        <location filename="../src/aiassistant.cpp" line="1793"/>
         <source>Built-in Recipes</source>
         <translation>สูตรในตัว</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1791"/>
+        <location filename="../src/aiassistant.cpp" line="1807"/>
         <source>💡 Add custom recipes at &lt;code&gt;~/.romHEX14/recipes.json&lt;/code&gt; — they take priority over built-ins.</source>
         <translation>💡 เพิ่มสูตรที่กำหนดเองได้ที่ &lt;code&gt;~/.romHEX14/recipes.json&lt;/code&gt; — สูตรเหล่านี้จะมาก่อนสูตรในตัว</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1797"/>
+        <location filename="../src/aiassistant.cpp" line="1813"/>
         <source>⚡ Recipes (%1 user + %2 built-in)</source>
         <translation>⚡ สูตร (%1 ผู้ใช้ + %2 ในตัว)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1806"/>
+        <location filename="../src/aiassistant.cpp" line="1822"/>
         <source>Close</source>
         <translation>ปิด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1850"/>
+        <location filename="../src/aiassistant.cpp" line="1866"/>
         <source> (Current)</source>
         <translation> (ปัจจุบัน)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1852"/>
+        <location filename="../src/aiassistant.cpp" line="1868"/>
         <source>Version: %1</source>
         <translation>เวอร์ชัน: %1</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="1854"/>
+        <location filename="../src/aiassistant.cpp" line="1870"/>
         <source>No project loaded</source>
         <translation>ไม่มีโปรเจกต์ที่โหลด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2028"/>
+        <location filename="../src/aiassistant.cpp" line="2189"/>
         <source>Operation cancelled.</source>
         <translation>ยกเลิกการดำเนินการแล้ว</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2263"/>
+        <location filename="../src/aiassistant.cpp" line="2433"/>
         <source>No project loaded. Open a ROM file first.</source>
         <translation>ไม่มีโปรเจกต์ที่โหลด กรุณาเปิดไฟล์ ROM ก่อน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2276"/>
+        <location filename="../src/aiassistant.cpp" line="2446"/>
         <source>No API key configured. Click ⚙ to set up.</source>
         <translation>ยังไม่ได้ตั้งค่า API key คลิก ⚙ เพื่อตั้งค่า</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2290"/>
+        <location filename="../src/aiassistant.cpp" line="2460"/>
         <source>No API key set. Click ⚙ to configure.</source>
         <translation>ยังไม่ได้ตั้ง API key คลิก ⚙ เพื่อตั้งค่า</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2307"/>
+        <location filename="../src/aiassistant.cpp" line="2477"/>
         <source>Catalyst monitoring off (decat)</source>
         <translation>ปิดการตรวจสอบแคทาลิสต์ (decat)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2308"/>
-        <location filename="../src/aiassistant.cpp" line="2309"/>
+        <location filename="../src/aiassistant.cpp" line="2478"/>
+        <location filename="../src/aiassistant.cpp" line="2479"/>
         <source>Catalyst monitoring off</source>
         <translation>ปิดการตรวจสอบแคทาลิสต์</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2311"/>
-        <location filename="../src/aiassistant.cpp" line="2312"/>
-        <location filename="../src/aiassistant.cpp" line="2313"/>
+        <location filename="../src/aiassistant.cpp" line="2481"/>
+        <location filename="../src/aiassistant.cpp" line="2482"/>
+        <location filename="../src/aiassistant.cpp" line="2483"/>
         <source>DPF monitoring off</source>
         <translation>ปิดการตรวจสอบ DPF</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2315"/>
-        <location filename="../src/aiassistant.cpp" line="2316"/>
-        <location filename="../src/aiassistant.cpp" line="2317"/>
+        <location filename="../src/aiassistant.cpp" line="2485"/>
+        <location filename="../src/aiassistant.cpp" line="2486"/>
+        <location filename="../src/aiassistant.cpp" line="2487"/>
         <source>EGR valve off</source>
         <translation>ปิดวาล์ว EGR</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2319"/>
-        <location filename="../src/aiassistant.cpp" line="2320"/>
-        <location filename="../src/aiassistant.cpp" line="2321"/>
+        <location filename="../src/aiassistant.cpp" line="2489"/>
+        <location filename="../src/aiassistant.cpp" line="2490"/>
+        <location filename="../src/aiassistant.cpp" line="2491"/>
         <source>Lambda/O2 monitoring off</source>
         <translation>ปิดการตรวจสอบ Lambda/O2</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2323"/>
+        <location filename="../src/aiassistant.cpp" line="2493"/>
         <source>AdBlue/SCR off</source>
         <translation>ปิด AdBlue/SCR</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2324"/>
+        <location filename="../src/aiassistant.cpp" line="2494"/>
         <source>Swirl flap delete</source>
         <translation>ลบ Swirl flap</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2325"/>
+        <location filename="../src/aiassistant.cpp" line="2495"/>
         <source>Start-stop disable</source>
         <translation>ปิดระบบ Start-stop</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2327"/>
-        <location filename="../src/aiassistant.cpp" line="2328"/>
+        <location filename="../src/aiassistant.cpp" line="2497"/>
+        <location filename="../src/aiassistant.cpp" line="2498"/>
         <source>Speed limiter off</source>
         <translation>ปิดตัวจำกัดความเร็ว</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2329"/>
+        <location filename="../src/aiassistant.cpp" line="2499"/>
         <source>Rev limiter off</source>
         <translation>ปิดตัวจำกัดรอบเครื่องยนต์</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2331"/>
-        <location filename="../src/aiassistant.cpp" line="2332"/>
-        <location filename="../src/aiassistant.cpp" line="2333"/>
-        <location filename="../src/aiassistant.cpp" line="2334"/>
+        <location filename="../src/aiassistant.cpp" line="2501"/>
+        <location filename="../src/aiassistant.cpp" line="2502"/>
+        <location filename="../src/aiassistant.cpp" line="2503"/>
+        <location filename="../src/aiassistant.cpp" line="2504"/>
         <source>Pops &amp; bangs (overrun)</source>
         <translation>Pops &amp; bangs (overrun)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2362"/>
+        <location filename="../src/aiassistant.cpp" line="2532"/>
         <source>Searching for %1 maps...</source>
         <translation>กำลังค้นหา %1 MAP...</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2364"/>
+        <location filename="../src/aiassistant.cpp" line="2534"/>
         <source>Searching...</source>
         <translation>กำลังค้นหา...</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2394"/>
+        <location filename="../src/aiassistant.cpp" line="2564"/>
         <source>AI is filtering %1 candidates...</source>
         <translation>AI กำลังกรอง %1 รายการ...</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2460"/>
+        <location filename="../src/aiassistant.cpp" line="2631"/>
         <source>No relevant maps found for %1. This ECU may use different naming conventions.</source>
         <translation>ไม่พบ MAP ที่เกี่ยวข้องสำหรับ %1 ECU นี้อาจใช้รูปแบบการตั้งชื่อที่แตกต่างกัน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2484"/>
+        <location filename="../src/aiassistant.cpp" line="2655"/>
         <source>Which ROM do you want to modify?</source>
         <translation>คุณต้องการแก้ไข ROM ตัวไหน?</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2494"/>
+        <location filename="../src/aiassistant.cpp" line="2665"/>
         <source>Main Project ROM</source>
         <translation>ROM โปรเจกต์หลัก</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2512"/>
+        <location filename="../src/aiassistant.cpp" line="2683"/>
         <source>Linked: %1</source>
         <translation>เชื่อมโยง: %1</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2567"/>
+        <location filename="../src/aiassistant.cpp" line="2738"/>
         <source>&lt;span style=&apos;color:#3fb950;&apos;&gt;⚡ Auto-accepted: change applied&lt;/span&gt;</source>
         <translation>&lt;span style=&apos;color:#3fb950;&apos;&gt;⚡ ยอมรับอัตโนมัติ: ใช้การเปลี่ยนแปลงแล้ว&lt;/span&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2570"/>
+        <location filename="../src/aiassistant.cpp" line="2741"/>
         <source>&lt;span style=&apos;color:#3fb950;&apos;&gt;✓ Change applied&lt;/span&gt;</source>
         <translation>&lt;span style=&apos;color:#3fb950;&apos;&gt;✓ ใช้การเปลี่ยนแปลงแล้ว&lt;/span&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2595"/>
+        <location filename="../src/aiassistant.cpp" line="2766"/>
         <source>&lt;span style=&apos;color:#d29922;&apos;&gt;📋 Plan mode — no changes applied&lt;/span&gt;</source>
         <translation>&lt;span style=&apos;color:#d29922;&apos;&gt;📋 โหมดวางแผน — ไม่มีการเปลี่ยนแปลง&lt;/span&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2617"/>
+        <location filename="../src/aiassistant.cpp" line="2788"/>
         <source>Write &lt;b&gt;%1&lt;/b&gt; new value(s) to map &lt;b&gt;%2&lt;/b&gt;.</source>
         <translation>เขียนค่าใหม่ &lt;b&gt;%1&lt;/b&gt; ค่าลงในแผนที่ &lt;b&gt;%2&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2621"/>
+        <location filename="../src/aiassistant.cpp" line="2792"/>
         <source>Set every cell to &lt;b&gt;0&lt;/b&gt; in map &lt;b&gt;%1&lt;/b&gt;.</source>
         <translation>ตั้งทุกเซลล์เป็น &lt;b&gt;0&lt;/b&gt; ในแผนที่ &lt;b&gt;%1&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2624"/>
+        <location filename="../src/aiassistant.cpp" line="2795"/>
         <source>Scale all values in map &lt;b&gt;%1&lt;/b&gt; by &lt;b&gt;%2×&lt;/b&gt;.</source>
         <translation>คูณค่าทั้งหมดในแผนที่ &lt;b&gt;%1&lt;/b&gt; ด้วย &lt;b&gt;%2×&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2628"/>
+        <location filename="../src/aiassistant.cpp" line="2799"/>
         <source>Fill all cells in map &lt;b&gt;%1&lt;/b&gt; with constant &lt;b&gt;%2&lt;/b&gt;.</source>
         <translation>เติมทุกเซลล์ในแผนที่ &lt;b&gt;%1&lt;/b&gt; ด้วยค่าคงที่ &lt;b&gt;%2&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2634"/>
+        <location filename="../src/aiassistant.cpp" line="2805"/>
         <source>%1 all values in map &lt;b&gt;%2&lt;/b&gt; by &lt;b&gt;%3&lt;/b&gt;.</source>
         <translation>%1 ค่าทั้งหมดในแผนที่ &lt;b&gt;%2&lt;/b&gt; ด้วย &lt;b&gt;%3&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2635"/>
+        <location filename="../src/aiassistant.cpp" line="2806"/>
         <source>Increase</source>
         <translation>เพิ่ม</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2635"/>
+        <location filename="../src/aiassistant.cpp" line="2806"/>
         <source>Decrease</source>
         <translation>ลด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2641"/>
+        <location filename="../src/aiassistant.cpp" line="2812"/>
         <source>Batch-modify &lt;b&gt;%1&lt;/b&gt; map(s).&lt;br&gt;&lt;span style=&apos;color:#8b949e;font-size:8pt;&apos;&gt;%2&lt;/span&gt;</source>
         <translation>แก้ไขแบบกลุ่ม &lt;b&gt;%1&lt;/b&gt; แผนที่&lt;br&gt;&lt;span style=&apos;color:#8b949e;font-size:8pt;&apos;&gt;%2&lt;/span&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2646"/>
+        <location filename="../src/aiassistant.cpp" line="2817"/>
         <source>Apply expression &lt;code style=&apos;background:#21262d;padding:1px 4px;border-radius:3px;&apos;&gt;%1&lt;/code&gt; to map &lt;b&gt;%2&lt;/b&gt;.</source>
         <translation>ใช้นิพจน์ &lt;code style=&apos;background:#21262d;padding:1px 4px;border-radius:3px;&apos;&gt;%1&lt;/code&gt; กับแผนที่ &lt;b&gt;%2&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2653"/>
+        <location filename="../src/aiassistant.cpp" line="2824"/>
         <source>Copy &lt;b&gt;%1&lt;/b&gt; map(s) from linked ROM &lt;b&gt;%2&lt;/b&gt;.</source>
         <translation>คัดลอก &lt;b&gt;%1&lt;/b&gt; แผนที่จาก ROM ที่เชื่อมโยง &lt;b&gt;%2&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2657"/>
+        <location filename="../src/aiassistant.cpp" line="2828"/>
         <source>Undo changes — &lt;i&gt;%1&lt;/i&gt;</source>
         <translation>เลิกทำการเปลี่ยนแปลง — &lt;i&gt;%1&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2660"/>
+        <location filename="../src/aiassistant.cpp" line="2831"/>
         <source>Execute: &lt;b&gt;%1&lt;/b&gt;</source>
         <translation>ดำเนินการ: &lt;b&gt;%1&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2677"/>
+        <location filename="../src/aiassistant.cpp" line="2848"/>
         <source>AI proposes a change</source>
         <translation>AI เสนอการเปลี่ยนแปลง</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2695"/>
+        <location filename="../src/aiassistant.cpp" line="2866"/>
         <source>⚠ This will overwrite existing values. Consider saving a snapshot first.</source>
         <translation>⚠ การดำเนินการนี้จะเขียนทับค่าเดิม ควรบันทึกสแน็ปช็อตก่อน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2705"/>
+        <location filename="../src/aiassistant.cpp" line="2876"/>
         <source>✗ Reject</source>
         <translation>✗ ปฏิเสธ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2712"/>
+        <location filename="../src/aiassistant.cpp" line="2883"/>
         <source>✓ Accept &amp; Apply</source>
         <translation>✓ ยอมรับและใช้งาน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2752"/>
+        <location filename="../src/aiassistant.cpp" line="2923"/>
         <source>&lt;span style=&apos;color:#f85149;&apos;&gt;✗ Change rejected by user&lt;/span&gt;</source>
         <translation>&lt;span style=&apos;color:#f85149;&apos;&gt;✗ ผู้ใช้ปฏิเสธการเปลี่ยนแปลง&lt;/span&gt;</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2775"/>
+        <location filename="../src/aiassistant.cpp" line="2946"/>
         <source>%1 — %2 maps found</source>
         <translation>%1 — พบ %2 MAP</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2803"/>
+        <location filename="../src/aiassistant.cpp" line="2974"/>
         <source>Action: %1 all %2 maps</source>
         <translation>การดำเนินการ: %1 ทั้งหมด %2 MAP</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2811"/>
+        <location filename="../src/aiassistant.cpp" line="2982"/>
         <source>Cancel</source>
         <translation>ยกเลิก</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2818"/>
+        <location filename="../src/aiassistant.cpp" line="2989"/>
         <source>✓ Apply %1 Changes</source>
         <translation>✓ นำ %1 การเปลี่ยนแปลงไปใช้</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2844"/>
+        <location filename="../src/aiassistant.cpp" line="3015"/>
         <source>Cancelled.</source>
         <translation>ยกเลิกแล้ว</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2852"/>
+        <location filename="../src/aiassistant.cpp" line="3023"/>
         <source>Error: no project loaded.</source>
         <translation>ข้อผิดพลาด: ไม่มีโปรเจกต์ที่โหลด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2859"/>
+        <location filename="../src/aiassistant.cpp" line="3030"/>
         <source>Main ROM</source>
         <translation>ROM หลัก</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2878"/>
+        <location filename="../src/aiassistant.cpp" line="3049"/>
         <source>Warning: linked ROM project not open. Modifying data directly.</source>
         <translation>คำเตือน: โปรเจกต์ ROM ที่เชื่อมโยงยังไม่ได้เปิด กำลังแก้ไขข้อมูลโดยตรง</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2950"/>
+        <location filename="../src/aiassistant.cpp" line="3121"/>
         <source>**Done!** %1 of %2 maps zeroed on **%3**.
 
 Version **%4** created — you can undo anytime from the version list.</source>
@@ -638,97 +638,97 @@ Version **%4** created — you can undo anytime from the version list.</source>
 สร้างเวอร์ชัน **%4** แล้ว — คุณสามารถย้อนกลับได้ตลอดเวลาจากรายการเวอร์ชัน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2963"/>
+        <location filename="../src/aiassistant.cpp" line="3134"/>
         <source>Reached maximum tool rounds (%1). Stopping.</source>
         <translation>ถึงจำนวนรอบเครื่องมือสูงสุดแล้ว (%1) กำลังหยุด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2988"/>
+        <location filename="../src/aiassistant.cpp" line="3159"/>
         <source>Thinking…</source>
         <translation>กำลังคิด…</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2988"/>
+        <location filename="../src/aiassistant.cpp" line="3159"/>
         <source>Working… (round %1/%2)</source>
         <translation>กำลังทำงาน… (รอบ %1/%2)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="2996"/>
+        <location filename="../src/aiassistant.cpp" line="3167"/>
         <source>Request timed out (60s).</source>
         <translation>คำขอหมดเวลา (60 วินาที)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3002"/>
+        <location filename="../src/aiassistant.cpp" line="3173"/>
         <source>Provider unavailable.</source>
         <translation>ผู้ให้บริการไม่พร้อมใช้งาน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3083"/>
+        <location filename="../src/aiassistant.cpp" line="3276"/>
         <source>Rate limited — retrying in %1s… (%2/%3)</source>
         <translation>ถูกจำกัดอัตรา — ลองใหม่ใน %1 วินาที… (%2/%3)</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3096"/>
+        <location filename="../src/aiassistant.cpp" line="3289"/>
         <source>Context too large — trimming…</source>
         <translation>บริบทใหญ่เกินไป — กำลังตัดทอน…</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3366"/>
+        <location filename="../src/aiassistant.cpp" line="3562"/>
         <source>Configure AI provider</source>
         <translation>ตั้งค่าผู้ให้บริการ AI</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3380"/>
+        <location filename="../src/aiassistant.cpp" line="3576"/>
         <source>Green — best compatibility: native API, full tool-calling and streaming.</source>
         <translation>เขียว — เข้ากันได้ดีที่สุด: API ดั้งเดิม รองรับเครื่องมือและสตรีมมิงเต็มรูปแบบ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3381"/>
+        <location filename="../src/aiassistant.cpp" line="3577"/>
         <source>Orange — good compatibility: OpenAI-compatible, most tools work.</source>
         <translation>ส้ม — เข้ากันได้ดี: รองรับ OpenAI เครื่องมือส่วนใหญ่ทำงานได้</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3382"/>
+        <location filename="../src/aiassistant.cpp" line="3578"/>
         <source>Red — limited compatibility: some features may not work.</source>
         <translation>แดง — เข้ากันได้จำกัด: ฟีเจอร์บางอย่างอาจไม่ทำงาน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3424"/>
+        <location filename="../src/aiassistant.cpp" line="3620"/>
         <source>What the coloured dot next to each provider means:</source>
         <translation>จุดสีข้างผู้ให้บริการแต่ละรายมีความหมายดังนี้:</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3456"/>
+        <location filename="../src/aiassistant.cpp" line="3652"/>
         <source>Green — best</source>
         <translation>เขียว — ดีที่สุด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3457"/>
+        <location filename="../src/aiassistant.cpp" line="3653"/>
         <source>Native API. Full tool-calling, streaming, and every assistant feature works. Recommended.</source>
         <translation>API ดั้งเดิม รองรับการเรียกใช้เครื่องมือ สตรีมมิง และฟีเจอร์ทุกอย่างของผู้ช่วย แนะนำ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3459"/>
+        <location filename="../src/aiassistant.cpp" line="3655"/>
         <source>Orange — good</source>
         <translation>ส้ม — ดี</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3460"/>
+        <location filename="../src/aiassistant.cpp" line="3656"/>
         <source>OpenAI-compatible. Most tools work, but some advanced behaviours may differ.</source>
         <translation>รองรับ OpenAI เครื่องมือส่วนใหญ่ใช้งานได้ แต่พฤติกรรมขั้นสูงบางอย่างอาจต่าง</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3462"/>
+        <location filename="../src/aiassistant.cpp" line="3658"/>
         <source>Red — limited</source>
         <translation>แดง — จำกัด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3463"/>
+        <location filename="../src/aiassistant.cpp" line="3659"/>
         <source>Community or local back-end. Tool-calling and streaming may behave unexpectedly.</source>
         <translation>แบ็กเอนด์ชุมชนหรือในเครื่อง การเรียกเครื่องมือและสตรีมมิงอาจทำงานไม่เป็นไปตามคาด</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="3467"/>
+        <location filename="../src/aiassistant.cpp" line="3663"/>
         <source>API keys are stored in application settings only.</source>
         <translation>API key ถูกเก็บไว้ในการตั้งค่าแอปพลิเคชันเท่านั้น</translation>
     </message>
@@ -1002,12 +1002,12 @@ Version **%4** created — you can undo anytime from the version list.</source>
 <context>
     <name>AIToolExecutor</name>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2137"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2382"/>
         <source>AI Restore Version</source>
         <translation>AI คืนค่าเวอร์ชัน</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2138"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2383"/>
         <source>AI wants to restore the ROM to version:
 
 &quot;%1&quot; (created %2)
@@ -1020,22 +1020,22 @@ This will replace all current data. Continue?</source>
 การดำเนินการนี้จะแทนที่ข้อมูลปัจจุบันทั้งหมด ดำเนินการต่อ?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2285"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2530"/>
         <source>Approve</source>
         <translation>อนุมัติ</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2373"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2618"/>
         <source>AI Cell Edit</source>
         <translation>AI แก้ไขเซลล์</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2435"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2680"/>
         <source>AI Zero Map</source>
         <translation>AI ตั้งค่าแมปเป็นศูนย์</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2436"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2681"/>
         <source>AI wants to set all %1 × %2 = %3 cells in &lt;b&gt;%4&lt;/b&gt; to zero.
 
 This is commonly used to disable ECU monitoring functions.
@@ -1048,12 +1048,12 @@ Apply this change?</source>
 ใช้การเปลี่ยนแปลงนี้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2510"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2755"/>
         <source>AI Scale Map</source>
         <translation>AI ปรับขนาดแมป</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2511"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2756"/>
         <source>AI wants to multiply all values in &lt;b&gt;%1&lt;/b&gt; by &lt;b&gt;%2&lt;/b&gt; (%3).
 
 This affects %4 cells. Apply this change?</source>
@@ -1062,12 +1062,12 @@ This affects %4 cells. Apply this change?</source>
 ส่งผลต่อ %4 เซลล์ ใช้การเปลี่ยนแปลงนี้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2575"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2820"/>
         <source>AI Restore Map</source>
         <translation>AI คืนค่าแมป</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2576"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2821"/>
         <source>AI wants to restore &lt;b&gt;%1&lt;/b&gt; to its original stock values.
 
 This will undo all changes to this map. Apply?</source>
@@ -1076,12 +1076,12 @@ This will undo all changes to this map. Apply?</source>
 การดำเนินการนี้จะยกเลิกการเปลี่ยนแปลงทั้งหมดของแมปนี้ ใช้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2634"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2879"/>
         <source>AI Fill Map</source>
         <translation>AI เติมค่าแมป</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2635"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2880"/>
         <source>AI wants to fill all %1 cells in &lt;b&gt;%2&lt;/b&gt; with &lt;b&gt;%3 %4&lt;/b&gt;.
 
 Apply?</source>
@@ -1090,12 +1090,12 @@ Apply?</source>
 ใช้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2705"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2950"/>
         <source>AI Offset Map</source>
         <translation>AI ออฟเซ็ตแมป</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2706"/>
+        <location filename="../src/aitoolexecutor.cpp" line="2951"/>
         <source>AI wants to add &lt;b&gt;%1&lt;/b&gt; to all %2 cells in &lt;b&gt;%3&lt;/b&gt;.
 
 Apply?</source>
@@ -1104,12 +1104,12 @@ Apply?</source>
 ใช้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2768"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3013"/>
         <source>AI Clamp Map</source>
         <translation>AI จำกัดช่วงค่าแมป</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2769"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3014"/>
         <source>AI wants to clamp all values in &lt;b&gt;%1&lt;/b&gt; to range [%2, %3] %4.
 
 Apply?</source>
@@ -1118,12 +1118,12 @@ Apply?</source>
 ใช้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2843"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3088"/>
         <source>AI Copy Map</source>
         <translation>AI คัดลอกแมป</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2844"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3089"/>
         <source>AI wants to copy all values from &lt;b&gt;%1&lt;/b&gt; to &lt;b&gt;%2&lt;/b&gt; (%3×%4 cells).
 
 Apply?</source>
@@ -1132,12 +1132,12 @@ Apply?</source>
 ใช้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2938"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3183"/>
         <source>AI Write ROM Bytes</source>
         <translation>AI เขียนไบต์ของ ROM</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2939"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3184"/>
         <source>AI wants to write %1 bytes at offset 0x%2:
 
 Current: %3
@@ -1152,12 +1152,12 @@ Apply this raw byte edit?</source>
 ใช้การแก้ไขไบต์ดิบนี้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2987"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3232"/>
         <source>AI Smooth Map</source>
         <translation>AI ทำให้แมปเรียบ</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="2988"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3233"/>
         <source>AI wants to smooth &lt;b&gt;%1&lt;/b&gt; (%2×%3) with %4 iteration(s).
 
 Each cell will be averaged with its neighbors.
@@ -1168,12 +1168,12 @@ Apply?</source>
 ใช้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3111"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3356"/>
         <source>AI Set Axis Values</source>
         <translation>AI ตั้งค่าแกน</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3112"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3357"/>
         <source>AI wants to modify the &lt;b&gt;%1 axis&lt;/b&gt; of &lt;b&gt;%2&lt;/b&gt; (%3 breakpoints):
 
 Current: %4
@@ -1188,12 +1188,12 @@ Apply?</source>
 ใช้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3166"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3411"/>
         <source>AI Undo</source>
         <translation>AI เลิกทำ</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3167"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3412"/>
         <source>Undo last change? This will restore to:
 
 &quot;%1&quot; (%2)
@@ -1206,12 +1206,12 @@ Continue?</source>
 ดำเนินการต่อ?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3219"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3464"/>
         <source>AI Batch Zero Maps</source>
         <translation>AI ตั้งค่าแมปหลายรายการเป็นศูนย์</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3220"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3465"/>
         <source>AI wants to zero &lt;b&gt;%1 maps&lt;/b&gt; matching &apos;%2&apos;:
 
 %3
@@ -1222,12 +1222,12 @@ Apply all?</source>
 ใช้ทั้งหมด?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3349"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3594"/>
         <source>AI Version Snapshot</source>
         <translation>AI สแนปช็อตเวอร์ชัน</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3350"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3595"/>
         <source>AI wants to save a version snapshot:
 
 &quot;%1&quot;
@@ -1240,12 +1240,12 @@ Create this snapshot?</source>
 สร้างสแนปช็อตนี้?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3424"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3671"/>
         <source>AI Batch Modification</source>
         <translation>AI แก้ไขแบบกลุ่ม</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="3425"/>
+        <location filename="../src/aitoolexecutor.cpp" line="3672"/>
         <source>The AI wants to modify %1 map(s):
 
 %2
@@ -1260,12 +1260,12 @@ Approve all changes?</source>
 อนุมัติการเปลี่ยนแปลงทั้งหมดหรือไม่?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="4395"/>
+        <location filename="../src/aitoolexecutor.cpp" line="4647"/>
         <source>AI: Apply Expression</source>
         <translation>AI: ใช้นิพจน์</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="4396"/>
+        <location filename="../src/aitoolexecutor.cpp" line="4648"/>
         <source>Apply expression &apos;%1&apos; to map &apos;%2&apos;?
 
 %3 cells will change (%4 total).
@@ -1282,12 +1282,12 @@ Apply?</source>
 ใช้งาน?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="4497"/>
+        <location filename="../src/aitoolexecutor.cpp" line="4773"/>
         <source>AI: Apply Delta from Linked ROM</source>
         <translation>AI: ใช้เดลต้าจาก ROM ที่เชื่อมโยง</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="4498"/>
+        <location filename="../src/aitoolexecutor.cpp" line="4774"/>
         <source>Apply modifications from &apos;%1&apos; to current ROM?
 
 %2 maps will be updated:
@@ -1300,12 +1300,12 @@ Apply?</source>
 ใช้งาน?</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="4642"/>
+        <location filename="../src/aitoolexecutor.cpp" line="4925"/>
         <source>AI: Rollback ROM</source>
         <translation>AI: ย้อนกลับ ROM</translation>
     </message>
     <message>
-        <location filename="../src/aitoolexecutor.cpp" line="4643"/>
+        <location filename="../src/aitoolexecutor.cpp" line="4926"/>
         <source>Restore ROM to version:
 &quot;%1&quot; (%2)
 
@@ -1479,6 +1479,39 @@ Proceed?</source>
         <location filename="../src/module/BcmProfile.cpp" line="131"/>
         <source>VIN</source>
         <translation>VIN</translation>
+    </message>
+</context>
+<context>
+    <name>ChannelTreeWidget</name>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="29"/>
+        <source>Search channels…</source>
+        <translation type="unfinished">ค้นหาช่อง…</translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="33"/>
+        <source>Clear</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="34"/>
+        <source>Deselect all channels</source>
+        <translation type="unfinished">ยกเลิกเลือกทุกช่อง</translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="42"/>
+        <source>Channel</source>
+        <translation type="unfinished">ช่อง</translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="42"/>
+        <source>Unit</source>
+        <translation type="unfinished">หน่วย</translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="169"/>
+        <source>Other (raw)</source>
+        <translation type="unfinished">อื่นๆ (ดิบ)</translation>
     </message>
 </context>
 <context>
@@ -3801,7 +3834,7 @@ Remember to save the project and export the ROM.</source>
         <location filename="../src/mainwindow.cpp" line="1278"/>
         <location filename="../src/mainwindow.cpp" line="1822"/>
         <location filename="../src/mainwindow.cpp" line="1843"/>
-        <location filename="../src/mainwindow.cpp" line="8647"/>
+        <location filename="../src/mainwindow.cpp" line="8655"/>
         <source>Cancel</source>
         <translation>ยกเลิก</translation>
     </message>
@@ -4260,14 +4293,13 @@ Remember to save the project and export the ROM.</source>
     <message>
         <location filename="../src/mainwindow.cpp" line="2249"/>
         <location filename="../src/mainwindow.cpp" line="2524"/>
-        <location filename="../src/mainwindow.cpp" line="9721"/>
+        <location filename="../src/mainwindow.cpp" line="9729"/>
         <source>Value +1</source>
         <translation>ค่า +1</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2251"/>
-        <location filename="../src/mainwindow.cpp" line="2525"/>
-        <location filename="../src/mainwindow.cpp" line="9721"/>
+        <location filename="../src/mainwindow.cpp" line="9729"/>
         <source>Value −1</source>
         <translation>ค่า −1</translation>
     </message>
@@ -4352,6 +4384,11 @@ Use “Disable DTC &amp;&amp; Features…” for ROM-based (signature-driven) de
 Purchase from romhex14.com to unlock.</source>
         <translation>AI Functions requires a Pro account.
 Purchase from romhex14.com to unlock.</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="2525"/>
+        <source>Value ℡</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2550"/>
@@ -4541,9 +4578,9 @@ Purchase from romhex14.com to unlock.</translation>
         <location filename="../src/mainwindow.cpp" line="6239"/>
         <location filename="../src/mainwindow.cpp" line="6458"/>
         <location filename="../src/mainwindow.cpp" line="6539"/>
-        <location filename="../src/mainwindow.cpp" line="8422"/>
-        <location filename="../src/mainwindow.cpp" line="8968"/>
-        <location filename="../src/mainwindow.cpp" line="9426"/>
+        <location filename="../src/mainwindow.cpp" line="8430"/>
+        <location filename="../src/mainwindow.cpp" line="8976"/>
+        <location filename="../src/mainwindow.cpp" line="9434"/>
         <source>Error</source>
         <translation>ข้อผิดพลาด</translation>
     </message>
@@ -4750,33 +4787,33 @@ This may take a while (potentially hours for terabyte collections).  You can pau
         <translation>Opened %1 alongside %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7985"/>
+        <location filename="../src/mainwindow.cpp" line="7993"/>
         <source>Import Map List</source>
         <translation>นำเข้ารายการแมป</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7986"/>
+        <location filename="../src/mainwindow.cpp" line="7994"/>
         <source>Open a project with ROM data first to import a map list.</source>
         <translation>เปิดโปรเจกต์ที่มีข้อมูล ROM ก่อนเพื่อนำเข้ารายการแมป</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8819"/>
+        <location filename="../src/mainwindow.cpp" line="8827"/>
         <source>Unknown</source>
         <translation>ไม่ทราบ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8823"/>
-        <location filename="../src/mainwindow.cpp" line="8850"/>
+        <location filename="../src/mainwindow.cpp" line="8831"/>
+        <location filename="../src/mainwindow.cpp" line="8858"/>
         <source>Checksum</source>
         <translation>เช็คซัม</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8824"/>
+        <location filename="../src/mainwindow.cpp" line="8832"/>
         <source>This ROM has an invalid checksum.</source>
         <translation>ROM นี้มีเช็คซัมไม่ถูกต้อง</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8826"/>
+        <location filename="../src/mainwindow.cpp" line="8834"/>
         <source>ECU: %1
 Algorithm: %2
 
@@ -4787,17 +4824,17 @@ Correct the checksum before exporting? Flashing a ROM with an invalid checksum c
 แก้ไขเช็คซัมก่อนส่งออกหรือไม่? การแฟลช ROM ที่เช็คซัมไม่ถูกต้องอาจถูก ECU ปฏิเสธ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8829"/>
+        <location filename="../src/mainwindow.cpp" line="8837"/>
         <source>Correct &amp;&amp; Export</source>
         <translation>แก้ไขและส่งออก</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8830"/>
+        <location filename="../src/mainwindow.cpp" line="8838"/>
         <source>Export Anyway</source>
         <translation>ส่งออกต่อไป</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8851"/>
+        <location filename="../src/mainwindow.cpp" line="8859"/>
         <source>Checksum correction failed: %1
 
 Export cancelled.</source>
@@ -4806,140 +4843,140 @@ Export cancelled.</source>
 ยกเลิกการส่งออกแล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8852"/>
+        <location filename="../src/mainwindow.cpp" line="8860"/>
         <source>unknown error</source>
         <translation>ข้อผิดพลาดที่ไม่ทราบ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9167"/>
+        <location filename="../src/mainwindow.cpp" line="9175"/>
         <source>Insert comment</source>
         <translation>Insert comment</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9168"/>
+        <location filename="../src/mainwindow.cpp" line="9176"/>
         <source>Comment for offset 0x%1:</source>
         <translation>Comment for offset 0x%1:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9178"/>
+        <location filename="../src/mainwindow.cpp" line="9186"/>
         <source>Comment added at 0x%1</source>
         <translation>Comment added at 0x%1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9191"/>
+        <location filename="../src/mainwindow.cpp" line="9199"/>
         <source>Marker added at 0x%1</source>
         <translation>Marker added at 0x%1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9213"/>
-        <location filename="../src/mainwindow.cpp" line="9235"/>
+        <location filename="../src/mainwindow.cpp" line="9221"/>
+        <location filename="../src/mainwindow.cpp" line="9243"/>
         <source>Export map list</source>
         <translation>Export map list</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9214"/>
-        <location filename="../src/mainwindow.cpp" line="9236"/>
-        <location filename="../src/mainwindow.cpp" line="9478"/>
-        <location filename="../src/mainwindow.cpp" line="9506"/>
+        <location filename="../src/mainwindow.cpp" line="9222"/>
+        <location filename="../src/mainwindow.cpp" line="9244"/>
+        <location filename="../src/mainwindow.cpp" line="9486"/>
+        <location filename="../src/mainwindow.cpp" line="9514"/>
         <source>Open a project with at least one map first.</source>
         <translation>Open a project with at least one map first.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9219"/>
+        <location filename="../src/mainwindow.cpp" line="9227"/>
         <source>Export map list as CSV</source>
         <translation>Export map list as CSV</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9220"/>
+        <location filename="../src/mainwindow.cpp" line="9228"/>
         <source>CSV (*.csv)</source>
         <translation>CSV (*.csv)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9224"/>
-        <location filename="../src/mainwindow.cpp" line="9246"/>
+        <location filename="../src/mainwindow.cpp" line="9232"/>
+        <location filename="../src/mainwindow.cpp" line="9254"/>
         <source>Export failed</source>
         <translation>Export failed</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9227"/>
-        <location filename="../src/mainwindow.cpp" line="9249"/>
+        <location filename="../src/mainwindow.cpp" line="9235"/>
+        <location filename="../src/mainwindow.cpp" line="9257"/>
         <source>Wrote %1 maps to %2</source>
         <translation>Wrote %1 maps to %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9241"/>
+        <location filename="../src/mainwindow.cpp" line="9249"/>
         <source>Export map list as JSON</source>
         <translation>Export map list as JSON</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9242"/>
+        <location filename="../src/mainwindow.cpp" line="9250"/>
         <source>JSON (*.json)</source>
         <translation>JSON (*.json)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9257"/>
-        <location filename="../src/mainwindow.cpp" line="9274"/>
-        <location filename="../src/mainwindow.cpp" line="9281"/>
-        <location filename="../src/mainwindow.cpp" line="9303"/>
-        <location filename="../src/mainwindow.cpp" line="9318"/>
-        <location filename="../src/mainwindow.cpp" line="9327"/>
+        <location filename="../src/mainwindow.cpp" line="9265"/>
+        <location filename="../src/mainwindow.cpp" line="9282"/>
+        <location filename="../src/mainwindow.cpp" line="9289"/>
+        <location filename="../src/mainwindow.cpp" line="9311"/>
+        <location filename="../src/mainwindow.cpp" line="9326"/>
+        <location filename="../src/mainwindow.cpp" line="9335"/>
         <source>Tuning Report</source>
         <translation>รายงานการจูน</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9258"/>
+        <location filename="../src/mainwindow.cpp" line="9266"/>
         <source>Open a project with at least one map first. The report compares the current ROM against its original snapshot.</source>
         <translation>กรุณาเปิดโปรเจกต์ที่มีอย่างน้อยหนึ่งแมปก่อน รายงานจะเปรียบเทียบ ROM ปัจจุบันกับสแนปช็อตต้นฉบับ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9269"/>
+        <location filename="../src/mainwindow.cpp" line="9277"/>
         <source>Select the original (baseline) ROM to compare against</source>
         <translation>เลือก ROM ต้นฉบับ (พื้นฐาน) เพื่อเปรียบเทียบ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9270"/>
+        <location filename="../src/mainwindow.cpp" line="9278"/>
         <source>ROM files (*.bin *.rom *.ori *.hex);;All files (*)</source>
         <translation>ไฟล์ ROM (*.bin *.rom *.ori *.hex);;ทุกไฟล์ (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9282"/>
+        <location filename="../src/mainwindow.cpp" line="9290"/>
         <source>The baseline ROM (%1 bytes) is a different size from the current ROM (%2 bytes); they must match to compare maps.</source>
         <translation>ROM พื้นฐาน (%1 ไบต์) มีขนาดต่างจาก ROM ปัจจุบัน (%2 ไบต์) ต้องมีขนาดเท่ากันจึงจะเปรียบเทียบแมปได้</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9304"/>
+        <location filename="../src/mainwindow.cpp" line="9312"/>
         <source>No differences found between the current ROM and the baseline — nothing to report.</source>
         <translation>ไม่พบความแตกต่างระหว่าง ROM ปัจจุบันกับพื้นฐาน — ไม่มีสิ่งที่ต้องรายงาน</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9311"/>
+        <location filename="../src/mainwindow.cpp" line="9319"/>
         <source>-tuning-report</source>
         <translation>-รายงานการจูน</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9313"/>
+        <location filename="../src/mainwindow.cpp" line="9321"/>
         <source>Save Tuning Report</source>
         <translation>บันทึกรายงานการจูน</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9313"/>
+        <location filename="../src/mainwindow.cpp" line="9321"/>
         <source>HTML report (*.html)</source>
         <translation>รายงาน HTML (*.html)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9319"/>
-        <location filename="../src/mainwindow.cpp" line="9493"/>
-        <location filename="../src/mainwindow.cpp" line="9522"/>
+        <location filename="../src/mainwindow.cpp" line="9327"/>
+        <location filename="../src/mainwindow.cpp" line="9501"/>
+        <location filename="../src/mainwindow.cpp" line="9530"/>
         <source>Could not write %1</source>
         <translation>ไม่สามารถเขียน %1 ได้</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9326"/>
+        <location filename="../src/mainwindow.cpp" line="9334"/>
         <source>Tuning report: %1 changed maps written to %2</source>
         <translation>รายงานการจูน: เขียนแมปที่เปลี่ยนแปลง %1 รายการไปยัง %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9328"/>
+        <location filename="../src/mainwindow.cpp" line="9336"/>
         <source>Report saved with %1 changed maps.
 
 Open it now?</source>
@@ -4948,374 +4985,374 @@ Open it now?</source>
 เปิดเลยหรือไม่?</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9338"/>
+        <location filename="../src/mainwindow.cpp" line="9346"/>
         <source>Find Value</source>
         <translation>ค้นหาค่า</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9364"/>
+        <location filename="../src/mainwindow.cpp" line="9372"/>
         <source>Import VAG FRF / ODX</source>
         <translation>นำเข้า VAG FRF / ODX</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9365"/>
+        <location filename="../src/mainwindow.cpp" line="9373"/>
         <source>VAG flash containers (*.frf *.sgo *.odx *.zip);;All files (*)</source>
         <translation>คอนเทนเนอร์แฟลช VAG (*.frf *.sgo *.odx *.zip);;ทุกไฟล์ (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9387"/>
+        <location filename="../src/mainwindow.cpp" line="9395"/>
         <source>Import FRF / ODX</source>
         <translation>นำเข้า FRF / ODX</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9388"/>
+        <location filename="../src/mainwindow.cpp" line="9396"/>
         <source>Could not stage the extracted ROM to a temporary file.</source>
         <translation>ไม่สามารถเตรียม ROM ที่แยกได้ไปยังไฟล์ชั่วคราว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9407"/>
+        <location filename="../src/mainwindow.cpp" line="9415"/>
         <source>Opened extracted ROM: %1 (%2 bytes)</source>
         <translation>เปิด ROM ที่แยกได้แล้ว: %1 (%2 ไบต์)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9414"/>
-        <location filename="../src/mainwindow.cpp" line="9434"/>
-        <location filename="../src/mainwindow.cpp" line="9438"/>
-        <location filename="../src/mainwindow.cpp" line="9460"/>
+        <location filename="../src/mainwindow.cpp" line="9422"/>
+        <location filename="../src/mainwindow.cpp" line="9442"/>
+        <location filename="../src/mainwindow.cpp" line="9446"/>
+        <location filename="../src/mainwindow.cpp" line="9468"/>
         <source>Import XDF</source>
         <translation>นำเข้า XDF</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9415"/>
+        <location filename="../src/mainwindow.cpp" line="9423"/>
         <source>Open a project with ROM data first. XDF definitions are added on top of an existing ROM (the same way A2L files are).</source>
         <translation>กรุณาเปิดโปรเจกต์ที่มีข้อมูล ROM ก่อน นิยาม XDF จะถูกเพิ่มบน ROM ที่มีอยู่ (เช่นเดียวกับไฟล์ A2L)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9422"/>
+        <location filename="../src/mainwindow.cpp" line="9430"/>
         <source>Import XDF definition</source>
         <translation>นำเข้านิยาม XDF</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9422"/>
+        <location filename="../src/mainwindow.cpp" line="9430"/>
         <source>TunerPro XDF (*.xdf);;All files (*)</source>
         <translation>TunerPro XDF (*.xdf);;ทุกไฟล์ (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9439"/>
+        <location filename="../src/mainwindow.cpp" line="9447"/>
         <source>No maps with addresses were found in this XDF.</source>
         <translation>ไม่พบแมปที่มีที่อยู่ในไฟล์ XDF นี้</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9461"/>
+        <location filename="../src/mainwindow.cpp" line="9469"/>
         <source>No new maps were added (%1 already present, %2 outside the ROM).</source>
         <translation>ไม่มีการเพิ่มแมปใหม่ (%1 มีอยู่แล้ว, %2 อยู่นอก ROM)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9467"/>
+        <location filename="../src/mainwindow.cpp" line="9475"/>
         <source>Imported %1 maps from XDF</source>
         <translation>นำเข้าแมป %1 รายการจาก XDF แล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9468"/>
+        <location filename="../src/mainwindow.cpp" line="9476"/>
         <source>, %1 already present</source>
         <translation>, %1 มีอยู่แล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9469"/>
+        <location filename="../src/mainwindow.cpp" line="9477"/>
         <source>, %1 outside ROM</source>
         <translation>, %1 อยู่นอก ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9477"/>
-        <location filename="../src/mainwindow.cpp" line="9493"/>
+        <location filename="../src/mainwindow.cpp" line="9485"/>
+        <location filename="../src/mainwindow.cpp" line="9501"/>
         <source>Export XDF</source>
         <translation>ส่งออก XDF</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9483"/>
+        <location filename="../src/mainwindow.cpp" line="9491"/>
         <source>Export XDF (TunerPro)</source>
         <translation>ส่งออก XDF (TunerPro)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9483"/>
+        <location filename="../src/mainwindow.cpp" line="9491"/>
         <source>TunerPro XDF (*.xdf)</source>
         <translation>TunerPro XDF (*.xdf)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9498"/>
-        <location filename="../src/mainwindow.cpp" line="9527"/>
+        <location filename="../src/mainwindow.cpp" line="9506"/>
+        <location filename="../src/mainwindow.cpp" line="9535"/>
         <source>Exported %1 maps to %2</source>
         <translation>ส่งออกแมป %1 รายการไปยัง %2 แล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9505"/>
-        <location filename="../src/mainwindow.cpp" line="9517"/>
-        <location filename="../src/mainwindow.cpp" line="9522"/>
+        <location filename="../src/mainwindow.cpp" line="9513"/>
+        <location filename="../src/mainwindow.cpp" line="9525"/>
+        <location filename="../src/mainwindow.cpp" line="9530"/>
         <source>Export KP</source>
         <translation>ส่งออก KP</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9511"/>
+        <location filename="../src/mainwindow.cpp" line="9519"/>
         <source>Export KP map pack</source>
         <translation>ส่งออกชุดแมป KP</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9511"/>
+        <location filename="../src/mainwindow.cpp" line="9519"/>
         <source>KP map pack (*.kp)</source>
         <translation>ชุดแมป KP (*.kp)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9535"/>
+        <location filename="../src/mainwindow.cpp" line="9543"/>
         <source>No annotations in this project.</source>
         <translation>No annotations in this project.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9543"/>
+        <location filename="../src/mainwindow.cpp" line="9551"/>
         <source>→ 0x%1</source>
         <translation>→ 0x%1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9563"/>
-        <location filename="../src/mainwindow.cpp" line="9722"/>
+        <location filename="../src/mainwindow.cpp" line="9571"/>
+        <location filename="../src/mainwindow.cpp" line="9730"/>
         <source>Change absolute</source>
         <translation>Change absolute</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9564"/>
+        <location filename="../src/mainwindow.cpp" line="9572"/>
         <source>Set every selected cell to:</source>
         <translation>Set every selected cell to:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9573"/>
+        <location filename="../src/mainwindow.cpp" line="9581"/>
         <source>Change relative</source>
         <translation>Change relative</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9574"/>
+        <location filename="../src/mainwindow.cpp" line="9582"/>
         <source>Enter delta (e.g. +5, -3, *1.10, +5%):</source>
         <translation>Enter delta (e.g. +5, -3, *1.10, +5%):</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9602"/>
-        <location filename="../src/mainwindow.cpp" line="9647"/>
-        <location filename="../src/mainwindow.cpp" line="9654"/>
+        <location filename="../src/mainwindow.cpp" line="9610"/>
+        <location filename="../src/mainwindow.cpp" line="9655"/>
         <location filename="../src/mainwindow.cpp" line="9662"/>
+        <location filename="../src/mainwindow.cpp" line="9670"/>
         <source>Selection</source>
         <translation>Selection</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9625"/>
-        <location filename="../src/mainwindow.cpp" line="9628"/>
-        <location filename="../src/mainwindow.cpp" line="9631"/>
-        <location filename="../src/mainwindow.cpp" line="9724"/>
+        <location filename="../src/mainwindow.cpp" line="9633"/>
+        <location filename="../src/mainwindow.cpp" line="9636"/>
+        <location filename="../src/mainwindow.cpp" line="9639"/>
+        <location filename="../src/mainwindow.cpp" line="9732"/>
         <source>Round / limit</source>
         <translation>Round / limit</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9626"/>
+        <location filename="../src/mainwindow.cpp" line="9634"/>
         <source>Round to nearest multiple of:</source>
         <translation>Round to nearest multiple of:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9629"/>
+        <location filename="../src/mainwindow.cpp" line="9637"/>
         <source>Minimum allowed value:</source>
         <translation>Minimum allowed value:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9632"/>
+        <location filename="../src/mainwindow.cpp" line="9640"/>
         <source>Maximum allowed value:</source>
         <translation>Maximum allowed value:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9648"/>
+        <location filename="../src/mainwindow.cpp" line="9656"/>
         <source>No active project view.</source>
         <translation>No active project view.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9655"/>
+        <location filename="../src/mainwindow.cpp" line="9663"/>
         <source>Editor not ready for this view.</source>
         <translation>Editor not ready for this view.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9695"/>
+        <location filename="../src/mainwindow.cpp" line="9703"/>
         <source>Find similar</source>
         <translation>Find similar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9696"/>
+        <location filename="../src/mainwindow.cpp" line="9704"/>
         <source>Need at least 2 maps in the project to compare.</source>
         <translation>Need at least 2 maps in the project to compare.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9722"/>
+        <location filename="../src/mainwindow.cpp" line="9730"/>
         <source>Change relative (delta)</source>
         <translation>Change relative (delta)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9723"/>
+        <location filename="../src/mainwindow.cpp" line="9731"/>
         <source>Change relative (scale ×)</source>
         <translation>Change relative (scale ×)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9725"/>
+        <location filename="../src/mainwindow.cpp" line="9733"/>
         <source>Restore original</source>
         <translation>Restore original</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9729"/>
+        <location filename="../src/mainwindow.cpp" line="9737"/>
         <source>Bulk edit %1 maps</source>
         <translation>Bulk edit %1 maps</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9730"/>
+        <location filename="../src/mainwindow.cpp" line="9738"/>
         <source>Operation:</source>
         <translation>Operation:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9743"/>
         <location filename="../src/mainwindow.cpp" line="9751"/>
-        <location filename="../src/mainwindow.cpp" line="9760"/>
-        <location filename="../src/mainwindow.cpp" line="9769"/>
-        <location filename="../src/mainwindow.cpp" line="9773"/>
-        <location filename="../src/mainwindow.cpp" line="9776"/>
-        <location filename="../src/mainwindow.cpp" line="9786"/>
+        <location filename="../src/mainwindow.cpp" line="9759"/>
+        <location filename="../src/mainwindow.cpp" line="9768"/>
+        <location filename="../src/mainwindow.cpp" line="9777"/>
+        <location filename="../src/mainwindow.cpp" line="9781"/>
+        <location filename="../src/mainwindow.cpp" line="9784"/>
+        <location filename="../src/mainwindow.cpp" line="9794"/>
         <source>Bulk edit</source>
         <translation>Bulk edit</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9743"/>
+        <location filename="../src/mainwindow.cpp" line="9751"/>
         <source>Absolute value:</source>
         <translation>Absolute value:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9751"/>
+        <location filename="../src/mainwindow.cpp" line="9759"/>
         <source>Add delta (raw):</source>
         <translation>Add delta (raw):</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9760"/>
+        <location filename="../src/mainwindow.cpp" line="9768"/>
         <source>Scale factor (1.05 = +5%):</source>
         <translation>Scale factor (1.05 = +5%):</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9769"/>
+        <location filename="../src/mainwindow.cpp" line="9777"/>
         <source>Round to multiple of:</source>
         <translation>Round to multiple of:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9773"/>
+        <location filename="../src/mainwindow.cpp" line="9781"/>
         <source>Min:</source>
         <translation>Min:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9776"/>
+        <location filename="../src/mainwindow.cpp" line="9784"/>
         <source>Max:</source>
         <translation>Max:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9787"/>
+        <location filename="../src/mainwindow.cpp" line="9795"/>
         <source>This will modify %1 byte ranges across %2 maps. Proceed?</source>
         <translation>This will modify %1 byte ranges across %2 maps. Proceed?</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9812"/>
+        <location filename="../src/mainwindow.cpp" line="9820"/>
         <source>Bulk edit applied to %1 maps</source>
         <translation>Bulk edit applied to %1 maps</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9937"/>
         <location filename="../src/mainwindow.cpp" line="9945"/>
-        <location filename="../src/mainwindow.cpp" line="10077"/>
+        <location filename="../src/mainwindow.cpp" line="9953"/>
+        <location filename="../src/mainwindow.cpp" line="10085"/>
         <source>Open datalog</source>
         <translation>เปิดบันทึกข้อมูล</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9938"/>
+        <location filename="../src/mainwindow.cpp" line="9946"/>
         <source>Vehical logs (*.csv);;All files (*)</source>
         <translation>บันทึก Vehical (*.csv);;ไฟล์ทั้งหมด (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9946"/>
-        <location filename="../src/mainwindow.cpp" line="10078"/>
+        <location filename="../src/mainwindow.cpp" line="9954"/>
+        <location filename="../src/mainwindow.cpp" line="10086"/>
         <source>Failed to open %1:
 %2</source>
         <translation>ไม่สามารถเปิด %1:
 %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9966"/>
+        <location filename="../src/mainwindow.cpp" line="9974"/>
         <source>&amp;Open Log…</source>
         <translation>เปิดบันทึก(&amp;O)…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9970"/>
+        <location filename="../src/mainwindow.cpp" line="9978"/>
         <source>&amp;Compare Logs…</source>
         <translation>เปรียบเทียบบันทึก(&amp;C)…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9975"/>
+        <location filename="../src/mainwindow.cpp" line="9983"/>
         <source>Run &amp;Lua Script…</source>
         <translation>เรียกใช้สคริปต์ &amp;Lua…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9983"/>
-        <location filename="../src/mainwindow.cpp" line="9998"/>
+        <location filename="../src/mainwindow.cpp" line="9991"/>
+        <location filename="../src/mainwindow.cpp" line="10006"/>
         <source>Run Lua Script</source>
         <translation>เรียกใช้สคริปต์ Lua</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9984"/>
+        <location filename="../src/mainwindow.cpp" line="9992"/>
         <source>Lua scripts (*.lua);;All files (*)</source>
         <translation>สคริปต์ Lua (*.lua);;ไฟล์ทั้งหมด (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9275"/>
-        <location filename="../src/mainwindow.cpp" line="9999"/>
+        <location filename="../src/mainwindow.cpp" line="9283"/>
+        <location filename="../src/mainwindow.cpp" line="10007"/>
         <source>Could not open %1</source>
         <translation>ไม่สามารถเปิด %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10012"/>
+        <location filename="../src/mainwindow.cpp" line="10020"/>
         <source>Run Lua Script — consent required</source>
         <translation>เรียกใช้สคริปต์ Lua — ต้องได้รับความยินยอม</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10013"/>
+        <location filename="../src/mainwindow.cpp" line="10021"/>
         <source>&lt;b&gt;About to execute:&lt;/b&gt;&lt;br&gt;&lt;code&gt;%1&lt;/code&gt;</source>
         <translation>&lt;b&gt;กำลังจะเรียกใช้:&lt;/b&gt;&lt;br&gt;&lt;code&gt;%1&lt;/code&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10015"/>
+        <location filename="../src/mainwindow.cpp" line="10023"/>
         <source>This Lua script will run with privileges to:&lt;ul&gt;&lt;li&gt;read and modify the active project&apos;s ROM bytes;&lt;/li&gt;&lt;li&gt;read, write, and delete files inside the project tree     and the system temp directory;&lt;/li&gt;&lt;li&gt;make HTTP requests to allowlisted hosts;&lt;/li&gt;&lt;li&gt;query the WOLS similarity catalog.&lt;/li&gt;&lt;/ul&gt;Code-execution paths (&lt;code&gt;os.execute&lt;/code&gt;, &lt;code&gt;io.popen&lt;/code&gt;, loading native libraries, &lt;code&gt;dofile&lt;/code&gt;) are &lt;b&gt;blocked&lt;/b&gt; by the sandbox.&lt;br&gt;&lt;br&gt;&lt;b&gt;Only run scripts from sources you trust.&lt;/b&gt;&lt;br&gt;SHA-256: &lt;code&gt;%1…&lt;/code&gt;</source>
         <translation>สคริปต์ Lua นี้จะทำงานด้วยสิทธิ์ในการ:&lt;ul&gt;&lt;li&gt;อ่านและแก้ไขไบต์ ROM ของโครงการที่กำลังใช้งาน;&lt;/li&gt;&lt;li&gt;อ่าน เขียน และลบไฟล์ภายในโครงการและไดเรกทอรีชั่วคราวของระบบ;&lt;/li&gt;&lt;li&gt;ส่งคำขอ HTTP ไปยังโฮสต์ในรายการที่อนุญาต;&lt;/li&gt;&lt;li&gt;สืบค้นแคตตาล็อกความคล้ายคลึงของ WOLS&lt;/li&gt;&lt;/ul&gt;เส้นทางการรันโค้ด (&lt;code&gt;os.execute&lt;/code&gt;, &lt;code&gt;io.popen&lt;/code&gt;, การโหลดไลบรารีเนทีฟ, &lt;code&gt;dofile&lt;/code&gt;) ถูก &lt;b&gt;ปิดกั้น&lt;/b&gt; โดยแซนด์บ็อกซ์&lt;br&gt;&lt;br&gt;&lt;b&gt;เรียกใช้เฉพาะสคริปต์จากแหล่งที่คุณไว้วางใจ&lt;/b&gt;&lt;br&gt;SHA-256: &lt;code&gt;%1…&lt;/code&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10030"/>
+        <location filename="../src/mainwindow.cpp" line="10038"/>
         <source>Run once</source>
         <translation>เรียกใช้ครั้งเดียว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10032"/>
+        <location filename="../src/mainwindow.cpp" line="10040"/>
         <source>Trust this script</source>
         <translation>ไว้วางใจสคริปต์นี้</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10052"/>
+        <location filename="../src/mainwindow.cpp" line="10060"/>
         <source>Lua error</source>
         <translation>ข้อผิดพลาด Lua</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10057"/>
+        <location filename="../src/mainwindow.cpp" line="10065"/>
         <source>Lua output</source>
         <translation>ผลลัพธ์ Lua</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10067"/>
+        <location filename="../src/mainwindow.cpp" line="10075"/>
         <source>&amp;Recent</source>
         <translation>ล่าสุด(&amp;R)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10087"/>
+        <location filename="../src/mainwindow.cpp" line="10095"/>
         <source>&amp;Clear list</source>
         <translation>ล้างรายการ(&amp;C)</translation>
     </message>
@@ -5335,14 +5372,14 @@ Open it now?</source>
         <translation>ORI</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8381"/>
+        <location filename="../src/mainwindow.cpp" line="8389"/>
         <source>  ⇔  Cursors are now synchronized.
        Click this button to unlink them.</source>
         <translation>  ⇔  เคอร์เซอร์ซิงค์กันแล้ว
        คลิกปุ่มนี้เพื่อยกเลิกการเชื่อมโยง</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8735"/>
+        <location filename="../src/mainwindow.cpp" line="8743"/>
         <source>✗ Checksum mismatch
 
 ECU: %1
@@ -5357,7 +5394,7 @@ ECU: %1
 ใช้ &quot;แก้ไขเช็คซัม&quot; เพื่อแก้ไขก่อนแฟลช</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8740"/>
+        <location filename="../src/mainwindow.cpp" line="8748"/>
         <source>Checksum verification is not supported for this ECU.
 
 ECU: %1</source>
@@ -5366,7 +5403,7 @@ ECU: %1</source>
 ECU: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8742"/>
+        <location filename="../src/mainwindow.cpp" line="8750"/>
         <source>Native checksum verification unavailable for this ECU on macOS/Linux.
 
 ECU: %1</source>
@@ -5397,8 +5434,8 @@ ECU: %1</translation>
         <location filename="../src/mainwindow.cpp" line="6215"/>
         <location filename="../src/mainwindow.cpp" line="6267"/>
         <location filename="../src/mainwindow.cpp" line="7912"/>
-        <location filename="../src/mainwindow.cpp" line="8010"/>
-        <location filename="../src/mainwindow.cpp" line="8657"/>
+        <location filename="../src/mainwindow.cpp" line="8018"/>
+        <location filename="../src/mainwindow.cpp" line="8665"/>
         <source>Save Project As</source>
         <translation>บันทึกโปรเจกต์เป็น</translation>
     </message>
@@ -5559,7 +5596,7 @@ ECU: %1</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="6084"/>
-        <location filename="../src/mainwindow.cpp" line="8969"/>
+        <location filename="../src/mainwindow.cpp" line="8977"/>
         <source>Failed to open project:
 </source>
         <translation>ไม่สามารถเปิดโปรเจกต์:
@@ -5571,14 +5608,14 @@ ECU: %1</translation>
         <location filename="../src/mainwindow.cpp" line="6217"/>
         <location filename="../src/mainwindow.cpp" line="6269"/>
         <location filename="../src/mainwindow.cpp" line="7915"/>
-        <location filename="../src/mainwindow.cpp" line="8011"/>
-        <location filename="../src/mainwindow.cpp" line="8585"/>
-        <location filename="../src/mainwindow.cpp" line="8659"/>
+        <location filename="../src/mainwindow.cpp" line="8019"/>
+        <location filename="../src/mainwindow.cpp" line="8593"/>
+        <location filename="../src/mainwindow.cpp" line="8667"/>
         <source>RX14 Projects (*.rx14proj);;All Files (*)</source>
         <translation>โปรเจกต์ RX14 (*.rx14proj);;ไฟล์ทั้งหมด (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8641"/>
+        <location filename="../src/mainwindow.cpp" line="8649"/>
         <source>Unsaved Changes</source>
         <translation>มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก</translation>
     </message>
@@ -5588,11 +5625,11 @@ ECU: %1</translation>
         <location filename="../src/mainwindow.cpp" line="2333"/>
         <location filename="../src/mainwindow.cpp" line="2355"/>
         <location filename="../src/mainwindow.cpp" line="6369"/>
-        <location filename="../src/mainwindow.cpp" line="8231"/>
-        <location filename="../src/mainwindow.cpp" line="8411"/>
-        <location filename="../src/mainwindow.cpp" line="8460"/>
-        <location filename="../src/mainwindow.cpp" line="8509"/>
-        <location filename="../src/mainwindow.cpp" line="8689"/>
+        <location filename="../src/mainwindow.cpp" line="8239"/>
+        <location filename="../src/mainwindow.cpp" line="8419"/>
+        <location filename="../src/mainwindow.cpp" line="8468"/>
+        <location filename="../src/mainwindow.cpp" line="8517"/>
+        <location filename="../src/mainwindow.cpp" line="8697"/>
         <source>No project</source>
         <translation>ไม่มีโปรเจกต์</translation>
     </message>
@@ -5720,7 +5757,7 @@ This is a fallback while you haven&apos;t imported an A2L — once an A2L is loa
         <location filename="../src/mainwindow.cpp" line="4224"/>
         <location filename="../src/mainwindow.cpp" line="4397"/>
         <location filename="../src/mainwindow.cpp" line="6099"/>
-        <location filename="../src/mainwindow.cpp" line="9426"/>
+        <location filename="../src/mainwindow.cpp" line="9434"/>
         <source>Cannot open file: %1</source>
         <translation>ไม่สามารถเปิดไฟล์: %1</translation>
     </message>
@@ -5853,7 +5890,7 @@ This is a fallback while you haven&apos;t imported an A2L — once an A2L is loa
     <message>
         <location filename="../src/mainwindow.cpp" line="2323"/>
         <location filename="../src/mainwindow.cpp" line="6469"/>
-        <location filename="../src/mainwindow.cpp" line="9339"/>
+        <location filename="../src/mainwindow.cpp" line="9347"/>
         <source>Open a project with ROM data first.</source>
         <translation>กรุณาเปิดโปรเจกต์ที่มีข้อมูล ROM ก่อน</translation>
     </message>
@@ -6282,154 +6319,154 @@ Alternatives:
         <translation>ไฟล์ ROM (*.bin *.hex *.rom *.mpc);;ไฟล์ทั้งหมด (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8119"/>
+        <location filename="../src/mainwindow.cpp" line="8127"/>
         <source>ECU dumps (*.bin *.hex *.rom *.s19 *.srec *.s28 *.s37 *.mpc);;All files (*)</source>
         <translation>ดัมพ์ ECU (*.bin *.hex *.rom *.s19 *.srec *.s28 *.s37 *.mpc);;ไฟล์ทั้งหมด (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8178"/>
+        <location filename="../src/mainwindow.cpp" line="8186"/>
         <source>No detector matched. The flash does not contain any of the 73 known ECU family anchors. (See RE/winOLS/winols_analysis/ECU_PATTERN_DB.json for the catalog.)</source>
         <translation>No detector matched. The flash does not contain any of the 73 known ECU family anchors. (See RE/winOLS/winols_analysis/ECU_PATTERN_DB.json for the catalog.)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8232"/>
+        <location filename="../src/mainwindow.cpp" line="8240"/>
         <source>Please open a project with maps before linking a ROM.</source>
         <translation>กรุณาเปิดโปรเจกต์ที่มีแผนที่ก่อนเชื่อมโยง ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8401"/>
+        <location filename="../src/mainwindow.cpp" line="8409"/>
         <source>Linked ROM &apos;%1&apos; opened — %2/%3 maps located.</source>
         <translation>เปิด ROM ที่เชื่อมโยง &apos;%1&apos; — พบ %2/%3 แผนที่</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8411"/>
-        <location filename="../src/mainwindow.cpp" line="8460"/>
-        <location filename="../src/mainwindow.cpp" line="8509"/>
+        <location filename="../src/mainwindow.cpp" line="8419"/>
+        <location filename="../src/mainwindow.cpp" line="8468"/>
+        <location filename="../src/mainwindow.cpp" line="8517"/>
         <source>No active project.</source>
         <translation>ไม่มีโปรเจกต์ที่ใช้งานอยู่</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8416"/>
+        <location filename="../src/mainwindow.cpp" line="8424"/>
         <source>Import ROM as Version</source>
         <translation>นำเข้า ROM เป็นเวอร์ชัน</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8422"/>
+        <location filename="../src/mainwindow.cpp" line="8430"/>
         <source>Cannot open file:
 %1</source>
         <translation>ไม่สามารถเปิดไฟล์:
 %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8429"/>
+        <location filename="../src/mainwindow.cpp" line="8437"/>
         <source>Version Label</source>
         <translation>ป้ายกำกับเวอร์ชัน</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8430"/>
+        <location filename="../src/mainwindow.cpp" line="8438"/>
         <source>Enter a name for this ROM version:</source>
         <translation>ป้อนชื่อสำหรับเวอร์ชัน ROM นี้:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8452"/>
+        <location filename="../src/mainwindow.cpp" line="8460"/>
         <source>Version &apos;%1&apos; imported from %2  (%3 bytes).</source>
         <translation>นำเข้าเวอร์ชัน &apos;%1&apos; จาก %2 (%3 ไบต์)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8464"/>
+        <location filename="../src/mainwindow.cpp" line="8472"/>
         <source>No ROM</source>
         <translation>ไม่มี ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8464"/>
+        <location filename="../src/mainwindow.cpp" line="8472"/>
         <source>The active project has no ROM data loaded.</source>
         <translation>โปรเจกต์ที่ใช้งานไม่มีข้อมูล ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8474"/>
+        <location filename="../src/mainwindow.cpp" line="8482"/>
         <source>[Linked] %1</source>
         <translation>[เชื่อมโยง] %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8479"/>
+        <location filename="../src/mainwindow.cpp" line="8487"/>
         <source>[Version] %1  (%2)</source>
         <translation>[เวอร์ชัน] %1  (%2)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8486"/>
+        <location filename="../src/mainwindow.cpp" line="8494"/>
         <source>Nothing to compare</source>
         <translation>ไม่มีอะไรให้เปรียบเทียบ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8487"/>
+        <location filename="../src/mainwindow.cpp" line="8495"/>
         <source>No linked ROMs or saved versions found.
 Use &apos;Link ROM to Project…&apos; or &apos;Import ROM as Version…&apos; first.</source>
         <translation>ไม่พบ ROM ที่เชื่อมโยงหรือเวอร์ชันที่บันทึก
 ใช้ &apos;เชื่อม ROM กับโปรเจกต์…&apos; หรือ &apos;นำเข้า ROM เป็นเวอร์ชัน…&apos; ก่อน</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8493"/>
+        <location filename="../src/mainwindow.cpp" line="8501"/>
         <source>Compare ROM</source>
         <translation>เปรียบเทียบ ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8494"/>
+        <location filename="../src/mainwindow.cpp" line="8502"/>
         <source>Select a ROM to compare against the current data:</source>
         <translation>เลือก ROM เพื่อเปรียบเทียบกับข้อมูลปัจจุบัน:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8731"/>
+        <location filename="../src/mainwindow.cpp" line="8739"/>
         <source>Checksum OK — %1 (%2)</source>
         <translation>เช็กซัมถูกต้อง — %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8777"/>
-        <location filename="../src/mainwindow.cpp" line="8846"/>
+        <location filename="../src/mainwindow.cpp" line="8785"/>
+        <location filename="../src/mainwindow.cpp" line="8854"/>
         <source>Checksum corrected — %1 (%2)</source>
         <translation>แก้ไขเช็กซัมแล้ว — %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8901"/>
+        <location filename="../src/mainwindow.cpp" line="8909"/>
         <source>open</source>
         <translation>เปิด</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8917"/>
+        <location filename="../src/mainwindow.cpp" line="8925"/>
         <source>Language</source>
         <translation>ภาษา</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8918"/>
+        <location filename="../src/mainwindow.cpp" line="8926"/>
         <source>Change UI language</source>
         <translation>เปลี่ยนภาษาของอินเทอร์เฟซ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8919"/>
+        <location filename="../src/mainwindow.cpp" line="8927"/>
         <source>Auto Save Mode</source>
         <translation>โหมดบันทึกอัตโนมัติ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8920"/>
+        <location filename="../src/mainwindow.cpp" line="8928"/>
         <source>Off / After Delay / On Focus Change / On Window Deactivate</source>
         <translation>ปิด / หลังหน่วงเวลา / เมื่อเปลี่ยนโฟกัส / เมื่อปิดหน้าต่าง</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8921"/>
+        <location filename="../src/mainwindow.cpp" line="8929"/>
         <source>Byte Order</source>
         <translation>ลำดับไบต์</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8922"/>
+        <location filename="../src/mainwindow.cpp" line="8930"/>
         <source>Little Endian / Big Endian</source>
         <translation>Little Endian / Big Endian</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8923"/>
+        <location filename="../src/mainwindow.cpp" line="8931"/>
         <source>Theme &amp; Colors</source>
         <translation>ธีมและสี</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8924"/>
+        <location filename="../src/mainwindow.cpp" line="8932"/>
         <source>Open Preferences → Colors</source>
         <translation>เปิดการตั้งค่า → สี</translation>
     </message>
@@ -6515,7 +6552,7 @@ Use &apos;Link ROM to Project…&apos; or &apos;Import ROM as Version…&apos; f
         <translation>เปิดสคริปต์แพตช์…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8690"/>
+        <location filename="../src/mainwindow.cpp" line="8698"/>
         <source>Open a project before importing a map pack.</source>
         <translation>กรุณาเปิดโปรเจกต์ก่อนนำเข้าแพ็กแมป</translation>
     </message>
@@ -6544,22 +6581,22 @@ Use &apos;Link ROM to Project…&apos; or &apos;Import ROM as Version…&apos; f
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="6143"/>
-        <location filename="../src/mainwindow.cpp" line="7997"/>
+        <location filename="../src/mainwindow.cpp" line="8005"/>
         <source>New Project — Import</source>
         <translation>โปรเจกต์ใหม่ — นำเข้า</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8643"/>
+        <location filename="../src/mainwindow.cpp" line="8651"/>
         <source>The following projects have unsaved changes:</source>
         <translation>โปรเจกต์ต่อไปนี้มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8645"/>
+        <location filename="../src/mainwindow.cpp" line="8653"/>
         <source>Save All &amp;&amp; Exit</source>
         <translation>บันทึกทั้งหมดและออก</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8646"/>
+        <location filename="../src/mainwindow.cpp" line="8654"/>
         <source>Exit Without Saving</source>
         <translation>ออกโดยไม่บันทึก</translation>
     </message>
@@ -6667,12 +6704,12 @@ Import an A2L file first to define ECU maps.</source>
     <message>
         <location filename="../src/mainwindow.cpp" line="2042"/>
         <location filename="../src/mainwindow.cpp" line="2490"/>
-        <location filename="../src/mainwindow.cpp" line="8718"/>
-        <location filename="../src/mainwindow.cpp" line="8719"/>
-        <location filename="../src/mainwindow.cpp" line="8721"/>
-        <location filename="../src/mainwindow.cpp" line="8734"/>
-        <location filename="../src/mainwindow.cpp" line="8738"/>
-        <location filename="../src/mainwindow.cpp" line="8747"/>
+        <location filename="../src/mainwindow.cpp" line="8726"/>
+        <location filename="../src/mainwindow.cpp" line="8727"/>
+        <location filename="../src/mainwindow.cpp" line="8729"/>
+        <location filename="../src/mainwindow.cpp" line="8742"/>
+        <location filename="../src/mainwindow.cpp" line="8746"/>
+        <location filename="../src/mainwindow.cpp" line="8755"/>
         <source>Verify Checksum</source>
         <translation>ตรวจสอบเช็คซัม</translation>
     </message>
@@ -6694,25 +6731,25 @@ Import an A2L file first to define ECU maps.</source>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2355"/>
-        <location filename="../src/mainwindow.cpp" line="8718"/>
-        <location filename="../src/mainwindow.cpp" line="8755"/>
-        <location filename="../src/mainwindow.cpp" line="9162"/>
-        <location filename="../src/mainwindow.cpp" line="9186"/>
+        <location filename="../src/mainwindow.cpp" line="8726"/>
+        <location filename="../src/mainwindow.cpp" line="8763"/>
+        <location filename="../src/mainwindow.cpp" line="9170"/>
+        <location filename="../src/mainwindow.cpp" line="9194"/>
         <source>Open a project first.</source>
         <translation>กรุณาเปิดโปรเจกต์ก่อน</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8219"/>
+        <location filename="../src/mainwindow.cpp" line="8227"/>
         <source>&lt;h3&gt;%1&lt;/h3&gt;</source>
         <translation>&lt;h3&gt;%1&lt;/h3&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8236"/>
+        <location filename="../src/mainwindow.cpp" line="8244"/>
         <source>No maps in active project</source>
         <translation>No maps in active project</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8237"/>
+        <location filename="../src/mainwindow.cpp" line="8245"/>
         <source>The currently active project has no map definitions to match against.
 
 Link ROM to Project works by taking the maps from the ACTIVE project (the reference) and locating them in the ROM you select.  So the active project must be the one WITH metadata — typically the .ols / .kp file, or a project that already has an A2L imported.
@@ -6731,63 +6768,63 @@ Workflow:
   3. Then Project → Link ROM to Project… and pick the raw .bin you want to map onto it.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8417"/>
+        <location filename="../src/mainwindow.cpp" line="8425"/>
         <source>ROM files (*.bin *.hex *.rom *.ori *.mpc);;All files (*)</source>
         <translation>ไฟล์ ROM (*.bin *.hex *.rom *.ori *.mpc);;ไฟล์ทั้งหมด (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8583"/>
+        <location filename="../src/mainwindow.cpp" line="8591"/>
         <source>Auto-save: choose a location for this project</source>
         <translation>บันทึกอัตโนมัติ: เลือกตำแหน่งสำหรับโปรเจกต์นี้</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8603"/>
+        <location filename="../src/mainwindow.cpp" line="8611"/>
         <source>●  Modified</source>
         <translation>●  แก้ไขแล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8613"/>
+        <location filename="../src/mainwindow.cpp" line="8621"/>
         <source>✓  Saved</source>
         <translation>✓  บันทึกแล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8614"/>
+        <location filename="../src/mainwindow.cpp" line="8622"/>
         <source>✓  Saved %1s ago</source>
         <translation>✓  บันทึกเมื่อ %1 วินาทีที่แล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8615"/>
+        <location filename="../src/mainwindow.cpp" line="8623"/>
         <source>✓  Saved %1m ago</source>
         <translation>✓  บันทึกเมื่อ %1 นาทีที่แล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8616"/>
+        <location filename="../src/mainwindow.cpp" line="8624"/>
         <source>✓  Saved %1h ago</source>
         <translation>✓  บันทึกเมื่อ %1 ชั่วโมงที่แล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8719"/>
-        <location filename="../src/mainwindow.cpp" line="8756"/>
+        <location filename="../src/mainwindow.cpp" line="8727"/>
+        <location filename="../src/mainwindow.cpp" line="8764"/>
         <source>No ROM data loaded.</source>
         <translation>ยังไม่ได้โหลดข้อมูล ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8747"/>
+        <location filename="../src/mainwindow.cpp" line="8755"/>
         <source>Checksum error: %1</source>
         <translation>ข้อผิดพลาดเช็คซัม: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8755"/>
-        <location filename="../src/mainwindow.cpp" line="8756"/>
-        <location filename="../src/mainwindow.cpp" line="8758"/>
-        <location filename="../src/mainwindow.cpp" line="8761"/>
-        <location filename="../src/mainwindow.cpp" line="8780"/>
-        <location filename="../src/mainwindow.cpp" line="8789"/>
+        <location filename="../src/mainwindow.cpp" line="8763"/>
+        <location filename="../src/mainwindow.cpp" line="8764"/>
+        <location filename="../src/mainwindow.cpp" line="8766"/>
+        <location filename="../src/mainwindow.cpp" line="8769"/>
+        <location filename="../src/mainwindow.cpp" line="8788"/>
+        <location filename="../src/mainwindow.cpp" line="8797"/>
         <source>Correct Checksum</source>
         <translation>แก้ไขเช็คซัม</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8762"/>
+        <location filename="../src/mainwindow.cpp" line="8770"/>
         <source>Recalculate and write checksum for:
 
 ECU: %1
@@ -6802,7 +6839,7 @@ ECU: %1
 การดำเนินการนี้แก้ไขข้อมูล ROM ในหน่วยความจำ (ยังไม่บันทึกจนกว่าจะส่งออก)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8782"/>
+        <location filename="../src/mainwindow.cpp" line="8790"/>
         <source>Checksum correction is not supported for this ECU.
 
 ECU: %1</source>
@@ -6811,7 +6848,7 @@ ECU: %1</source>
 ECU: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8784"/>
+        <location filename="../src/mainwindow.cpp" line="8792"/>
         <source>Native checksum correction unavailable for this ECU on macOS/Linux.
 
 ECU: %1</source>
@@ -6820,7 +6857,7 @@ ECU: %1</source>
 ECU: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8789"/>
+        <location filename="../src/mainwindow.cpp" line="8797"/>
         <source>Checksum correction failed: %1</source>
         <translation>การแก้ไขเช็คซัมล้มเหลว: %1</translation>
     </message>
@@ -6867,7 +6904,7 @@ ECU: %1</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="7644"/>
-        <location filename="../src/mainwindow.cpp" line="8125"/>
+        <location filename="../src/mainwindow.cpp" line="8133"/>
         <source>Could not open file:
 %1</source>
         <translation>ไม่สามารถเปิดไฟล์:
@@ -6953,25 +6990,25 @@ Size: %2 KB</source>
         <translation>เพิ่มแมปใหม่ %1 รายการลงในโปรเจกต์แล้ว</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8117"/>
+        <location filename="../src/mainwindow.cpp" line="8125"/>
         <source>Select ROM to identify</source>
         <translation>เลือก ROM ที่จะระบุ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8124"/>
-        <location filename="../src/mainwindow.cpp" line="8133"/>
-        <location filename="../src/mainwindow.cpp" line="8155"/>
-        <location filename="../src/mainwindow.cpp" line="8177"/>
+        <location filename="../src/mainwindow.cpp" line="8132"/>
+        <location filename="../src/mainwindow.cpp" line="8141"/>
+        <location filename="../src/mainwindow.cpp" line="8163"/>
+        <location filename="../src/mainwindow.cpp" line="8185"/>
         <source>Auto-detect ECU</source>
         <translation>ตรวจจับ ECU อัตโนมัติ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8134"/>
+        <location filename="../src/mainwindow.cpp" line="8142"/>
         <source>ROM is empty — nothing to detect.</source>
         <translation>ROM ว่างเปล่า — ไม่มีข้อมูลให้ตรวจจับ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8148"/>
+        <location filename="../src/mainwindow.cpp" line="8156"/>
         <source>Identifying ECU…
 Source: %1
 Size: %2 KB%3</source>
@@ -6980,67 +7017,67 @@ Size: %2 KB%3</source>
 ขนาด: %2 KB%3</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8150"/>
+        <location filename="../src/mainwindow.cpp" line="8158"/>
         <source> (decoded from %1 to %2 KB)</source>
         <translation> (ถอดรหัสจาก %1 เป็น %2 KB)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8191"/>
+        <location filename="../src/mainwindow.cpp" line="8199"/>
         <source>Family</source>
         <translation>ตระกูล</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8192"/>
+        <location filename="../src/mainwindow.cpp" line="8200"/>
         <source>Detector</source>
         <translation>ตัวตรวจจับ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8193"/>
+        <location filename="../src/mainwindow.cpp" line="8201"/>
         <source>HW number</source>
         <translation>หมายเลขฮาร์ดแวร์</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8194"/>
+        <location filename="../src/mainwindow.cpp" line="8202"/>
         <source>SW number</source>
         <translation>หมายเลขซอฟต์แวร์</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8195"/>
+        <location filename="../src/mainwindow.cpp" line="8203"/>
         <source>SW version</source>
         <translation>เวอร์ชันซอฟต์แวร์</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8196"/>
+        <location filename="../src/mainwindow.cpp" line="8204"/>
         <source>Production no.</source>
         <translation>หมายเลขการผลิต</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8197"/>
+        <location filename="../src/mainwindow.cpp" line="8205"/>
         <source>HW alt number</source>
         <translation>หมายเลขฮาร์ดแวร์ทางเลือก</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8198"/>
+        <location filename="../src/mainwindow.cpp" line="8206"/>
         <source>Engine code</source>
         <translation>รหัสเครื่องยนต์</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8200"/>
+        <location filename="../src/mainwindow.cpp" line="8208"/>
         <source>ID block offset</source>
         <translation>ออฟเซ็ตบล็อก ID</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8205"/>
+        <location filename="../src/mainwindow.cpp" line="8213"/>
         <source>Data areas</source>
         <translation>พื้นที่ข้อมูล</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8211"/>
+        <location filename="../src/mainwindow.cpp" line="8219"/>
         <source>Raw ID block</source>
         <translation>บล็อก ID ดิบ</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8216"/>
+        <location filename="../src/mainwindow.cpp" line="8224"/>
         <source>Auto-detect ECU — %1</source>
         <translation>ตรวจจับ ECU อัตโนมัติ — %1</translation>
     </message>
@@ -7207,19 +7244,19 @@ Size: %2 KB%3</source>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="314"/>
-        <location filename="../src/mapoverlay.cpp" line="1213"/>
+        <location filename="../src/mapoverlay.cpp" line="1215"/>
         <source>8-bit</source>
         <translation>8 บิต</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="315"/>
-        <location filename="../src/mapoverlay.cpp" line="1214"/>
+        <location filename="../src/mapoverlay.cpp" line="1216"/>
         <source>16-bit</source>
         <translation>16 บิต</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="316"/>
-        <location filename="../src/mapoverlay.cpp" line="1215"/>
+        <location filename="../src/mapoverlay.cpp" line="1217"/>
         <source>32-bit</source>
         <translation>32 บิต</translation>
     </message>
@@ -7230,25 +7267,25 @@ Size: %2 KB%3</source>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="331"/>
-        <location filename="../src/mapoverlay.cpp" line="1221"/>
+        <location filename="../src/mapoverlay.cpp" line="1223"/>
         <source>Big Endian</source>
         <translation>Big Endian</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="332"/>
-        <location filename="../src/mapoverlay.cpp" line="1222"/>
+        <location filename="../src/mapoverlay.cpp" line="1224"/>
         <source>Little Endian</source>
         <translation>Little Endian</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="339"/>
-        <location filename="../src/mapoverlay.cpp" line="2277"/>
+        <location filename="../src/mapoverlay.cpp" line="2279"/>
         <source>Undo  Ctrl+Z</source>
         <translation>ย้อนกลับ  Ctrl+Z</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="340"/>
-        <location filename="../src/mapoverlay.cpp" line="2279"/>
+        <location filename="../src/mapoverlay.cpp" line="2281"/>
         <source>Redo  Ctrl+Y</source>
         <translation>ทำซ้ำ  Ctrl+Y</translation>
     </message>
@@ -7269,25 +7306,25 @@ Size: %2 KB%3</source>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="373"/>
-        <location filename="../src/mapoverlay.cpp" line="1230"/>
+        <location filename="../src/mapoverlay.cpp" line="1232"/>
         <source>Values</source>
         <translation>ค่า</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="374"/>
-        <location filename="../src/mapoverlay.cpp" line="1231"/>
+        <location filename="../src/mapoverlay.cpp" line="1233"/>
         <source>Δ Original</source>
         <translation>Δ ต้นฉบับ</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="375"/>
-        <location filename="../src/mapoverlay.cpp" line="1232"/>
+        <location filename="../src/mapoverlay.cpp" line="1234"/>
         <source>% Original</source>
         <translation>% ต้นฉบับ</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="377"/>
-        <location filename="../src/mapoverlay.cpp" line="1234"/>
+        <location filename="../src/mapoverlay.cpp" line="1236"/>
         <source>Show plain values, or the numeric difference from the original ROM</source>
         <translation>แสดงค่าปกติ หรือผลต่างเชิงตัวเลขจาก ROM ต้นฉบับ</translation>
     </message>
@@ -7297,36 +7334,36 @@ Size: %2 KB%3</source>
         <translation>การอธิบายแผนที่ด้วย AI ต้องใช้ Claude API</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="655"/>
+        <location filename="../src/mapoverlay.cpp" line="657"/>
         <source>Font size</source>
         <translation>ขนาดตัวอักษร</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="676"/>
+        <location filename="../src/mapoverlay.cpp" line="678"/>
         <source>Δ  </source>
         <translation>Δ  </translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="682"/>
+        <location filename="../src/mapoverlay.cpp" line="684"/>
         <source>value</source>
         <translation>ค่า</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="693"/>
+        <location filename="../src/mapoverlay.cpp" line="695"/>
         <source>Add %  —  new = old × (1 + Δ÷100)
 Applies to all selected cells</source>
         <translation>เพิ่ม %  —  ใหม่ = เดิม × (1 + Δ÷100)
 ใช้กับเซลล์ที่เลือกทั้งหมด</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="696"/>
+        <location filename="../src/mapoverlay.cpp" line="698"/>
         <source>Add value  —  new = old + Δ
 Applies to all selected cells</source>
         <translation>เพิ่มค่า  —  ใหม่ = เดิม + Δ
 ใช้กับเซลล์ที่เลือกทั้งหมด</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="699"/>
+        <location filename="../src/mapoverlay.cpp" line="701"/>
         <source>Set value  —  new = Δ
 Applies to all selected cells
 Tip: select cells and press Enter to type directly</source>
@@ -7335,14 +7372,14 @@ Tip: select cells and press Enter to type directly</source>
 เคล็ด: เลือกเซลล์แล้วกด Enter เพื่อพิมพ์โดยตรง</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="710"/>
-        <location filename="../src/mapoverlay.cpp" line="1238"/>
+        <location filename="../src/mapoverlay.cpp" line="712"/>
+        <location filename="../src/mapoverlay.cpp" line="1240"/>
         <source>Interp</source>
         <translation>สอดแทรก</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="713"/>
-        <location filename="../src/mapoverlay.cpp" line="1240"/>
+        <location filename="../src/mapoverlay.cpp" line="715"/>
+        <location filename="../src/mapoverlay.cpp" line="1242"/>
         <source>Interpolate the selected cells
 Fills a block bilinearly from its four corners; a single row or
 column is filled linearly between its ends. Select at least 3 cells.</source>
@@ -7350,94 +7387,94 @@ column is filled linearly between its ends. Select at least 3 cells.</source>
 เติมบล็อกแบบ bilinear จากมุมทั้งสี่ แถวหรือคอลัมน์เดียวจะเติมแบบเชิงเส้นระหว่างปลายทั้งสอง เลือกอย่างน้อย 3 เซลล์</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="731"/>
+        <location filename="../src/mapoverlay.cpp" line="733"/>
         <source>Select cells  ·  Enter to edit directly  ·  Shift+click / Ctrl+click for multi-select</source>
         <translation>เลือกเซลล์  ·  Enter แก้ไขโดยตรง  ·  Shift+คลิก / Ctrl+คลิกเพื่อเลือกหลาย</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="916"/>
+        <location filename="../src/mapoverlay.cpp" line="918"/>
         <source>&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;RomHEX 14 could not verify this map&apos;s location in the linked ROM.&lt;br&gt;Enter the correct hex address from a trusted source (e.g. DAMOS file, EEPROM editor).</source>
         <translation>&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;RomHEX 14 ไม่สามารถตรวจสอบตำแหน่งของ MAP นี้ใน ROM ที่เชื่อมโยง&lt;br&gt;กรุณาป้อนที่อยู่ hex ที่ถูกต้องจากแหล่งที่เชื่อถือได้ (เช่น ไฟล์ DAMOS, โปรแกรมแก้ไข EEPROM)</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="952"/>
+        <location filename="../src/mapoverlay.cpp" line="954"/>
         <source>No map loaded</source>
         <translation>ยังไม่ได้โหลดแมป</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="1158"/>
+        <location filename="../src/mapoverlay.cpp" line="1160"/>
         <source>⚠  RomHEX 14 cannot guarantee this data is correct (link confidence: %1%).  Verify before editing.</source>
         <translation>⚠  RomHEX 14 ไม่สามารถรับประกันว่าข้อมูลนี้ถูกต้อง (ความเชื่อมั่นในการเชื่อมโยง: %1%)  กรุณาตรวจสอบก่อนแก้ไข</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="1297"/>
+        <location filename="../src/mapoverlay.cpp" line="1299"/>
         <source>%1 — not yet supported</source>
         <translation>%1 — ยังไม่รองรับ</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="1363"/>
+        <location filename="../src/mapoverlay.cpp" line="1365"/>
         <source>Rows: %1  Cols: %2  Min: %3  Max: %4  Range: %5%6</source>
         <translation>แถว: %1  คอล: %2  ต่ำ: %3  สูง: %4  ช่วง: %5%6</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="1381"/>
+        <location filename="../src/mapoverlay.cpp" line="1383"/>
         <source>ORIGINAL  (read-only)</source>
         <translation>ต้นฉบับ  (อ่านอย่างเดียว)</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="1724"/>
+        <location filename="../src/mapoverlay.cpp" line="1726"/>
         <source>Interpolate needs at least 3 cells across a row, column, or block.</source>
         <translation>การสอดแทรกต้องใช้อย่างน้อย 3 เซลล์ในแถว คอลัมน์ หรือบล็อก</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="2286"/>
+        <location filename="../src/mapoverlay.cpp" line="2288"/>
         <source>Undo (%1 steps)  Ctrl+Z</source>
         <translation>ย้อนกลับ (%1 ขั้น)  Ctrl+Z</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="2289"/>
+        <location filename="../src/mapoverlay.cpp" line="2291"/>
         <source>Redo (%1 steps)  Ctrl+Y</source>
         <translation>ทำซ้ำ (%1 ขั้น)  Ctrl+Y</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="2304"/>
+        <location filename="../src/mapoverlay.cpp" line="2306"/>
         <source>Editing  —  value will be written to %1 selected cells  ·  Enter confirm  ·  Tab next column  ·  ↑↓ next row  ·  Esc cancel</source>
         <translation>กำลังแก้ไข  —  ค่าจะถูกเขียนไป %1 เซลล์  ·  Enter ยืนยัน  ·  Tab คอลถัดไป  ·  ↑↓ แถวถัดไป  ·  Esc ยกเลิก</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="2305"/>
+        <location filename="../src/mapoverlay.cpp" line="2307"/>
         <source>Editing  —  Enter to confirm  ·  Tab next column  ·  ↑↓ next row  ·  Esc cancel</source>
         <translation>กำลังแก้ไข  —  Enter ยืนยัน  ·  Tab คอลถัดไป  ·  ↑↓ แถวถัดไป  ·  Esc ยกเลิก</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="2315"/>
+        <location filename="../src/mapoverlay.cpp" line="2317"/>
         <source>Click a cell to select  ·  Shift+click or Ctrl+click for multi-select  ·  Enter or type to edit</source>
         <translation>คลิกเซลล์เพื่อเลือก  ·  Shift/Ctrl+คลิกเลือกหลาย  ·  Enter หรือพิมพ์เพื่อแก้ไข</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="2319"/>
+        <location filename="../src/mapoverlay.cpp" line="2321"/>
         <source>1 cell selected  [row %1, col %2]  ·  Enter or type to edit  ·  Ctrl+Z undo</source>
         <translation>เลือก 1 เซลล์  [แถว %1, คอล %2]  ·  Enter หรือพิมพ์เพื่อแก้ไข  ·  Ctrl+Z ย้อนกลับ</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="2323"/>
+        <location filename="../src/mapoverlay.cpp" line="2325"/>
         <source>%1 cells selected  ·  Enter or type to set all to the same value  ·  Use Δ bar for +% or add  ·  Ctrl+Z undo</source>
         <translation>เลือก %1 เซลล์  ·  Enter ตั้งค่าเดียวกัน  ·  แถบ Δ สำหรับ +% หรือเพิ่ม  ·  Ctrl+Z ย้อนกลับ</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="1474"/>
+        <location filename="../src/mapoverlay.cpp" line="1476"/>
         <source>[row %1, col %2]  =  %3  (raw 0x%4)</source>
         <translation>[แถว %1, คอล %2]  =  %3  (ดิบ 0x%4)</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="2277"/>
-        <location filename="../src/mapoverlay.cpp" line="2285"/>
+        <location filename="../src/mapoverlay.cpp" line="2279"/>
+        <location filename="../src/mapoverlay.cpp" line="2287"/>
         <source>Nothing to undo</source>
         <translation>ไม่มีรายการให้เลิกทำ</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="2279"/>
-        <location filename="../src/mapoverlay.cpp" line="2288"/>
+        <location filename="../src/mapoverlay.cpp" line="2281"/>
+        <location filename="../src/mapoverlay.cpp" line="2290"/>
         <source>Nothing to redo</source>
         <translation>ไม่มีรายการให้ทำซ้ำ</translation>
     </message>
@@ -7463,47 +7500,47 @@ column is filled linearly between its ends. Select at least 3 cells.</source>
         <translation>…</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="821"/>
+        <location filename="../src/mapoverlay.cpp" line="823"/>
         <source>Properties…</source>
         <translation>คุณสมบัติ…</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="823"/>
+        <location filename="../src/mapoverlay.cpp" line="825"/>
         <source>Copy selection</source>
         <translation>คัดลอกที่เลือก</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="824"/>
+        <location filename="../src/mapoverlay.cpp" line="826"/>
         <source>Paste values</source>
         <translation>วางค่า</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="826"/>
+        <location filename="../src/mapoverlay.cpp" line="828"/>
         <source>Export to CSV…</source>
         <translation>ส่งออกเป็น CSV…</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="844"/>
+        <location filename="../src/mapoverlay.cpp" line="846"/>
         <source>Export CSV</source>
         <translation>ส่งออก CSV</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="902"/>
+        <location filename="../src/mapoverlay.cpp" line="904"/>
         <source>Fix address…</source>
         <translation>แก้ไขที่อยู่…</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="911"/>
+        <location filename="../src/mapoverlay.cpp" line="913"/>
         <source>Set Correct Address — %1</source>
         <translation>ตั้งที่อยู่ที่ถูกต้อง — %1</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="941"/>
+        <location filename="../src/mapoverlay.cpp" line="943"/>
         <source>Invalid address</source>
         <translation>ที่อยู่ไม่ถูกต้อง</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="941"/>
+        <location filename="../src/mapoverlay.cpp" line="943"/>
         <source>Could not parse address.</source>
         <translation>ไม่สามารถแยกวิเคราะห์ที่อยู่ได้</translation>
     </message>
@@ -7558,7 +7595,7 @@ column is filled linearly between its ends. Select at least 3 cells.</source>
         <translation>กรุณาตั้งค่าผู้ให้บริการ AI ในการตั้งค่าผู้ช่วย AI ก่อน</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="626"/>
+        <location filename="../src/mapoverlay.cpp" line="628"/>
         <source>AI error: %1
 
 Please try again.</source>
@@ -7572,12 +7609,12 @@ Please try again.</source>
         <translation>กำลังรับข้อมูล...</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="613"/>
+        <location filename="../src/mapoverlay.cpp" line="615"/>
         <source>Done</source>
         <translation>เสร็จสิ้น</translation>
     </message>
     <message>
-        <location filename="../src/mapoverlay.cpp" line="629"/>
+        <location filename="../src/mapoverlay.cpp" line="631"/>
         <source>Error</source>
         <translation>ข้อผิดพลาด</translation>
     </message>
@@ -9675,12 +9712,12 @@ defined</source>
         <translation>กำลังแปล MAP…  %1 / %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9059"/>
+        <location filename="../src/mainwindow.cpp" line="9067"/>
         <source>No active project view.</source>
         <translation>No active project view.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9081"/>
+        <location filename="../src/mainwindow.cpp" line="9089"/>
         <source>Select a map (or drag a range in the waveform / hex view) first.</source>
         <translation>Select a map (or drag a range in the waveform / hex view) first.</translation>
     </message>
@@ -9877,8 +9914,8 @@ defined</source>
         <translation>ตารางขนาดใหญ่</translation>
     </message>
     <message>
-        <location filename="../src/lua/LuaEngine.cpp" line="229"/>
         <location filename="../src/lua/LuaApi_Global.cpp" line="274"/>
+        <location filename="../src/lua/LuaEngine.cpp" line="229"/>
         <source>Lua script</source>
         <translation>สคริปต์ Lua</translation>
     </message>
@@ -10610,132 +10647,99 @@ This cannot be undone.</translation>
 <context>
     <name>WelcomeWidget</name>
     <message>
-        <location filename="../src/aiassistant.cpp" line="618"/>
+        <location filename="../src/aiassistant.cpp" line="626"/>
         <source>Claude for RX14</source>
         <translation>Claude สำหรับ RX14</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="625"/>
+        <location filename="../src/aiassistant.cpp" line="633"/>
         <source>ECU calibration AI assistant</source>
         <translation>ผู้ช่วย AI สำหรับการปรับเทียบ ECU</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="651"/>
+        <location filename="../src/aiassistant.cpp" line="659"/>
         <source>Tune</source>
         <translation>จูน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="652"/>
+        <location filename="../src/aiassistant.cpp" line="660"/>
         <source>decat</source>
         <translation>decat</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="652"/>
+        <location filename="../src/aiassistant.cpp" line="660"/>
         <source>dpf off</source>
         <translation>ปิด DPF</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="653"/>
+        <location filename="../src/aiassistant.cpp" line="661"/>
         <source>egr off</source>
         <translation>ปิด EGR</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="653"/>
+        <location filename="../src/aiassistant.cpp" line="661"/>
         <source>pops and bangs</source>
         <translation>pops and bangs</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="654"/>
+        <location filename="../src/aiassistant.cpp" line="662"/>
         <source>Analyze</source>
         <translation>วิเคราะห์</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="655"/>
+        <location filename="../src/aiassistant.cpp" line="663"/>
         <source>Detect anomalies in modified maps</source>
         <translation>ตรวจจับความผิดปกติในแผนที่ที่แก้ไข</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="656"/>
+        <location filename="../src/aiassistant.cpp" line="664"/>
         <source>Describe the shape of the selected map</source>
         <translation>อธิบายรูปร่างของแผนที่ที่เลือก</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="657"/>
+        <location filename="../src/aiassistant.cpp" line="665"/>
         <source>What does this map do?</source>
         <translation>แผนที่นี้ทำอะไร?</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="658"/>
+        <location filename="../src/aiassistant.cpp" line="666"/>
         <source>Find maps related to the selected map</source>
         <translation>ค้นหาแผนที่ที่เกี่ยวข้องกับแผนที่ที่เลือก</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="659"/>
+        <location filename="../src/aiassistant.cpp" line="667"/>
         <source>Review</source>
         <translation>ตรวจทาน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="661"/>
+        <location filename="../src/aiassistant.cpp" line="669"/>
         <source>Summarize all differences from original</source>
         <translation>สรุปความแตกต่างทั้งหมดจากต้นฉบับ</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="662"/>
+        <location filename="../src/aiassistant.cpp" line="670"/>
         <source>What changed from original?</source>
         <translation>เปลี่ยนอะไรจากต้นฉบับ?</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="663"/>
+        <location filename="../src/aiassistant.cpp" line="671"/>
         <source>Log</source>
         <translation>บันทึก</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="664"/>
+        <location filename="../src/aiassistant.cpp" line="672"/>
         <source>Log a dyno result</source>
         <translation>บันทึกผลไดโน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="665"/>
+        <location filename="../src/aiassistant.cpp" line="673"/>
         <source>Show tuning history</source>
         <translation>แสดงประวัติการจูน</translation>
     </message>
     <message>
-        <location filename="../src/aiassistant.cpp" line="660"/>
+        <location filename="../src/aiassistant.cpp" line="668"/>
         <source>Show all modified maps</source>
         <translation>แสดงแผนที่ที่แก้ไขทั้งหมด</translation>
-    </message>
-</context>
-<context>
-    <name>datalog::ChannelTreeWidget</name>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="29"/>
-        <source>Search channels…</source>
-        <translation>ค้นหาช่อง…</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="33"/>
-        <source>Clear</source>
-        <translation>ล้าง</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="34"/>
-        <source>Deselect all channels</source>
-        <translation>ยกเลิกเลือกทุกช่อง</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="42"/>
-        <source>Channel</source>
-        <translation>ช่อง</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="42"/>
-        <source>Unit</source>
-        <translation>หน่วย</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="169"/>
-        <source>Other (raw)</source>
-        <translation>อื่นๆ (ดิบ)</translation>
     </message>
 </context>
 <context>
