@@ -108,6 +108,35 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
         defs.append(d);
     }
 
+    // list_folders
+    {
+        AIToolDef d;
+        d.name        = "list_folders";
+        d.description = "List the imported map-folder hierarchy with exact paths and direct map counts.";
+        QJsonObject schema;
+        schema["type"]       = "object";
+        schema["properties"] = QJsonObject();
+        schema["required"]   = QJsonArray();
+        d.inputSchema = schema;
+        defs.append(d);
+    }
+
+    // get_folder_maps
+    {
+        AIToolDef d;
+        d.name        = "get_folder_maps";
+        d.description = "List every map directly assigned to an imported folder.";
+        QJsonObject folder;
+        folder["type"]        = "string";
+        folder["description"] = "Exact folder path returned by list_folders.";
+        QJsonObject schema;
+        schema["type"] = "object";
+        schema["properties"] = QJsonObject{{"folder", folder}};
+        schema["required"] = QJsonArray{"folder"};
+        d.inputSchema = schema;
+        defs.append(d);
+    }
+
     // get_project_info
     {
         AIToolDef d;
@@ -1267,6 +1296,8 @@ QString AIToolExecutor::execute(const QString &toolName, QJsonObject input)
 
     // Read tools
     if (toolName == "list_maps")          return toolListMaps();
+    if (toolName == "list_folders")       return toolListFolders();
+    if (toolName == "get_folder_maps")    return toolGetFolderMaps(input);
     if (toolName == "get_project_info")   return toolGetProjectInfo();
     if (toolName == "get_map_values")     return toolGetMapValues(input);
     if (toolName == "get_original_values")return toolGetOriginalValues(input);
@@ -1412,6 +1443,81 @@ QString AIToolExecutor::toolListMaps()
         arr.append(obj);
     }
     return QString::fromUtf8(QJsonDocument(arr).toJson(QJsonDocument::Compact));
+}
+
+QString AIToolExecutor::toolListFolders()
+{
+    if (!m_project) return noProjectError();
+
+    QStringList paths;
+    for (const MapInfo &map : m_project->maps) {
+        const QString path = map.folderPath.trimmed();
+        if (!path.isEmpty() && !paths.contains(path)) paths.append(path);
+    }
+    paths.sort(Qt::CaseInsensitive);
+
+    QJsonArray folders;
+    for (const QString &path : paths) {
+        int mapCount = 0;
+        for (const MapInfo &map : m_project->maps)
+            if (map.folderPath.compare(path, Qt::CaseInsensitive) == 0) ++mapCount;
+
+        const int slash = path.lastIndexOf('/');
+        QJsonObject folder;
+        folder["path"] = path;
+        folder["name"] = slash >= 0 ? path.mid(slash + 1) : path;
+        folder["parent"] = slash >= 0 ? path.left(slash) : QString();
+        folder["mapCount"] = mapCount;
+        folders.append(folder);
+    }
+    return QString::fromUtf8(QJsonDocument(QJsonObject{{"count", folders.size()},
+                                                          {"folders", folders}})
+                                 .toJson(QJsonDocument::Compact));
+}
+
+QString AIToolExecutor::toolGetFolderMaps(const QJsonObject &input)
+{
+    if (!m_project) return noProjectError();
+    const QString requested = input.value("folder").toString().trimmed();
+    if (requested.isEmpty()) {
+        return QString::fromUtf8(QJsonDocument(QJsonObject{{"error", "Folder path is required."}})
+                                     .toJson(QJsonDocument::Compact));
+    }
+
+    QStringList matchingPaths;
+    for (const MapInfo &map : m_project->maps) {
+        const QString path = map.folderPath.trimmed();
+        if (path.isEmpty() || matchingPaths.contains(path)) continue;
+        if (path.compare(requested, Qt::CaseInsensitive) == 0
+            || path.section('/', -1).compare(requested, Qt::CaseInsensitive) == 0)
+            matchingPaths.append(path);
+    }
+    if (matchingPaths.size() != 1) {
+        QJsonObject result;
+        result["error"] = matchingPaths.isEmpty() ? "Folder not found." : "Folder name is ambiguous.";
+        result["requested"] = requested;
+        result["candidates"] = QJsonArray::fromStringList(matchingPaths);
+        return QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
+    }
+
+    const QString path = matchingPaths.first();
+    QJsonArray maps;
+    for (const MapInfo &map : m_project->maps) {
+        if (map.folderPath.compare(path, Qt::CaseInsensitive) != 0) continue;
+        QJsonObject entry;
+        entry["name"] = map.name;
+        entry["description"] = map.description;
+        entry["type"] = map.type;
+        entry["cols"] = map.dimensions.x;
+        entry["rows"] = map.dimensions.y;
+        entry["unit"] = map.scaling.unit;
+        addMapIdentity(entry, map);
+        maps.append(entry);
+    }
+    return QString::fromUtf8(QJsonDocument(QJsonObject{{"folder", path},
+                                                          {"count", maps.size()},
+                                                          {"maps", maps}})
+                                 .toJson(QJsonDocument::Compact));
 }
 
 QString AIToolExecutor::toolGetProjectInfo()

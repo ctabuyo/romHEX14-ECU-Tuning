@@ -53,6 +53,8 @@ private:
 
     // Read tools
     QString toolListMaps();
+    QString toolListFolders();
+    QString toolGetFolderMaps(const QJsonObject &input);
     QString toolGetProjectInfo();
     QString toolGetMapValues(const QJsonObject &input);
     QString toolGetOriginalValues(const QJsonObject &input);

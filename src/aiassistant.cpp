@@ -1077,6 +1077,8 @@ static QString friendlyToolCall(const QString &name, const QJsonObject &input)
         {"snapshot_version",      "💾", "Creating snapshot:",         "label"},
         {"restore_version",       "↩",  "Restoring version",          ""},
         {"list_maps",             "📋", "Listing all maps",           ""},
+        {"list_folders",          "📁", "Listing map folders",        ""},
+        {"get_folder_maps",       "📁", "Listing folder maps:",       "folder"},
         {"get_project_info",      "ℹ",  "Getting project info",       ""},
         {"list_linked_roms",      "🔗", "Listing linked ROMs",        ""},
         {"select_target_rom",     "🎯", "Switching target ROM",       ""},
@@ -1933,9 +1935,9 @@ QString AIAssistant::buildMapPreflight(const QString &userMessage)
 {
     if (!m_project || !m_executor || userMessage.isEmpty()) return {};
 
-    // Only preflight explicit project-map names.  This keeps broad tuning
-    // questions small while ensuring that same-named maps are inspected as a
-    // group rather than leaving the provider to pick an arbitrary first match.
+    // Only preflight explicit project-map names or folder names. This keeps
+    // broad tuning questions small while making names and hierarchy evidence
+    // available without leaving the provider to infer either from keywords.
     const QString foldedQuestion = userMessage.toCaseFolded();
     QStringList requestedNames;
     for (const MapInfo &map : m_project->maps) {
@@ -1952,7 +1954,24 @@ QString AIAssistant::buildMapPreflight(const QString &userMessage)
         if (!alreadyAdded) requestedNames.append(name);
         if (requestedNames.size() == 3) break;
     }
-    if (requestedNames.isEmpty()) return {};
+
+    const bool asksForFolder = QRegularExpression(
+        "\\b(folder|folders|directory|directories)\\b",
+        QRegularExpression::CaseInsensitiveOption).match(userMessage).hasMatch();
+    QStringList requestedFolders;
+    if (asksForFolder) {
+        for (const MapInfo &map : m_project->maps) {
+            const QString path = map.folderPath.trimmed();
+            if (path.isEmpty()) continue;
+            const QString leaf = path.section('/', -1);
+            if (!foldedQuestion.contains(path.toCaseFolded())
+                && !foldedQuestion.contains(leaf.toCaseFolded()))
+                continue;
+            if (!requestedFolders.contains(path)) requestedFolders.append(path);
+            if (requestedFolders.size() == 3) break;
+        }
+    }
+    if (requestedNames.isEmpty() && requestedFolders.isEmpty()) return {};
 
     auto parseObject = [](const QString &json) {
         const QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
@@ -2002,11 +2021,38 @@ QString AIAssistant::buildMapPreflight(const QString &userMessage)
         }
         if (maps.size() == kMaxMaps) break;
     }
-    if (maps.isEmpty()) return {};
+
+    QJsonArray folders;
+    constexpr int kMaxFolderMaps = 64;
+    for (const QString &path : requestedFolders) {
+        QJsonArray folderMaps;
+        int totalMaps = 0;
+        for (const MapInfo &map : m_project->maps) {
+            if (map.folderPath.compare(path, Qt::CaseInsensitive) != 0) continue;
+            ++totalMaps;
+            if (folderMaps.size() == kMaxFolderMaps) continue;
+            QJsonObject entry;
+            entry["name"] = map.name;
+            entry["description"] = map.description;
+            entry["type"] = map.type;
+            entry["selector"] = QString("@0x%1").arg(map.rawAddress, 8, 16, QChar('0'));
+            entry["dimensions"] = QString("%1x%2").arg(map.dimensions.y).arg(map.dimensions.x);
+            entry["unit"] = map.scaling.unit;
+            folderMaps.append(entry);
+        }
+        QJsonObject folder;
+        folder["path"] = path;
+        folder["mapCount"] = totalMaps;
+        folder["maps"] = folderMaps;
+        if (totalMaps > kMaxFolderMaps) folder["truncated"] = true;
+        folders.append(folder);
+    }
+    if (maps.isEmpty() && folders.isEmpty()) return {};
 
     QJsonObject evidence;
     evidence["source"] = "host-side read-only map preflight";
-    evidence["maps"] = maps;
+    if (!maps.isEmpty()) evidence["maps"] = maps;
+    if (!folders.isEmpty()) evidence["folders"] = folders;
     return QString::fromUtf8(QJsonDocument(evidence).toJson(QJsonDocument::Compact));
 }
 
@@ -2036,7 +2082,8 @@ void AIAssistant::buildSystemPrompt()
         "2. For map questions: inspect the project with list_maps or search_maps, then use get_map_values, "
         "get_map_info, get_axis_values, or describe_map_shape — never guess values or a map's use. "
         "For duplicate names, list the matching maps first and use the returned address/mapId as an exact selector "
-        "(name '@0x...').\n"
+        "(name '@0x...'). For folder or directory questions, use list_folders and get_folder_maps; never infer "
+        "folder membership from map-name searches.\n"
         "3. NEVER say 'I am ready', 'I am your AI assistant', 'how can I help', introduce yourself, "
         "ask what the user wants, or list your capabilities. This applies on every turn, including after "
         "tool results — keep working on the task in the most recent user message until it is complete.\n"
@@ -2062,9 +2109,9 @@ void AIAssistant::buildSystemPrompt()
         const QString evidence = buildMapPreflight(it->content);
         if (!evidence.isEmpty()) {
             m_systemPrompt +=
-                "HOST-PREFLIGHT EVIDENCE: The host has already read these exact project maps locally. "
-                "Use this evidence; do not claim map inspection is unavailable. Each selector is an exact map "
-                "identity, not a display name. Code/disassembler cross-references are not included.\n"
+                "HOST-PREFLIGHT EVIDENCE: The host has already read these exact project maps and folders locally. "
+                "Use this evidence; do not claim map or folder inspection is unavailable. Each selector is an exact "
+                "map identity, not a display name. Code/disassembler cross-references are not included.\n"
                 + evidence + "\n\n";
         }
         break;
@@ -2208,12 +2255,12 @@ QStringList AIAssistant::toolsForCategory(const QString &cat)
     // a focused read set prevents the provider from substituting generic ECU
     // knowledge for the actual ROM data.
     if (cat == "explain")
-        return {"list_maps", "search_maps", "confidence_search", "get_map_info",
+        return {"list_maps", "list_folders", "get_folder_maps", "search_maps", "confidence_search", "get_map_info",
                 "get_map_values", "get_original_values", "get_axis_values",
                 "get_map_statistics", "get_modified_maps", "get_project_info"};
 
     if (cat == "read")
-        return {"list_maps", "search_maps", "confidence_search", "get_map_info", "get_map_values",
+        return {"list_maps", "list_folders", "get_folder_maps", "search_maps", "confidence_search", "get_map_info", "get_map_values",
                 "get_original_values", "get_map_statistics", "get_modified_maps", "get_project_info",
                 "get_tuning_notes"};
 
