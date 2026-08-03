@@ -1952,7 +1952,10 @@ void AIAssistant::buildSystemPrompt()
         "then call the appropriate write tool (batch_modify_maps, set_map_values, zero_map, etc.) immediately. "
         "Do NOT ask permission, do NOT wait — call the tool now. "
         "The host application gates writes via a permission mode and surfaces a confirmation card if needed.\n"
-        "2. For map questions: use get_map_values, get_map_info, or describe_map_shape — never guess values.\n"
+        "2. For map questions: inspect the project with list_maps or search_maps, then use get_map_values, "
+        "get_map_info, get_axis_values, or describe_map_shape — never guess values or a map's use. "
+        "For duplicate names, list the matching maps first and use the returned address/mapId as an exact selector "
+        "(name '@0x...').\n"
         "3. NEVER say 'I am ready', 'I am your AI assistant', 'how can I help', introduce yourself, "
         "ask what the user wants, or list your capabilities. This applies on every turn, including after "
         "tool results — keep working on the task in the most recent user message until it is complete.\n"
@@ -1962,7 +1965,10 @@ void AIAssistant::buildSystemPrompt()
         "5. After any modification: call append_tuning_note to log what changed and why, then summarize "
         "what was done in ≤2 sentences. Do not ask a follow-up question unless the user explicitly asked for one.\n"
         "6. Answers: ≤3 sentences unless explaining map data.\n"
-        "7. If the most recent tool result contains an error, address it directly — never restart the conversation.\n\n"
+        "7. If the most recent tool result contains an error, address it directly — never restart the conversation.\n"
+        "8. Never claim that map data or tools are unavailable unless an attempted tool call returned that error. "
+        "Do not invent A2L/XDF data, disassembler cross-references, routines, or datasets: they are not available "
+        "through this assistant. State only what tool results establish and label any general ECU knowledge as general.\n\n"
     )
     .arg(projectTitle)
     .arg(romSize)
@@ -2104,7 +2110,13 @@ QString AIAssistant::classifyIntent(const QString &msg)
 
 QStringList AIAssistant::toolsForCategory(const QString &cat)
 {
-    if (cat == "explain") return {}; // No tools needed
+    // Explanations about this project still need evidence from its maps.  Sending
+    // a focused read set prevents the provider from substituting generic ECU
+    // knowledge for the actual ROM data.
+    if (cat == "explain")
+        return {"list_maps", "search_maps", "confidence_search", "get_map_info",
+                "get_map_values", "get_original_values", "get_axis_values",
+                "get_map_statistics", "get_modified_maps", "get_project_info"};
 
     if (cat == "read")
         return {"list_maps", "search_maps", "confidence_search", "get_map_info", "get_map_values",

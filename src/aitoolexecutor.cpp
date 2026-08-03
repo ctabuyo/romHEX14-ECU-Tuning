@@ -98,7 +98,8 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
     {
         AIToolDef d;
         d.name        = "list_maps";
-        d.description = "List all maps with name, type, dimensions, and units.";
+        d.description = "List every project map with name, mapId/address, type, dimensions, and units. "
+                        "Use mapId/address to distinguish maps that share a name.";
         QJsonObject schema;
         schema["type"] = "object";
         schema["properties"] = QJsonObject();
@@ -128,7 +129,8 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
         QJsonObject props;
         QJsonObject nameProp;
         nameProp["type"]        = "string";
-        nameProp["description"] = "The exact map name as returned by list_maps.";
+        nameProp["description"] = "The exact map name, or '@' followed by a mapId/address returned by list_maps "
+                                  "to select one of several same-named maps (for example '@0x8035a8a6').";
         props["name"] = nameProp;
         QJsonObject schema;
         schema["type"]       = "object";
@@ -148,7 +150,8 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
         QJsonObject props;
         QJsonObject nameProp;
         nameProp["type"]        = "string";
-        nameProp["description"] = "The exact map name as returned by list_maps.";
+        nameProp["description"] = "The exact map name, or '@' followed by a mapId/address returned by list_maps "
+                                  "to select one of several same-named maps (for example '@0x8035a8a6').";
         props["name"] = nameProp;
         QJsonObject schema;
         schema["type"]       = "object";
@@ -211,7 +214,7 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
         d.description = "Write a single cell value in a map by row/col index.";
         QJsonObject nameProp;
         nameProp["type"]        = "string";
-        nameProp["description"] = "The exact map name.";
+        nameProp["description"] = "The exact map name, or '@' followed by a mapId/address returned by list_maps.";
         QJsonObject rowProp;
         rowProp["type"]        = "integer";
         rowProp["description"] = "Zero-based row index.";
@@ -265,7 +268,7 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
         d.description = "Get detailed metadata for a map: axes, scaling, address, dimensions.";
         QJsonObject nameProp;
         nameProp["type"]        = "string";
-        nameProp["description"] = "The exact map name.";
+        nameProp["description"] = "The exact map name, or '@' followed by a mapId/address returned by list_maps.";
         QJsonObject props; props["name"] = nameProp;
         QJsonObject schema;
         schema["type"]       = "object";
@@ -283,7 +286,7 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
         d.description = "Compare a map's current values against the stock ROM, returning changed cells.";
         QJsonObject nameProp;
         nameProp["type"]        = "string";
-        nameProp["description"] = "The exact map name.";
+        nameProp["description"] = "The exact map name, or '@' followed by a mapId/address returned by list_maps.";
         QJsonObject props; props["name"] = nameProp;
         QJsonObject schema;
         schema["type"]       = "object";
@@ -319,7 +322,7 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
         d.description = "Multiply all values in a map by a scaling factor.";
         QJsonObject nameProp;
         nameProp["type"]        = "string";
-        nameProp["description"] = "The exact map name.";
+        nameProp["description"] = "The exact map name, or '@' followed by a mapId/address returned by list_maps.";
         QJsonObject factorProp;
         factorProp["type"]        = "number";
         factorProp["description"] = "Scaling factor to multiply all values by.";
@@ -360,7 +363,7 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
         d.description = "Get min, max, average, and std deviation of a map's values.";
         QJsonObject nameProp;
         nameProp["type"]        = "string";
-        nameProp["description"] = "The exact map name.";
+        nameProp["description"] = "The exact map name, or '@' followed by a mapId/address returned by list_maps.";
         QJsonObject props; props["name"] = nameProp;
         QJsonObject schema;
         schema["type"]       = "object";
@@ -409,7 +412,7 @@ QVector<AIToolDef> AIToolExecutor::toolDefinitions()
         d.description = "Read a map's X and/or Y axis breakpoints and units.";
         QJsonObject nameProp;
         nameProp["type"]        = "string";
-        nameProp["description"] = "The exact map name.";
+        nameProp["description"] = "The exact map name, or '@' followed by a mapId/address returned by list_maps.";
         QJsonObject props; props["name"] = nameProp;
         QJsonObject schema;
         schema["type"]       = "object";
