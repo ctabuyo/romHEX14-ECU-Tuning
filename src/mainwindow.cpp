@@ -5705,7 +5705,7 @@ void MainWindow::refreshProjectTreeNow()
             // and the filter-modified button silently fail on big OLS-imported
             // ROMs (the original ~5000-map gate hid this).
             const bool changed = mapHasChanges(p, m);
-            const bool starred = p->starredMaps.contains(m.name);
+            const bool starred = isProjectMapStarred(*p, m);
             auto *mi = new QTreeWidgetItem(parentItem);
             if      (m.type == "MAP")     mi->setIcon(0, iconMap);
             else if (m.type == "CURVE")   mi->setIcon(0, iconCurve);
@@ -6049,7 +6049,7 @@ void MainWindow::applyTreeFilter()
         auto mapVar = it->data(0, Qt::UserRole + 2);
         auto m = mapVar.value<MapInfo>();
         auto *proj = static_cast<Project*>(it->data(0, Qt::UserRole + 1).value<void*>());
-        const bool starred  = proj && proj->starredMaps.contains(m.name);
+        const bool starred  = proj && isProjectMapStarred(*proj, m);
         const bool isRecent = m_recentMaps.contains({proj, m.name});
         bool modeMatch = true;
         switch (m_panelFilter) {

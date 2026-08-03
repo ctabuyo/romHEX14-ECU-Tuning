@@ -193,7 +193,7 @@ public:
     // explicitly via the small × in its corner. Persisted in BLK_META.
     bool                 noMapsHintDismissed  = false;
     QVector<A2LGroup>    groups;
-    QSet<QString>        starredMaps;   // map names the user has starred (persisted)
+    QSet<QString>        starredMaps;   // stable map keys; legacy name-only entries remain readable
     QVector<TuningLogEntry> tuningLog;  // chronological tuning logbook
     QVector<DynoResult>     dynoLog;    // dyno run history
     ByteOrder            byteOrder   = ByteOrder::BigEndian;
@@ -296,3 +296,35 @@ private:
     class AnnotationStore *m_annotations = nullptr;
     mutable QString m_lastError;
 };
+
+inline QString projectMapStarKey(const MapInfo &map)
+{
+    return QStringLiteral("map:%1:%2")
+        .arg(map.address, 8, 16, QChar('0')).arg(map.name);
+}
+
+inline bool isProjectMapStarred(const Project &project, const MapInfo &map)
+{
+    // Legacy projects stored only names, which marked every duplicate name.
+    return project.starredMaps.contains(projectMapStarKey(map))
+        || project.starredMaps.contains(map.name);
+}
+
+inline void setProjectMapStarred(Project &project, const MapInfo &map, bool starred)
+{
+    // Upgrade a legacy name-only star the first time it is changed. This
+    // preserves old projects' visible stars while allowing duplicate names to
+    // be managed independently from then on.
+    if (project.starredMaps.remove(map.name)) {
+        for (const auto &candidate : project.maps) {
+            if (candidate.name == map.name)
+                project.starredMaps.insert(projectMapStarKey(candidate));
+        }
+    }
+
+    const QString key = projectMapStarKey(map);
+    if (starred)
+        project.starredMaps.insert(key);
+    else
+        project.starredMaps.remove(key);
+}
