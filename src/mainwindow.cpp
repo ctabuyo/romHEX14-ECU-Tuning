@@ -41,6 +41,7 @@
 #include "frfimportdlg.h"
 #include "valuesearchdlg.h"
 #include "createmapdlg.h"
+#include "mappropertiesdlg.h"
 #include "io/ols/OlsImporter.h"
 #include "io/ols/OlsProjectBuilder.h"
 #include "io/ols/OlsExporter.h"
@@ -81,6 +82,8 @@
 #include <QTableWidgetItem>
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QClipboard>
+#include <QStyle>
 #include <QMouseEvent>
 #include <QPointer>
 #include <QPainterPath>
@@ -1557,22 +1560,96 @@ void MainWindow::buildLeftPanel()
     m_projectTree->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_projectTree, &QTreeWidget::customContextMenuRequested,
             this, [this](const QPoint &pos) {
-        QMenu menu(m_projectTree);
         QTreeWidgetItem *item = m_projectTree->itemAt(pos);
+        if (item && (item->flags() & Qt::ItemIsSelectable) && !item->isSelected()) {
+            m_projectTree->clearSelection();
+            item->setSelected(true);
+            m_projectTree->setCurrentItem(item);
+        }
 
-        // ── Map comment actions (only for map leaf items) ──────────────
+        QMenu menu(m_projectTree);
+        struct SelectedMapEntry { Project *project; MapInfo map; };
+        QVector<SelectedMapEntry> selectedMapEntries;
+        for (auto *selected : m_projectTree->selectedItems()) {
+            const auto mapVar = selected->data(0, Qt::UserRole + 2);
+            auto *project = static_cast<Project *>(
+                selected->data(0, Qt::UserRole + 1).value<void *>());
+            if (mapVar.isValid() && project)
+                selectedMapEntries.append({project, mapVar.value<MapInfo>()});
+        }
+        const int selectedCount = selectedMapEntries.size();
+
+        // ── Map actions (only for map leaf items) ───────────────────────
+        QAction *actOpenMap       = nullptr;
+        QAction *actViewInHex     = nullptr;
+        QAction *actSearchForName = nullptr;
+        QAction *actCopyMapNames  = nullptr;
+        QAction *actCloseSelectedMapViews = nullptr;
+        QAction *actCloseMapViews = nullptr;
+        QAction *actStarMap       = nullptr;
+        QAction *actDuplicateMap  = nullptr;
+        QAction *actSelectAllMaps = nullptr;
+        QAction *actClearMapSelection = nullptr;
+        QAction *actSelectStarredMaps = nullptr;
+        QAction *actNewFolder     = nullptr;
+        QAction *actMoveToFolder  = nullptr;
         QAction *actEditComment   = nullptr;
         QAction *actClearComment  = nullptr;
+        QAction *actMapProperties = nullptr;
+        QAction *actDeleteMap     = nullptr;
+        Project *menuMapProject   = nullptr;
+        MapInfo menuMap;
         if (item) {
             auto mapVar = item->data(0, Qt::UserRole + 2);
             if (mapVar.isValid()) {
-                auto map = mapVar.value<MapInfo>();
-                actEditComment  = menu.addAction(
-                    map.userNotes.isEmpty()
-                    ? tr("Add Comment…")
-                    : tr("Edit Comment…"));
-                if (!map.userNotes.isEmpty())
-                    actClearComment = menu.addAction(tr("Clear Comment"));
+                menuMap = mapVar.value<MapInfo>();
+                menuMapProject = static_cast<Project *>(
+                    item->data(0, Qt::UserRole + 1).value<void *>());
+
+                actOpenMap       = menu.addAction(tr("Open"));
+                actViewInHex     = menu.addAction(tr("View in hexdump"));
+                actSearchForName = menu.addAction(tr("Search for name"));
+                actCopyMapNames  = menu.addAction(tr("Copy name"));
+                if (selectedCount > 1)
+                    actCloseSelectedMapViews = menu.addAction(
+                        tr("Close selected map windows"));
+                actCloseMapViews = menu.addAction(tr("Close all map windows"));
+                menu.addSeparator();
+                const bool allStarred = !selectedMapEntries.isEmpty()
+                    && std::all_of(selectedMapEntries.cbegin(), selectedMapEntries.cend(),
+                        [](const SelectedMapEntry &entry) {
+                            return isProjectMapStarred(*entry.project, entry.map);
+                        });
+                actStarMap = menu.addAction(allStarred
+                    ? (selectedCount > 1 ? tr("Unstar %1 maps").arg(selectedCount)
+                                         : tr("Unstar map"))
+                    : (selectedCount > 1 ? tr("Star %1 maps").arg(selectedCount)
+                                         : tr("Star map")));
+                actDuplicateMap  = menu.addAction(selectedCount > 1
+                    ? tr("Duplicate %1 maps").arg(selectedCount)
+                    : tr("Duplicate"));
+                auto *selectMenu = menu.addMenu(tr("Select…"));
+                actSelectAllMaps = selectMenu->addAction(tr("All maps"));
+                actSelectStarredMaps = selectMenu->addAction(tr("Starred maps"));
+                actClearMapSelection = selectMenu->addAction(tr("Clear selection"));
+                menu.addSeparator();
+                actNewFolder    = menu.addAction(tr("New folder with selected maps…"));
+                actNewFolder->setEnabled(selectedCount == 1);
+                actMoveToFolder = menu.addAction(tr("Move to folder…"));
+                menu.addSeparator();
+
+                if (selectedCount == 1) {
+                    actEditComment  = menu.addAction(
+                        menuMap.userNotes.isEmpty()
+                        ? tr("Add Comment…")
+                        : tr("Edit Comment…"));
+                    if (!menuMap.userNotes.isEmpty())
+                        actClearComment = menu.addAction(tr("Clear Comment"));
+                    actMapProperties = menu.addAction(tr("Properties…"));
+                }
+                actDeleteMap = menu.addAction(selectedCount > 1
+                    ? tr("Delete %1 maps…").arg(selectedMapEntries.size())
+                    : tr("Delete Map…"));
                 menu.addSeparator();
             }
         }
@@ -1677,6 +1754,248 @@ void MainWindow::buildLeftPanel()
         }
         if (actFindSimilar && chosen == actFindSimilar) {
             runFindSimilar(findSimilarRef);
+            return;
+        }
+
+        if (actSearchForName && chosen == actSearchForName) {
+            m_filterEdit->setText(menuMap.name);
+            m_filterEdit->setFocus();
+            applyTreeFilter();
+            return;
+        }
+
+        if (actCopyMapNames && chosen == actCopyMapNames) {
+            QStringList names;
+            names.reserve(selectedMapEntries.size());
+            for (const auto &entry : selectedMapEntries)
+                names.append(entry.map.name);
+            QApplication::clipboard()->setText(names.join(QLatin1Char('\n')));
+            statusBar()->showMessage(
+                tr("Copied %1 map name(s)").arg(names.size()), 2500);
+            return;
+        }
+
+        if (actOpenMap && chosen == actOpenMap && menuMapProject) {
+            for (const auto &entry : selectedMapEntries) {
+                openProject(entry.project);
+                if (auto *pv = activeView()) pv->showMap(entry.map);
+                onMapActivated(entry.map, entry.project);
+                openMapViewer(entry.project, entry.map);
+            }
+            return;
+        }
+
+        if (actViewInHex && chosen == actViewInHex && menuMapProject) {
+            openProject(menuMapProject);
+            if (auto *pv = activeView()) pv->showMap(menuMap);
+            onMapActivated(menuMap, menuMapProject);
+            return;
+        }
+
+        if (actCloseMapViews && chosen == actCloseMapViews && menuMapProject) {
+            QSet<Project *> projects;
+            for (const auto &entry : selectedMapEntries) projects.insert(entry.project);
+            for (auto ov : m_overlays)
+                if (ov && projects.contains(ov->targetProject())) ov->close();
+            m_overlays.removeAll(QPointer<MapOverlay>());
+            return;
+        }
+
+        if (actCloseSelectedMapViews && chosen == actCloseSelectedMapViews) {
+            for (const auto &entry : selectedMapEntries) {
+                for (auto ov : m_overlays) {
+                    if (ov && ov->targetProject() == entry.project
+                        && ov->displaysMap(entry.map)) ov->close();
+                }
+            }
+            m_overlays.removeAll(QPointer<MapOverlay>());
+            return;
+        }
+
+        if (actStarMap && chosen == actStarMap && menuMapProject) {
+            const bool shouldStar = !std::all_of(
+                selectedMapEntries.cbegin(), selectedMapEntries.cend(),
+                [](const SelectedMapEntry &entry) {
+                    return isProjectMapStarred(*entry.project, entry.map);
+                });
+            QSet<Project *> changedProjects;
+            for (const auto &entry : selectedMapEntries) {
+                setProjectMapStarred(*entry.project, entry.map, shouldStar);
+                entry.project->modified = true;
+                changedProjects.insert(entry.project);
+            }
+            for (Project *project : changedProjects)
+                emit project->dataChanged();
+            refreshProjectTree();
+            return;
+        }
+
+        if (actDuplicateMap && chosen == actDuplicateMap && menuMapProject) {
+            QSet<Project *> changedProjects;
+            for (const auto &entry : selectedMapEntries) {
+                MapInfo duplicate = entry.map;
+                const QString baseName = entry.map.name.isEmpty() ? tr("Map") : entry.map.name;
+                duplicate.name = baseName + tr(" copy");
+                for (int suffix = 2; ; ++suffix) {
+                    const bool exists = std::any_of(entry.project->maps.cbegin(),
+                        entry.project->maps.cend(), [&duplicate](const MapInfo &candidate) {
+                            return candidate.name == duplicate.name;
+                        });
+                    if (!exists) break;
+                    duplicate.name = baseName + tr(" copy %1").arg(suffix);
+                }
+                entry.project->maps.append(duplicate);
+                entry.project->modified = true;
+                changedProjects.insert(entry.project);
+            }
+            for (Project *project : changedProjects)
+                emit project->dataChanged();
+            refreshProjectTree();
+            return;
+        }
+
+        if (actSelectAllMaps && chosen == actSelectAllMaps && menuMapProject) {
+            m_projectTree->clearSelection();
+            std::function<void(QTreeWidgetItem *)> selectMaps =
+                [&](QTreeWidgetItem *node) {
+                const auto mapVar = node->data(0, Qt::UserRole + 2);
+                const auto *project = static_cast<Project *>(
+                    node->data(0, Qt::UserRole + 1).value<void *>());
+                if (mapVar.isValid() && project == menuMapProject)
+                    node->setSelected(true);
+                for (int i = 0; i < node->childCount(); ++i)
+                    selectMaps(node->child(i));
+            };
+            for (int i = 0; i < m_projectTree->topLevelItemCount(); ++i)
+                selectMaps(m_projectTree->topLevelItem(i));
+            return;
+        }
+
+        if (actSelectStarredMaps && chosen == actSelectStarredMaps && menuMapProject) {
+            m_projectTree->clearSelection();
+            std::function<void(QTreeWidgetItem *)> selectStarred =
+                [&](QTreeWidgetItem *node) {
+                const auto mapVar = node->data(0, Qt::UserRole + 2);
+                auto *project = static_cast<Project *>(
+                    node->data(0, Qt::UserRole + 1).value<void *>());
+                if (mapVar.isValid() && project == menuMapProject
+                    && isProjectMapStarred(*project, mapVar.value<MapInfo>()))
+                    node->setSelected(true);
+                for (int i = 0; i < node->childCount(); ++i)
+                    selectStarred(node->child(i));
+            };
+            for (int i = 0; i < m_projectTree->topLevelItemCount(); ++i)
+                selectStarred(m_projectTree->topLevelItem(i));
+            return;
+        }
+
+        if (actClearMapSelection && chosen == actClearMapSelection) {
+            m_projectTree->clearSelection();
+            return;
+        }
+
+        if ((actNewFolder && chosen == actNewFolder)
+            || (actMoveToFolder && chosen == actMoveToFolder)) {
+            if (!menuMapProject) return;
+            QVector<MapInfo> mapsToMove;
+            for (auto *selected : m_projectTree->selectedItems()) {
+                const auto mapVar = selected->data(0, Qt::UserRole + 2);
+                const auto *project = static_cast<Project *>(
+                    selected->data(0, Qt::UserRole + 1).value<void *>());
+                if (mapVar.isValid() && project == menuMapProject)
+                    mapsToMove.append(mapVar.value<MapInfo>());
+            }
+            if (mapsToMove.isEmpty()) mapsToMove.append(menuMap);
+
+            QString folder;
+            if (chosen == actNewFolder) {
+                const QString suggestion = menuMap.folderPath.isEmpty()
+                    ? tr("New folder") : menuMap.folderPath + QStringLiteral("/") + tr("New folder");
+                bool ok = false;
+                folder = QInputDialog::getText(this, tr("New Folder"),
+                    tr("Folder path:"), QLineEdit::Normal, suggestion, &ok);
+                if (!ok) return;
+            } else {
+                QStringList folders;
+                for (const auto &candidate : menuMapProject->maps) {
+                    if (!candidate.folderPath.isEmpty() && !folders.contains(candidate.folderPath))
+                        folders.append(candidate.folderPath);
+                }
+                std::sort(folders.begin(), folders.end());
+                folders.prepend(tr("(Project root)"));
+                bool ok = false;
+                folder = QInputDialog::getItem(this, tr("Move to Folder"),
+                    tr("Folder path:"), folders, 0, true, &ok);
+                if (!ok) return;
+                if (folder == tr("(Project root)")) folder.clear();
+            }
+
+            folder = folder.trimmed();
+            folder.replace(QLatin1Char('\\'), QLatin1Char('/'));
+            while (folder.contains(QStringLiteral("//")))
+                folder.replace(QStringLiteral("//"), QStringLiteral("/"));
+            while (folder.startsWith(QLatin1Char('/'))) folder.removeFirst();
+            while (folder.endsWith(QLatin1Char('/'))) folder.chop(1);
+            if (chosen == actNewFolder && folder.isEmpty()) return;
+
+            for (const auto &source : mapsToMove) {
+                const auto it = std::find(menuMapProject->maps.begin(),
+                    menuMapProject->maps.end(), source);
+                if (it != menuMapProject->maps.end()) it->folderPath = folder;
+            }
+            menuMapProject->modified = true;
+            emit menuMapProject->dataChanged();
+            refreshProjectTree();
+            return;
+        }
+
+        if (actMapProperties && chosen == actMapProperties && item) {
+            const auto map = item->data(0, Qt::UserRole + 2).value<MapInfo>();
+            auto *proj = static_cast<Project *>(
+                item->data(0, Qt::UserRole + 1).value<void *>());
+            if (!proj) return;
+
+            MapPropertiesDialog dlg(map, proj->byteOrder, this);
+            if (dlg.exec() != QDialog::Accepted) return;
+
+            const auto it = std::find(proj->maps.begin(), proj->maps.end(), map);
+            if (it == proj->maps.end()) return;
+            MapInfo updated = dlg.result();
+            updated.cellBigEndian = dlg.byteOrder() == ByteOrder::BigEndian;
+            *it = updated;
+            proj->modified = true;
+            emit proj->dataChanged();
+            refreshProjectTree();
+            return;
+        }
+
+        if (actDeleteMap && chosen == actDeleteMap && menuMapProject) {
+            const int count = selectedMapEntries.size();
+            if (QMessageBox::question(
+                    this, tr("Delete Map"),
+                    count > 1
+                    ? tr("Delete %1 selected map definitions?").arg(count)
+                    : tr("Delete the map definition \"%1\"?").arg(menuMap.name),
+                    QMessageBox::Yes | QMessageBox::Cancel,
+                    QMessageBox::Cancel) != QMessageBox::Yes)
+                return;
+
+            QSet<Project *> changedProjects;
+            for (const auto &entry : selectedMapEntries) {
+                for (auto ov : m_overlays)
+                    if (ov && ov->targetProject() == entry.project
+                        && ov->displaysMap(entry.map)) ov->close();
+                const auto it = std::find(entry.project->maps.begin(),
+                    entry.project->maps.end(), entry.map);
+                if (it == entry.project->maps.end()) continue;
+                entry.project->maps.erase(it);
+                entry.project->modified = true;
+                changedProjects.insert(entry.project);
+            }
+            m_overlays.removeAll(QPointer<MapOverlay>());
+            for (Project *project : changedProjects)
+                emit project->dataChanged();
+            refreshProjectTree();
             return;
         }
 
