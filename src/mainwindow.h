@@ -257,6 +257,7 @@ private:
     void retileWindows();      // resize all visible sub-windows to fill MDI viewport
     void showMapOverlay(const QByteArray &romData, const MapInfo &map,
                         ByteOrder byteOrder, Project *project = nullptr);
+    void openMapViewer(Project *project, const MapInfo &map);
 
     // ── Translators ───────────────────────────────────────────────────
     QTranslator m_qtTr;
@@ -330,11 +331,9 @@ private:
     QStringList datalogRecent() const;
     void datalogPushRecent(const QString &path);
 
-    // ── Per-map overlays ──────────────────────────────────────────────
-    // Composite key: (Project*, mapName) so the same map name from
-    // different projects gets separate overlay windows.
-    using OverlayKey = QPair<Project*, QString>;
-    QMap<OverlayKey, QPointer<MapOverlay>> m_overlays;
+    // ── Open map editors ──────────────────────────────────────────────
+    // A map can be opened in more than one independent editor window.
+    QList<QPointer<MapOverlay>> m_overlays;
 
     // ── A2L parser ────────────────────────────────────────────────────
     A2LParser *m_parser          = nullptr;

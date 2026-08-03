@@ -1514,14 +1514,14 @@ void MainWindow::buildLeftPanel()
     connect(m_filterChangedBtn, &QPushButton::toggled,
             this, &MainWindow::applyTreeFilter);
 
-    // Single-click on a map leaf → show in overlay
+    // Single-click on a map leaf → select its byte range in the hex viewer.
     connect(m_projectTree, &QTreeWidget::itemClicked,
             this,          &MainWindow::onTreeItemClicked);
 
     // Double-click handling
     connect(m_projectTree, &QTreeWidget::itemDoubleClicked,
             this, [this](QTreeWidgetItem *item, int col) {
-        if (col != 0) return;
+        Q_UNUSED(col);
 
         // Project root → collapse/expand only if its window is currently visible
         auto projRootVar = item->data(0, Qt::UserRole);
@@ -1541,16 +1541,16 @@ void MainWindow::buildLeftPanel()
             return;
         }
 
-        // Map leaf → toggle star
+        // Map leaf → open a new editable map window. Single-click has already
+        // selected the corresponding byte range in the hex viewer.
         if (!mapVar.isValid()) return;
         auto map = mapVar.value<MapInfo>();
         auto *proj = static_cast<Project*>(item->data(0, Qt::UserRole + 1).value<void*>());
         if (!proj) return;
-        if (proj->starredMaps.contains(map.name))
-            proj->starredMaps.remove(map.name);
-        else
-            proj->starredMaps.insert(map.name);
-        refreshProjectTree();
+        openProject(proj);
+        if (auto *pv = activeView()) pv->showMap(map);
+        onMapActivated(map, proj);
+        openMapViewer(proj, map);
     });
 
     // Right-click context menu: expand/collapse groups + map comments
@@ -6280,9 +6280,8 @@ void MainWindow::actGoHome()
 
     // All prompts answered — close everything.
     // 1. Close + remove all overlays
-    for (auto it = m_overlays.begin(); it != m_overlays.end(); ++it) {
-        { auto ov = it.value(); if (ov) ov->close(); }
-    }
+    for (auto ov : m_overlays)
+        if (ov) ov->close();
     m_overlays.clear();
 
     // 2. Close all MDI subwindows
@@ -6338,17 +6337,11 @@ void MainWindow::actCloseProject()
             return p.first == proj;
         });
 
-        // Close and remove all map overlays belonging to this project
-        QList<OverlayKey> toRemove;
-        for (auto it = m_overlays.begin(); it != m_overlays.end(); ++it) {
-            if (it.key().first == proj)
-                toRemove.append(it.key());
-        }
-        for (const auto &k : toRemove) {
-            if (auto ov = m_overlays.value(k))
-                ov->close();
-            m_overlays.remove(k);
-        }
+        // Map overlays are parented by MainWindow and can target this project;
+        // close all of them before the project is destroyed.
+        for (auto ov : m_overlays)
+            if (ov && ov->targetProject() == proj) ov->close();
+        m_overlays.removeAll(QPointer<MapOverlay>());
     }
     if (proj) {
         if (m_savepoints && m_savepoints->project() == proj)
@@ -6616,7 +6609,7 @@ void MainWindow::actPrevMap()
     --m_currentMapIdx;
     const auto &m = proj->maps[m_currentMapIdx];
     if (auto *v = activeView()) v->showMap(m);
-    showMapOverlay(proj->currentData, m, proj->byteOrder, proj);
+    onMapActivated(m, proj);
 }
 
 void MainWindow::actNextMap()
@@ -6627,7 +6620,7 @@ void MainWindow::actNextMap()
     if (m_currentMapIdx >= proj->maps.size()) m_currentMapIdx = 0;
     const auto &m = proj->maps[m_currentMapIdx];
     if (auto *v = activeView()) v->showMap(m);
-    showMapOverlay(proj->currentData, m, proj->byteOrder, proj);
+    onMapActivated(m, proj);
 }
 
 // ── 2D view scroll sync ────────────────────────────────────────────────────────
@@ -7020,66 +7013,67 @@ void MainWindow::showMapOverlay(const QByteArray &romData, const MapInfo &map,
         return;
     }
 
-    // QPointer becomes null automatically when the overlay is deleted (WA_DeleteOnClose).
-    OverlayKey key(project, map.name);
-    QPointer<MapOverlay> ov = m_overlays.value(key);
-    if (!ov) {
-        ov = new MapOverlay(this);
-        m_overlays.insert(key, ov);
+    // Each activation gets its own tool window. This deliberately does not
+    // reuse a map-name keyed dialog: tuners often need several maps visible
+    // at once, including two views of the same map.
+    auto *ov = new MapOverlay(this);
+    m_overlays.append(ov);
+    connect(ov, &QObject::destroyed, this, [this]() {
+        m_overlays.removeAll(QPointer<MapOverlay>());
+    });
 
-        // Wire ROM patch write-back
-        if (project) {
-            QPointer<Project> projPtr(project);
+    // Wire ROM patch write-back.
+    if (project) {
+        QPointer<Project> projPtr(project);
 
-            // romPatchReady fires once PER CELL — patch silently, no tree rebuild
-            connect(ov, &MapOverlay::romPatchReady,
-                    this, [projPtr](uint32_t offset, QByteArray bytes) {
-                if (!projPtr) return;
-                if ((int)(offset + bytes.size()) > projPtr->currentData.size()) return;
-                auto *dst = reinterpret_cast<uint8_t*>(projPtr->currentData.data());
-                std::memcpy(dst + offset, bytes.constData(), bytes.size());
-                projPtr->modified = true;
-                // NOTE: do NOT emit dataChanged here — editBatchDone does it once
-            });
+        // romPatchReady fires once PER CELL — patch silently, no tree rebuild
+        connect(ov, &MapOverlay::romPatchReady,
+                this, [projPtr](uint32_t offset, QByteArray bytes) {
+            if (!projPtr) return;
+            if ((int)(offset + bytes.size()) > projPtr->currentData.size()) return;
+            auto *dst = reinterpret_cast<uint8_t*>(projPtr->currentData.data());
+            std::memcpy(dst + offset, bytes.constData(), bytes.size());
+            projPtr->modified = true;
+            // NOTE: do NOT emit dataChanged here — editBatchDone does it once
+        });
 
-            // editBatchDone fires ONCE per user action (applyDelta / undo / redo)
-            connect(ov, &MapOverlay::editBatchDone,
-                    this, [projPtr, this]() {
-                if (!projPtr) return;
-                emit projPtr->dataChanged();   // triggers exactly one refreshProjectTree
-            });
+        // editBatchDone fires ONCE per user action (applyDelta / undo / redo)
+        connect(ov, &MapOverlay::editBatchDone,
+                this, [projPtr, this]() {
+            if (!projPtr) return;
+            emit projPtr->dataChanged();   // triggers exactly one refreshProjectTree
+        });
 
-            // addressCorrected — user manually confirmed the correct address
-            connect(ov, &MapOverlay::addressCorrected,
-                    this, [projPtr, this](const QString &mapName, uint32_t newAddress) {
-                if (!projPtr) return;
-                // Update the map in the project and persist the confidence override
-                for (auto &m : projPtr->maps) {
-                    if (m.name == mapName) {
-                        m.address         = newAddress;
-                        m.linkConfidence  = 95;
-                        projPtr->modified = true;
-                        break;
-                    }
-                }
-                refreshProjectTree();
-            });
-
-            // Share this project's view editor so overlay edits land on the
-            // same undo stack as the hex / waveform / 3D views, and route the
-            // overlay's embedded 3D "Edit map" menu through the shared path.
-            WaveformEditor *sharedEd = nullptr;
-            for (auto *sub : m_mdi->subWindowList()) {
-                auto *pv = qobject_cast<ProjectView *>(sub->widget());
-                if (pv && pv->project() == project && pv->waveformWidget()) {
-                    sharedEd = pv->waveformWidget()->editor();
+        // addressCorrected — user manually confirmed the correct address
+        connect(ov, &MapOverlay::addressCorrected,
+                this, [projPtr, this](const QString &mapName, uint32_t newAddress) {
+            if (!projPtr) return;
+            // Update the map in the project and persist the confidence override
+            for (auto &m : projPtr->maps) {
+                if (m.name == mapName) {
+                    m.address         = newAddress;
+                    m.linkConfidence  = 95;
+                    projPtr->modified = true;
                     break;
                 }
             }
-            ov->setSharedEditor(sharedEd, project);
-            connect(ov, &MapOverlay::editOpRequested,
-                    this, &MainWindow::onEditOpRequestedFromView);
+            refreshProjectTree();
+        });
+
+        // Share this project's view editor so overlay edits land on the
+        // same undo stack as the hex / waveform / 3D views, and route the
+        // overlay's embedded 3D "Edit map" menu through the shared path.
+        WaveformEditor *sharedEd = nullptr;
+        for (auto *sub : m_mdi->subWindowList()) {
+            auto *pv = qobject_cast<ProjectView *>(sub->widget());
+            if (pv && pv->project() == project && pv->waveformWidget()) {
+                sharedEd = pv->waveformWidget()->editor();
+                break;
+            }
         }
+        ov->setSharedEditor(sharedEd, project);
+        connect(ov, &MapOverlay::editOpRequested,
+                this, &MainWindow::onEditOpRequestedFromView);
     }
     // Apply AI translation to map description if available
     MapInfo displayMap = map;
@@ -7148,23 +7142,25 @@ void MainWindow::onMapActivated(const MapInfo &map, Project *project)
             .arg(map.address + map.mapDataOffset, 0, 16).toUpper()
             .arg(map.dimensions.x).arg(map.dimensions.y));
 
-    // Open map overlay — bounds-check first to prevent crash
-    if (project) {
-        int len = map.length > 0 ? map.length
-                  : map.dimensions.x * map.dimensions.y * map.dataSize;
-        if (len <= 0) len = map.dataSize;
-        int endOffset = (int)(map.address + map.mapDataOffset + len);
-        if (endOffset <= project->currentData.size() && (int)map.address >= 0) {
-            showMapOverlay(project->currentData, map, project->byteOrder, project);
-        } else {
-            statusBar()->showMessage(
-                tr("Map \"%1\" address 0x%2 is outside ROM bounds — skipped")
-                    .arg(map.name).arg(map.address, 0, 16).toUpper(), 5000);
-        }
-    }
-
     // Feed selected map context to AI assistant
     if (m_aiAssistant) m_aiAssistant->setSelectedMap(map);
+}
+
+void MainWindow::openMapViewer(Project *project, const MapInfo &map)
+{
+    if (!project) return;
+    const int len = map.length > 0 ? map.length
+              : map.dimensions.x * map.dimensions.y * map.dataSize;
+    const int dataLen = qMax(map.dataSize, len);
+    const int endOffset = static_cast<int>(map.address + map.mapDataOffset) + dataLen;
+    if (map.address > static_cast<uint32_t>(INT_MAX)
+        || endOffset > project->currentData.size()) {
+        statusBar()->showMessage(
+            tr("Map \"%1\" address 0x%2 is outside ROM bounds — skipped")
+                .arg(map.name).arg(map.address, 0, 16).toUpper(), 5000);
+        return;
+    }
+    showMapOverlay(project->currentData, map, project->byteOrder, project);
 }
 
 // Rebuild the "Recent Maps" chip strip above the project tree from
@@ -7578,31 +7574,12 @@ void MainWindow::onTreeItemClicked(QTreeWidgetItem *item, int)
                      item->data(0, Qt::UserRole + 1).value<void *>());
     if (!proj) return;
 
-    // Activate the corresponding MDI sub-window. pv->showMap() emits
-    // ProjectView::mapActivated, which is connected to MainWindow::onMapActivated
-    // (wired in openProject). That single emission opens the overlay.
-    //
-    // BUG (sidebar map click → overlay flashes open and closes): we used to
-    // ALSO call onMapActivated() directly here, so the slot ran twice. The
-    // second invocation re-entered showMapOverlay → MapOverlay::showMap on
-    // the freshly-shown overlay; that re-trigger interfered with focus/show
-    // sequencing and the overlay would dismiss instantly. Now we only call
-    // onMapActivated directly when there is NO matching MDI sub-window
-    // (e.g. project not yet opened) — the signal path covers the normal
-    // case exactly once.
-    bool dispatchedViaSignal = false;
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (pv && pv->project() == proj) {
-            m_mdi->setActiveSubWindow(sub);
-            pv->showMap(map);   // emits mapActivated → onMapActivated runs once
-            dispatchedViaSignal = true;
-            break;
-        }
-    }
-
+    // Selecting a sidebar map only navigates and highlights the corresponding
+    // hex range. Opening the editable map window is a double-click action.
+    openProject(proj);
+    if (auto *pv = activeView()) pv->showMap(map);
     m_currentMapIdx = proj->maps.indexOf(map);
-    if (!dispatchedViaSignal) onMapActivated(map, proj);
+    onMapActivated(map, proj);
 }
 
 // ── Misc ───────────────────────────────────────────────────────────────────────
@@ -7829,15 +7806,10 @@ void MainWindow::finalizeClosedProject(Project *p)
     m_recentMaps.removeIf([p](const QPair<Project *, QString> &e) {
         return e.first == p;
     });
-    // Close overlays belonging to this project
-    QList<OverlayKey> toRemove;
-    for (auto it = m_overlays.begin(); it != m_overlays.end(); ++it) {
-        if (it.key().first == p) toRemove.append(it.key());
-    }
-    for (const auto &k : toRemove) {
-        { auto ov = m_overlays.value(k); if (ov) ov->close(); }
-        m_overlays.remove(k);
-    }
+    // Close every independent map window backed by this project.
+    for (auto ov : m_overlays)
+        if (ov && ov->targetProject() == p) ov->close();
+    m_overlays.removeAll(QPointer<MapOverlay>());
     // If this is a parent, also close any still-open linked-ROM children
     if (!p->isLinkedRom) {
         QVector<Project *> children;

@@ -1178,6 +1178,11 @@ void MapOverlay::showMap(const QByteArray &romData, const MapInfo &map,
     m_table->setFocus();
 }
 
+bool MapOverlay::displaysMap(const MapInfo &map) const
+{
+    return m_map.name == map.name && m_map.address == map.address;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // setDisplayParams
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -45,6 +45,8 @@ public:
 
     void setDisplayParams(int cellSize, ByteOrder byteOrder, bool heightColors);
     void retranslateUi();
+    bool displaysMap(const MapInfo &map) const;
+    Project *targetProject() const { return m_syncProject; }
 
     // Share the owning ProjectView's editor so this dialog's edits land on
     // the SAME undo stack as the hex / waveform / 3D views (and vice-versa).
