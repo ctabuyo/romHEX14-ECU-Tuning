@@ -8,7 +8,6 @@
 #include "io/MapListExporter.h"
 #include "io/TuneReport.h"
 #include "io/XdfIo.h"
-#include "io/ols/KpExporter.h"
 #include "edit/FindSimilarMapsDlg.h"
 #include "edit/MapFingerprint.h"
 #include "io/winols/SimilarFilesDlg.h"
@@ -36,7 +35,6 @@
 #endif
 #include "updatechecker.h"
 #include "olsparser.h"
-#include "kpparser.h"
 #include "kpimportdlg.h"
 #include "frfimportdlg.h"
 #include "valuesearchdlg.h"
@@ -2638,8 +2636,6 @@ void MainWindow::retranslateUi()
                              this, [this]() { exportMapListJson(); });
     m_menuProject->addAction(tr("Export XD&F (TunerPro)…"),
                              this, [this]() { actExportXdf(); });
-    m_menuProject->addAction(tr("Export &KP map pack…"),
-                             this, [this]() { actExportKp(); });
     m_menuProject->addAction(tr("Export &Tuning Report…"),
                              this, [this]() { exportTuningReport(); });
     m_menuProject->addSeparator();
@@ -4252,6 +4248,8 @@ void MainWindow::actImportKP(const QString &droppedPath)
     if (reviewDlg.exec() != QDialog::Accepted)
         return;                              // user cancelled — nothing added
     const QVector<MapInfo> chosenMaps = reviewDlg.selectedMaps();
+    const bool importValues = reviewDlg.importMapValues()
+        && !result.carriedData.isEmpty();
     if (chosenMaps.isEmpty()) {
         statusBar()->showMessage(tr("Import KP: no maps selected."), 4000);
         return;
@@ -7570,8 +7568,14 @@ void MainWindow::onTreeItemClicked(QTreeWidgetItem *item, int)
         return;
     }
 
-    // Only act on map leaves (have UserRole+2 data)
-    if (!mapVar.isValid()) return;
+    // Folder/group nodes deliberately have no map payload.  Toggle them when
+    // the user clicks anywhere on the row, including the folder icon; relying
+    // only on QTreeWidget's small disclosure arrow is too easy to miss.
+    if (!mapVar.isValid()) {
+        if (item->childCount() > 0)
+            item->setExpanded(!item->isExpanded());
+        return;
+    }
 
     auto map   = mapVar.value<MapInfo>();
     auto *proj = static_cast<Project *>(
@@ -9504,35 +9508,6 @@ void MainWindow::actExportXdf()
     out.write(xml);
     out.close();
     statusBar()->showMessage(tr("Exported %1 maps to %2").arg(p->maps.size()).arg(path), 6000);
-}
-
-void MainWindow::actExportKp()
-{
-    auto *p = activeProject();
-    if (!p || p->maps.isEmpty()) {
-        QMessageBox::information(this, tr("Export KP"),
-            tr("Open a project with at least one map first."));
-        return;
-    }
-    const QString suggested = QDir::homePath() + "/" + p->displayName() + ".kp";
-    const QString path = QFileDialog::getSaveFileName(this,
-        tr("Export KP map pack"), suggested, tr("KP map pack (*.kp)"));
-    if (path.isEmpty()) return;
-
-    const uint32_t romSize = static_cast<uint32_t>(qMax(0, p->currentData.size()));
-    auto res = ols::KpExporter::exportToBytes(p->maps, romSize);
-    if (!res.error.isEmpty()) {
-        QMessageBox::warning(this, tr("Export KP"), res.error);
-        return;
-    }
-    QFile out(path);
-    if (!out.open(QIODevice::WriteOnly)) {
-        QMessageBox::warning(this, tr("Export KP"), tr("Could not write %1").arg(path));
-        return;
-    }
-    out.write(res.data);
-    out.close();
-    statusBar()->showMessage(tr("Exported %1 maps to %2").arg(res.mapCount).arg(path), 6000);
 }
 
 void MainWindow::onJumpMarker(bool forward)

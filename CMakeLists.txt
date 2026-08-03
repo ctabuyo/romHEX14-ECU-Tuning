@@ -150,7 +150,6 @@ set(SOURCES
     src/hexcomparedlg.cpp
     src/alignmentmap.cpp
     src/olsparser.cpp
-    src/kpparser.cpp
     src/kpimportdlg.cpp
     src/map3dsimwidget.cpp
     src/vehicledb.cpp
@@ -163,7 +162,6 @@ set(SOURCES
     src/io/ols/OlsKennfeldParser.cpp
     src/io/ols/OlsImporter.cpp
     src/io/ols/KpImporter.cpp
-    src/io/ols/KpExporter.cpp
     src/module/ModuleRegistry.cpp
     src/module/BcmProfile.cpp
     src/module/ModulePanel.cpp
@@ -282,7 +280,6 @@ set(HEADERS
     src/diffpanel.h
     src/alignmentmap.h
     src/olsparser.h
-    src/kpparser.h
     src/kpimportdlg.h
     src/map3dsimwidget.h
     src/vehicledb.h

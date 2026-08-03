@@ -9,8 +9,17 @@
 #include <QVector>
 #include <QByteArray>
 #include <QWidget>
+#include <cstdint>
 #include "romdata.h"
-#include "kpparser.h"
+
+// Presentation-only project information shown by the KP review dialog. This
+// intentionally does not depend on the retired heuristic KP parser.
+struct KPVehicleInfo {
+    QString manufacturer, model, variant, year, power;
+    QString ecuBrand, partNumber, swVersion;
+    uint32_t romWordCount = 0;
+    uint32_t romByteSize = 0;
+};
 
 class QTableWidget;
 class QPushButton;
@@ -55,6 +64,7 @@ public:
                          const QByteArray &romData,
                          QWidget *parent = nullptr);
     QVector<MapInfo> selectedMaps() const;
+    bool importMapValues() const;
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -85,7 +95,6 @@ private:
     QCheckBox          *m_chkMapStruct   = nullptr;
     QCheckBox          *m_chkStructDims  = nullptr;
     QCheckBox          *m_chkStructPrec  = nullptr;
-    QCheckBox          *m_chkStructSign  = nullptr;
 
     QLineEdit          *m_iconMapEdit    = nullptr;
     QLineEdit          *m_prefixEdit     = nullptr;

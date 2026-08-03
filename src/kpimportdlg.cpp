@@ -329,17 +329,14 @@ void KPImportDlg::buildUi(const KPVehicleInfo &info, const QVector<MapInfo> &map
     m_chkStructDims->setChecked(true);
     m_chkStructPrec = new QCheckBox(tr("Precision"), this);
     m_chkStructPrec->setChecked(true);
-    m_chkStructSign = new QCheckBox(tr("Signed"), this);
     structSubLayout->addWidget(m_chkStructDims);
     structSubLayout->addWidget(m_chkStructPrec);
-    structSubLayout->addWidget(m_chkStructSign);
     structSubLayout->addStretch();
     optLayout->addLayout(structSubLayout);
 
     connect(m_chkMapStruct, &QCheckBox::toggled, this, [this](bool on) {
         m_chkStructDims->setEnabled(on);
         m_chkStructPrec->setEnabled(on);
-        m_chkStructSign->setEnabled(on);
     });
 
     root->addWidget(optGroup);
@@ -602,7 +599,7 @@ QVector<MapInfo> KPImportDlg::selectedMaps() const
             mi.name = prefix + mi.name;
 
         // Import structure options — if user unchecked "Map structure", clear
-        // dimension/precision/sign info so the caller only gets values
+        // dimension/precision info so the caller only gets values
         if (!m_chkMapStruct->isChecked()) {
             mi.dimensions = {1, 1};
             mi.dataSize = 2;
@@ -614,8 +611,6 @@ QVector<MapInfo> KPImportDlg::selectedMaps() const
                 mi.hasScaling = false;
                 mi.scaling = CompuMethod();
             }
-            if (!m_chkStructSign->isChecked())
-                mi.dataSigned = false;
         }
 
         result.append(mi);
@@ -635,4 +630,9 @@ QVector<MapInfo> KPImportDlg::selectedMaps() const
     }
 
     return result;
+}
+
+bool KPImportDlg::importMapValues() const
+{
+    return m_chkMapValues && m_chkMapValues->isChecked();
 }
