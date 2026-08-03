@@ -1482,6 +1482,39 @@ Motivo: %3
     </message>
 </context>
 <context>
+    <name>ChannelTreeWidget</name>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="29"/>
+        <source>Search channels…</source>
+        <translation type="unfinished">Buscar canales…</translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="33"/>
+        <source>Clear</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="34"/>
+        <source>Deselect all channels</source>
+        <translation type="unfinished">Deseleccionar todos los canales</translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="42"/>
+        <source>Channel</source>
+        <translation type="unfinished">Canal</translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="42"/>
+        <source>Unit</source>
+        <translation type="unfinished">Unidad</translation>
+    </message>
+    <message>
+        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="169"/>
+        <source>Other (raw)</source>
+        <translation type="unfinished">Otros (sin procesar)</translation>
+    </message>
+</context>
+<context>
     <name>CloudClient</name>
     <message>
         <location filename="../src/cloud/CloudClient.cpp" line="132"/>
@@ -3262,7 +3295,7 @@ Recuerde guardar el proyecto y exportar la ROM.</translation>
     </message>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="228"/>
-        <location filename="../src/kpimportdlg.cpp" line="499"/>
+        <location filename="../src/kpimportdlg.cpp" line="496"/>
         <source>Address match: %1% of maps within current ROM (%2 / %3)  |  Project ROM size: %4 bytes</source>
         <translation>Coincidencia de direcciones: %1% de mapas dentro de la ROM actual (%2 / %3)  |  Tamaño de la ROM del proyecto: %4 bytes</translation>
     </message>
@@ -3358,42 +3391,37 @@ Recuerde guardar el proyecto y exportar la ROM.</translation>
         <translation>Precisión</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="332"/>
-        <source>Signed</source>
-        <translation>Con signo</translation>
-    </message>
-    <message>
-        <location filename="../src/kpimportdlg.cpp" line="348"/>
+        <location filename="../src/kpimportdlg.cpp" line="345"/>
         <source>Mark imported maps</source>
         <translation>Marcar mapas importados</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="353"/>
+        <location filename="../src/kpimportdlg.cpp" line="350"/>
         <source>Icon map:</source>
         <translation>Icono de mapa:</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="355"/>
+        <location filename="../src/kpimportdlg.cpp" line="352"/>
         <source>(none)</source>
         <translation>(ninguno)</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="358"/>
+        <location filename="../src/kpimportdlg.cpp" line="355"/>
         <source>Prefix map name:</source>
         <translation>Prefijo del nombre de mapa:</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="360"/>
+        <location filename="../src/kpimportdlg.cpp" line="357"/>
         <source>e.g. KP_</source>
         <translation>p. ej. KP_</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="363"/>
+        <location filename="../src/kpimportdlg.cpp" line="360"/>
         <source>Parent folder:</source>
         <translation>Carpeta padre:</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="365"/>
+        <location filename="../src/kpimportdlg.cpp" line="362"/>
         <source>e.g. KP Import</source>
         <translation>p. ej. KP Import</translation>
     </message>
@@ -3403,82 +3431,49 @@ Recuerde guardar el proyecto y exportar la ROM.</translation>
         <translation></translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="372"/>
+        <location filename="../src/kpimportdlg.cpp" line="369"/>
         <source>Name</source>
         <translation>Nombre</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="372"/>
+        <location filename="../src/kpimportdlg.cpp" line="369"/>
         <source>Type</source>
         <translation>Tipo</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="373"/>
+        <location filename="../src/kpimportdlg.cpp" line="370"/>
         <source>Address</source>
         <translation>Dirección</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="373"/>
+        <location filename="../src/kpimportdlg.cpp" line="370"/>
         <source>Description</source>
         <translation>Descripción</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="438"/>
+        <location filename="../src/kpimportdlg.cpp" line="435"/>
         <source>Select all</source>
         <translation>Seleccionar todo</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="439"/>
+        <location filename="../src/kpimportdlg.cpp" line="436"/>
         <source>Select none</source>
         <translation>No seleccionar nada</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="453"/>
+        <location filename="../src/kpimportdlg.cpp" line="450"/>
         <source>OK</source>
         <translation>Aceptar</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="459"/>
+        <location filename="../src/kpimportdlg.cpp" line="456"/>
         <source>Cancel</source>
         <translation>Cancelar</translation>
     </message>
     <message>
-        <location filename="../src/kpimportdlg.cpp" line="510"/>
+        <location filename="../src/kpimportdlg.cpp" line="507"/>
         <source>(negative)</source>
         <translation>(negativo)</translation>
-    </message>
-</context>
-<context>
-    <name>KPParser</name>
-    <message>
-        <location filename="../src/kpparser.cpp" line="419"/>
-        <source>Detecting ROM size...</source>
-        <translation>Detectando tamaño de ROM...</translation>
-    </message>
-    <message>
-        <location filename="../src/kpparser.cpp" line="696"/>
-        <source>Parsing map records... (%1)</source>
-        <translation>Analizando registros de mapas... (%1)</translation>
-    </message>
-    <message>
-        <location filename="../src/kpparser.cpp" line="728"/>
-        <source>Parsing KP header...</source>
-        <translation>Analizando encabezado KP...</translation>
-    </message>
-    <message>
-        <location filename="../src/kpparser.cpp" line="731"/>
-        <source>Extracting map data...</source>
-        <translation>Extrayendo datos de mapas...</translation>
-    </message>
-    <message>
-        <location filename="../src/kpparser.cpp" line="739"/>
-        <source>Parsing map records...</source>
-        <translation>Analizando registros de mapas...</translation>
-    </message>
-    <message>
-        <location filename="../src/kpparser.cpp" line="742"/>
-        <source>Done</source>
-        <translation>Listo</translation>
     </message>
 </context>
 <context>
@@ -3510,9 +3505,9 @@ Recuerde guardar el proyecto y exportar la ROM.</translation>
     <message>
         <location filename="../src/mainwindow.cpp" line="2008"/>
         <location filename="../src/mainwindow.cpp" line="2470"/>
-        <location filename="../src/mainwindow.cpp" line="6252"/>
-        <location filename="../src/mainwindow.cpp" line="6319"/>
-        <location filename="../src/mainwindow.cpp" line="7897"/>
+        <location filename="../src/mainwindow.cpp" line="6292"/>
+        <location filename="../src/mainwindow.cpp" line="6359"/>
+        <location filename="../src/mainwindow.cpp" line="7943"/>
         <source>Close Project</source>
         <translation>Cerrar Proyecto</translation>
     </message>
@@ -3586,14 +3581,14 @@ Recuerde guardar el proyecto y exportar la ROM.</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="560"/>
-        <location filename="../src/mainwindow.cpp" line="3005"/>
+        <location filename="../src/mainwindow.cpp" line="3003"/>
         <source>Update Now</source>
         <translation>Actualizar ahora</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="646"/>
         <location filename="../src/mainwindow.cpp" line="676"/>
-        <location filename="../src/mainwindow.cpp" line="4100"/>
+        <location filename="../src/mainwindow.cpp" line="4098"/>
         <source>OK</source>
         <translation>Aceptar</translation>
     </message>
@@ -3643,7 +3638,7 @@ Recuerde guardar el proyecto y exportar la ROM.</translation>
         <location filename="../src/mainwindow.cpp" line="1278"/>
         <location filename="../src/mainwindow.cpp" line="1822"/>
         <location filename="../src/mainwindow.cpp" line="1843"/>
-        <location filename="../src/mainwindow.cpp" line="8647"/>
+        <location filename="../src/mainwindow.cpp" line="8701"/>
         <source>Cancel</source>
         <translation>Cancelar</translation>
     </message>
@@ -4152,14 +4147,13 @@ Si estás en China continental, el GFW (防火长城) puede estar bloqueando el 
     <message>
         <location filename="../src/mainwindow.cpp" line="2249"/>
         <location filename="../src/mainwindow.cpp" line="2524"/>
-        <location filename="../src/mainwindow.cpp" line="9721"/>
+        <location filename="../src/mainwindow.cpp" line="9746"/>
         <source>Value +1</source>
         <translation>Valor +1</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2251"/>
-        <location filename="../src/mainwindow.cpp" line="2525"/>
-        <location filename="../src/mainwindow.cpp" line="9721"/>
+        <location filename="../src/mainwindow.cpp" line="9746"/>
         <source>Value −1</source>
         <translation>Valor −1</translation>
     </message>
@@ -4242,6 +4236,11 @@ Purchase from romhex14.com to unlock.</source>
         <translation>AI Functions requiere una cuenta Pro.</translation>
     </message>
     <message>
+        <location filename="../src/mainwindow.cpp" line="2525"/>
+        <source>Value ℡</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../src/mainwindow.cpp" line="2544"/>
         <source>&amp;Project</source>
         <translation>Proyecto(&amp;P)</translation>
@@ -4283,13 +4282,13 @@ Purchase from romhex14.com to unlock.</source>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2557"/>
-        <location filename="../src/mainwindow.cpp" line="3091"/>
+        <location filename="../src/mainwindow.cpp" line="3089"/>
         <source>Project</source>
         <translation>Proyecto</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2558"/>
-        <location filename="../src/mainwindow.cpp" line="3129"/>
+        <location filename="../src/mainwindow.cpp" line="3127"/>
         <source>Format</source>
         <translation>Formato</translation>
     </message>
@@ -4315,7 +4314,7 @@ Purchase from romhex14.com to unlock.</source>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2605"/>
-        <location filename="../src/mainwindow.cpp" line="7490"/>
+        <location filename="../src/mainwindow.cpp" line="7530"/>
         <source>Version %1</source>
         <translation>Version %1</translation>
     </message>
@@ -4336,166 +4335,161 @@ Purchase from romhex14.com to unlock.</source>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2641"/>
-        <source>Export &amp;KP map pack…</source>
-        <translation>Exportar paquete de mapas &amp;KP…</translation>
-    </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="2643"/>
         <source>Export &amp;Tuning Report…</source>
         <translation>Exportar informe de &amp;tuning…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2648"/>
+        <location filename="../src/mainwindow.cpp" line="2646"/>
         <source>E&amp;xit</source>
         <translation>Salir(&amp;X)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2655"/>
+        <location filename="../src/mainwindow.cpp" line="2653"/>
         <source>&amp;Find Map…</source>
         <translation>Buscar Mapa…(&amp;F)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2661"/>
+        <location filename="../src/mainwindow.cpp" line="2659"/>
         <source>&amp;Hex Editor</source>
         <translation>Editor Hexadecimal(&amp;H)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2663"/>
+        <location filename="../src/mainwindow.cpp" line="2661"/>
         <source>&amp;Waveform</source>
         <translation>Forma de Onda(&amp;W)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2665"/>
+        <location filename="../src/mainwindow.cpp" line="2663"/>
         <source>&amp;3D Map</source>
         <translation>Mapa 3D(&amp;3)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2676"/>
+        <location filename="../src/mainwindow.cpp" line="2674"/>
         <source>Zoom &amp;In</source>
         <translation>Acercar(&amp;I)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2685"/>
+        <location filename="../src/mainwindow.cpp" line="2683"/>
         <source>Zoom &amp;Out</source>
         <translation>Alejar(&amp;O)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2718"/>
+        <location filename="../src/mainwindow.cpp" line="2716"/>
         <source>Find &amp;Address…</source>
         <translation>Buscar Dirección…(&amp;A)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2722"/>
+        <location filename="../src/mainwindow.cpp" line="2720"/>
         <source>Go to Address</source>
         <translation>Ir a Dirección</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2723"/>
+        <location filename="../src/mainwindow.cpp" line="2721"/>
         <source>Address (hex or dec):</source>
         <translation>Dirección (hex o dec):</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2730"/>
+        <location filename="../src/mainwindow.cpp" line="2728"/>
         <source>Find &amp;Value…</source>
         <translation>Buscar &amp;valor…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2734"/>
+        <location filename="../src/mainwindow.cpp" line="2732"/>
         <source>Find &amp;Similar Files…</source>
         <translation>Find &amp;Similar Files…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2736"/>
+        <location filename="../src/mainwindow.cpp" line="2734"/>
         <source>Catalog Tune &amp;Suggestions…</source>
         <translation>&amp;Sugerencias de tuning del catálogo…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2740"/>
+        <location filename="../src/mainwindow.cpp" line="2738"/>
         <source>Open a project first to scan the catalog.</source>
         <translation>Abra un proyecto primero para escanear el catálogo.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2757"/>
+        <location filename="../src/mainwindow.cpp" line="2755"/>
         <source>No applicable catalog suggestions for this ROM.</source>
         <translation>No hay sugerencias del catálogo aplicables a esta ROM.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2809"/>
+        <location filename="../src/mainwindow.cpp" line="2807"/>
         <source>Applied %1 catalog suggestions (%2 bytes changed). Ctrl+Z to undo.</source>
         <translation>Se aplicaron %1 sugerencias del catálogo (%2 bytes cambiados). Ctrl+Z para deshacer.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2828"/>
+        <location filename="../src/mainwindow.cpp" line="2826"/>
         <source>Project &amp;Info…</source>
         <translation>Info del Proyecto…(&amp;I)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2843"/>
+        <location filename="../src/mainwindow.cpp" line="2841"/>
         <source>Auto-scan &amp;ROM on import</source>
         <translation>Autoescanear &amp;ROM al importar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2858"/>
+        <location filename="../src/mainwindow.cpp" line="2856"/>
         <source>Auto &amp;Save</source>
         <translation>Guardado &amp;automático</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2879"/>
+        <location filename="../src/mainwindow.cpp" line="2877"/>
         <source>Off</source>
         <translation>Desactivado</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2880"/>
+        <location filename="../src/mainwindow.cpp" line="2878"/>
         <source>Manual save only (Ctrl+S)</source>
         <translation>Solo guardado manual (Ctrl+S)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2882"/>
+        <location filename="../src/mainwindow.cpp" line="2880"/>
         <source>After Delay</source>
         <translation>Tras un retardo</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2883"/>
+        <location filename="../src/mainwindow.cpp" line="2881"/>
         <source>Save 5 s after the last edit (recommended)</source>
         <translation>Guardar 5 s después de la última edición (recomendado)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2885"/>
+        <location filename="../src/mainwindow.cpp" line="2883"/>
         <source>On Focus Change</source>
         <translation>Al cambiar de foco</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2886"/>
+        <location filename="../src/mainwindow.cpp" line="2884"/>
         <source>Save when switching projects</source>
         <translation>Guardar al cambiar de proyecto</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2888"/>
+        <location filename="../src/mainwindow.cpp" line="2886"/>
         <source>On Window Deactivate</source>
         <translation>Al desactivar la ventana</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2889"/>
+        <location filename="../src/mainwindow.cpp" line="2887"/>
         <source>Save when romHEX14 loses focus</source>
         <translation>Guardar cuando romHEX14 pierde el foco</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2895"/>
+        <location filename="../src/mainwindow.cpp" line="2893"/>
         <source>&amp;Language</source>
         <translation>Idioma(&amp;L)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3529"/>
+        <location filename="../src/mainwindow.cpp" line="3527"/>
         <source>%1 detected (%2)</source>
         <translation>%1 detectado (%2)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3766"/>
+        <location filename="../src/mainwindow.cpp" line="3764"/>
         <source>Binary DAMOS not supported</source>
         <translation>DAMOS binario no compatible</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3767"/>
+        <location filename="../src/mainwindow.cpp" line="3765"/>
         <source>This looks like a binary DAMOS file, which has no open format and cannot be read directly.
 
 Convert it to A2L (ASAP2) first — e.g. with your OLS/DAMOS toolchain&apos;s &quot;DAMOS/ASAP2 export&quot; — then import the .a2l here. Text-based DAMOS/A2L files import directly.</source>
@@ -4509,70 +4503,64 @@ Conviértalo primero a A2L (ASAP2) — p. ej. con la «exportación DAMOS/ASAP2�
         <translation>Importar KP: no se seleccionaron mapas.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4280"/>
+        <location filename="../src/mainwindow.cpp" line="4348"/>
         <source>All %1 selected maps were already present in the project.</source>
         <translation>Los %1 mapas seleccionados ya estaban en el proyecto.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4360"/>
-        <location filename="../src/mainwindow.cpp" line="4369"/>
-        <source>Other</source>
-        <translation>Otro</translation>
-    </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="6375"/>
+        <location filename="../src/mainwindow.cpp" line="6415"/>
         <source>Import A2L / DAMOS File</source>
         <translation>Importar archivo A2L / DAMOS</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6376"/>
+        <location filename="../src/mainwindow.cpp" line="6416"/>
         <source>A2L / DAMOS (*.a2l *.dam *.damos);;A2L Files (*.a2l);;All Files (*)</source>
         <translation>A2L / DAMOS (*.a2l *.dam *.damos);;Archivos A2L (*.a2l);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7406"/>
-        <location filename="../src/mainwindow.cpp" line="7413"/>
+        <location filename="../src/mainwindow.cpp" line="7446"/>
+        <location filename="../src/mainwindow.cpp" line="7453"/>
         <source>Open as comparison</source>
         <translation>Abrir para comparar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7414"/>
+        <location filename="../src/mainwindow.cpp" line="7454"/>
         <source>File is empty: %1</source>
         <translation>El archivo está vacío: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7465"/>
+        <location filename="../src/mainwindow.cpp" line="7505"/>
         <source>Opened %1 as comparison.</source>
         <translation>%1 abierto para comparar.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7985"/>
+        <location filename="../src/mainwindow.cpp" line="8039"/>
         <source>Import Map List</source>
         <translation>Importar lista de mapas</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7986"/>
+        <location filename="../src/mainwindow.cpp" line="8040"/>
         <source>Open a project with ROM data first to import a map list.</source>
         <translation>Abre un proyecto con datos de ROM antes de importar una lista de mapas.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8819"/>
+        <location filename="../src/mainwindow.cpp" line="8873"/>
         <source>Unknown</source>
         <translation>Desconocido</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8823"/>
-        <location filename="../src/mainwindow.cpp" line="8850"/>
+        <location filename="../src/mainwindow.cpp" line="8877"/>
+        <location filename="../src/mainwindow.cpp" line="8904"/>
         <source>Checksum</source>
         <translation>Suma de comprobación</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8824"/>
+        <location filename="../src/mainwindow.cpp" line="8878"/>
         <source>This ROM has an invalid checksum.</source>
         <translation>Este ROM tiene una suma de comprobación no válida.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8826"/>
+        <location filename="../src/mainwindow.cpp" line="8880"/>
         <source>ECU: %1
 Algorithm: %2
 
@@ -4583,17 +4571,17 @@ Algoritmo: %2
 ¿Corregir la suma de comprobación antes de exportar? Flashear un ROM con una suma de comprobación no válida puede ser rechazado por la ECU.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8829"/>
+        <location filename="../src/mainwindow.cpp" line="8883"/>
         <source>Correct &amp;&amp; Export</source>
         <translation>Corregir y exportar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8830"/>
+        <location filename="../src/mainwindow.cpp" line="8884"/>
         <source>Export Anyway</source>
         <translation>Exportar de todos modos</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8851"/>
+        <location filename="../src/mainwindow.cpp" line="8905"/>
         <source>Checksum correction failed: %1
 
 Export cancelled.</source>
@@ -4602,74 +4590,73 @@ Export cancelled.</source>
 Exportación cancelada.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8852"/>
+        <location filename="../src/mainwindow.cpp" line="8906"/>
         <source>unknown error</source>
         <translation>error desconocido</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9257"/>
-        <location filename="../src/mainwindow.cpp" line="9274"/>
-        <location filename="../src/mainwindow.cpp" line="9281"/>
-        <location filename="../src/mainwindow.cpp" line="9303"/>
-        <location filename="../src/mainwindow.cpp" line="9318"/>
-        <location filename="../src/mainwindow.cpp" line="9327"/>
+        <location filename="../src/mainwindow.cpp" line="9311"/>
+        <location filename="../src/mainwindow.cpp" line="9328"/>
+        <location filename="../src/mainwindow.cpp" line="9335"/>
+        <location filename="../src/mainwindow.cpp" line="9357"/>
+        <location filename="../src/mainwindow.cpp" line="9372"/>
+        <location filename="../src/mainwindow.cpp" line="9381"/>
         <source>Tuning Report</source>
         <translation>Informe de tuning</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9258"/>
+        <location filename="../src/mainwindow.cpp" line="9312"/>
         <source>Open a project with at least one map first. The report compares the current ROM against its original snapshot.</source>
         <translation>Abra primero un proyecto con al menos un mapa. El informe compara el ROM actual con su instantánea original.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9269"/>
+        <location filename="../src/mainwindow.cpp" line="9323"/>
         <source>Select the original (baseline) ROM to compare against</source>
         <translation>Seleccione el ROM original (base) con el que comparar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9270"/>
+        <location filename="../src/mainwindow.cpp" line="9324"/>
         <source>ROM files (*.bin *.rom *.ori *.hex);;All files (*)</source>
         <translation>Archivos ROM (*.bin *.rom *.ori *.hex);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9282"/>
+        <location filename="../src/mainwindow.cpp" line="9336"/>
         <source>The baseline ROM (%1 bytes) is a different size from the current ROM (%2 bytes); they must match to compare maps.</source>
         <translation>El ROM base (%1 bytes) tiene un tamaño diferente al ROM actual (%2 bytes); deben coincidir para comparar mapas.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9304"/>
+        <location filename="../src/mainwindow.cpp" line="9358"/>
         <source>No differences found between the current ROM and the baseline — nothing to report.</source>
         <translation>No se encontraron diferencias entre el ROM actual y el base — nada que informar.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9311"/>
+        <location filename="../src/mainwindow.cpp" line="9365"/>
         <source>-tuning-report</source>
         <translation>-informe-tuning</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9313"/>
+        <location filename="../src/mainwindow.cpp" line="9367"/>
         <source>Save Tuning Report</source>
         <translation>Guardar informe de tuning</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9313"/>
+        <location filename="../src/mainwindow.cpp" line="9367"/>
         <source>HTML report (*.html)</source>
         <translation>Informe HTML (*.html)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9319"/>
-        <location filename="../src/mainwindow.cpp" line="9493"/>
-        <location filename="../src/mainwindow.cpp" line="9522"/>
+        <location filename="../src/mainwindow.cpp" line="9373"/>
+        <location filename="../src/mainwindow.cpp" line="9547"/>
         <source>Could not write %1</source>
         <translation>No se pudo escribir %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9326"/>
+        <location filename="../src/mainwindow.cpp" line="9380"/>
         <source>Tuning report: %1 changed maps written to %2</source>
         <translation>Informe de tuning: %1 mapas modificados escritos en %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9328"/>
+        <location filename="../src/mainwindow.cpp" line="9382"/>
         <source>Report saved with %1 changed maps.
 
 Open it now?</source>
@@ -4678,221 +4665,203 @@ Open it now?</source>
 ¿Abrirlo ahora?</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9338"/>
+        <location filename="../src/mainwindow.cpp" line="9392"/>
         <source>Find Value</source>
         <translation>Buscar valor</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9364"/>
+        <location filename="../src/mainwindow.cpp" line="9418"/>
         <source>Import VAG FRF / ODX</source>
         <translation>Importar VAG FRF / ODX</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9365"/>
+        <location filename="../src/mainwindow.cpp" line="9419"/>
         <source>VAG flash containers (*.frf *.sgo *.odx *.zip);;All files (*)</source>
         <translation>Contenedores flash VAG (*.frf *.sgo *.odx *.zip);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9387"/>
+        <location filename="../src/mainwindow.cpp" line="9441"/>
         <source>Import FRF / ODX</source>
         <translation>Importar FRF / ODX</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9388"/>
+        <location filename="../src/mainwindow.cpp" line="9442"/>
         <source>Could not stage the extracted ROM to a temporary file.</source>
         <translation>No se pudo preparar el ROM extraído en un archivo temporal.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9407"/>
+        <location filename="../src/mainwindow.cpp" line="9461"/>
         <source>Opened extracted ROM: %1 (%2 bytes)</source>
         <translation>ROM extraído abierto: %1 (%2 bytes)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9414"/>
-        <location filename="../src/mainwindow.cpp" line="9434"/>
-        <location filename="../src/mainwindow.cpp" line="9438"/>
-        <location filename="../src/mainwindow.cpp" line="9460"/>
+        <location filename="../src/mainwindow.cpp" line="9468"/>
+        <location filename="../src/mainwindow.cpp" line="9488"/>
+        <location filename="../src/mainwindow.cpp" line="9492"/>
+        <location filename="../src/mainwindow.cpp" line="9514"/>
         <source>Import XDF</source>
         <translation>Importar XDF</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9415"/>
+        <location filename="../src/mainwindow.cpp" line="9469"/>
         <source>Open a project with ROM data first. XDF definitions are added on top of an existing ROM (the same way A2L files are).</source>
         <translation>Abra primero un proyecto con datos de ROM. Las definiciones XDF se añaden sobre un ROM existente (igual que los archivos A2L).</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9422"/>
+        <location filename="../src/mainwindow.cpp" line="9476"/>
         <source>Import XDF definition</source>
         <translation>Importar definición XDF</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9422"/>
+        <location filename="../src/mainwindow.cpp" line="9476"/>
         <source>TunerPro XDF (*.xdf);;All files (*)</source>
         <translation>TunerPro XDF (*.xdf);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9439"/>
+        <location filename="../src/mainwindow.cpp" line="9493"/>
         <source>No maps with addresses were found in this XDF.</source>
         <translation>No se encontraron mapas con direcciones en este XDF.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9461"/>
+        <location filename="../src/mainwindow.cpp" line="9515"/>
         <source>No new maps were added (%1 already present, %2 outside the ROM).</source>
         <translation>No se añadieron mapas nuevos (%1 ya presentes, %2 fuera del ROM).</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9467"/>
+        <location filename="../src/mainwindow.cpp" line="9521"/>
         <source>Imported %1 maps from XDF</source>
         <translation>Se importaron %1 mapas desde XDF</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9468"/>
+        <location filename="../src/mainwindow.cpp" line="9522"/>
         <source>, %1 already present</source>
         <translation>, %1 ya presentes</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9469"/>
+        <location filename="../src/mainwindow.cpp" line="9523"/>
         <source>, %1 outside ROM</source>
         <translation>, %1 fuera del ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9477"/>
-        <location filename="../src/mainwindow.cpp" line="9493"/>
+        <location filename="../src/mainwindow.cpp" line="9531"/>
+        <location filename="../src/mainwindow.cpp" line="9547"/>
         <source>Export XDF</source>
         <translation>Exportar XDF</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9483"/>
+        <location filename="../src/mainwindow.cpp" line="9537"/>
         <source>Export XDF (TunerPro)</source>
         <translation>Exportar XDF (TunerPro)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9483"/>
+        <location filename="../src/mainwindow.cpp" line="9537"/>
         <source>TunerPro XDF (*.xdf)</source>
         <translation>TunerPro XDF (*.xdf)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9498"/>
-        <location filename="../src/mainwindow.cpp" line="9527"/>
+        <location filename="../src/mainwindow.cpp" line="9552"/>
         <source>Exported %1 maps to %2</source>
         <translation>Se exportaron %1 mapas a %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9505"/>
-        <location filename="../src/mainwindow.cpp" line="9517"/>
-        <location filename="../src/mainwindow.cpp" line="9522"/>
-        <source>Export KP</source>
-        <translation>Exportar KP</translation>
-    </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="9511"/>
-        <source>Export KP map pack</source>
-        <translation>Exportar paquete de mapas KP</translation>
-    </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="9511"/>
-        <source>KP map pack (*.kp)</source>
-        <translation>Paquete de mapas KP (*.kp)</translation>
-    </message>
-    <message>
-        <location filename="../src/mainwindow.cpp" line="9937"/>
-        <location filename="../src/mainwindow.cpp" line="9945"/>
-        <location filename="../src/mainwindow.cpp" line="10077"/>
+        <location filename="../src/mainwindow.cpp" line="9962"/>
+        <location filename="../src/mainwindow.cpp" line="9970"/>
+        <location filename="../src/mainwindow.cpp" line="10102"/>
         <source>Open datalog</source>
         <translation>Abrir datalog</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9938"/>
+        <location filename="../src/mainwindow.cpp" line="9963"/>
         <source>Vehical logs (*.csv);;All files (*)</source>
         <translation>Registros Vehical (*.csv);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9946"/>
-        <location filename="../src/mainwindow.cpp" line="10078"/>
+        <location filename="../src/mainwindow.cpp" line="9971"/>
+        <location filename="../src/mainwindow.cpp" line="10103"/>
         <source>Failed to open %1:
 %2</source>
         <translation>Error al abrir %1:
 %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9966"/>
+        <location filename="../src/mainwindow.cpp" line="9991"/>
         <source>&amp;Open Log…</source>
         <translation>&amp;Abrir registro…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9970"/>
+        <location filename="../src/mainwindow.cpp" line="9995"/>
         <source>&amp;Compare Logs…</source>
         <translation>&amp;Comparar registros…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9975"/>
+        <location filename="../src/mainwindow.cpp" line="10000"/>
         <source>Run &amp;Lua Script…</source>
         <translation>Ejecutar script &amp;Lua…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9983"/>
-        <location filename="../src/mainwindow.cpp" line="9998"/>
+        <location filename="../src/mainwindow.cpp" line="10008"/>
+        <location filename="../src/mainwindow.cpp" line="10023"/>
         <source>Run Lua Script</source>
         <translation>Ejecutar script Lua</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9984"/>
+        <location filename="../src/mainwindow.cpp" line="10009"/>
         <source>Lua scripts (*.lua);;All files (*)</source>
         <translation>Scripts Lua (*.lua);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9275"/>
-        <location filename="../src/mainwindow.cpp" line="9999"/>
+        <location filename="../src/mainwindow.cpp" line="9329"/>
+        <location filename="../src/mainwindow.cpp" line="10024"/>
         <source>Could not open %1</source>
         <translation>No se pudo abrir %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10012"/>
+        <location filename="../src/mainwindow.cpp" line="10037"/>
         <source>Run Lua Script — consent required</source>
         <translation>Ejecutar script Lua — se requiere consentimiento</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10013"/>
+        <location filename="../src/mainwindow.cpp" line="10038"/>
         <source>&lt;b&gt;About to execute:&lt;/b&gt;&lt;br&gt;&lt;code&gt;%1&lt;/code&gt;</source>
         <translation>&lt;b&gt;Está a punto de ejecutar:&lt;/b&gt;&lt;br&gt;&lt;code&gt;%1&lt;/code&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10015"/>
+        <location filename="../src/mainwindow.cpp" line="10040"/>
         <source>This Lua script will run with privileges to:&lt;ul&gt;&lt;li&gt;read and modify the active project&apos;s ROM bytes;&lt;/li&gt;&lt;li&gt;read, write, and delete files inside the project tree     and the system temp directory;&lt;/li&gt;&lt;li&gt;make HTTP requests to allowlisted hosts;&lt;/li&gt;&lt;li&gt;query the WOLS similarity catalog.&lt;/li&gt;&lt;/ul&gt;Code-execution paths (&lt;code&gt;os.execute&lt;/code&gt;, &lt;code&gt;io.popen&lt;/code&gt;, loading native libraries, &lt;code&gt;dofile&lt;/code&gt;) are &lt;b&gt;blocked&lt;/b&gt; by the sandbox.&lt;br&gt;&lt;br&gt;&lt;b&gt;Only run scripts from sources you trust.&lt;/b&gt;&lt;br&gt;SHA-256: &lt;code&gt;%1…&lt;/code&gt;</source>
         <translation>Este script Lua se ejecutará con permisos para:&lt;ul&gt;&lt;li&gt;leer y modificar los bytes de la ROM del proyecto activo;&lt;/li&gt;&lt;li&gt;leer, escribir y eliminar archivos dentro del árbol del proyecto y del directorio temporal del sistema;&lt;/li&gt;&lt;li&gt;realizar peticiones HTTP a hosts permitidos;&lt;/li&gt;&lt;li&gt;consultar el catálogo de similitud WOLS.&lt;/li&gt;&lt;/ul&gt;Las rutas de ejecución de código (&lt;code&gt;os.execute&lt;/code&gt;, &lt;code&gt;io.popen&lt;/code&gt;, carga de bibliotecas nativas, &lt;code&gt;dofile&lt;/code&gt;) están &lt;b&gt;bloqueadas&lt;/b&gt; por la sandbox.&lt;br&gt;&lt;br&gt;&lt;b&gt;Ejecute solo scripts de fuentes en las que confíe.&lt;/b&gt;&lt;br&gt;SHA-256: &lt;code&gt;%1…&lt;/code&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10030"/>
+        <location filename="../src/mainwindow.cpp" line="10055"/>
         <source>Run once</source>
         <translation>Ejecutar una vez</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10032"/>
+        <location filename="../src/mainwindow.cpp" line="10057"/>
         <source>Trust this script</source>
         <translation>Confiar en este script</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10052"/>
+        <location filename="../src/mainwindow.cpp" line="10077"/>
         <source>Lua error</source>
         <translation>Error de Lua</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10057"/>
+        <location filename="../src/mainwindow.cpp" line="10082"/>
         <source>Lua output</source>
         <translation>Salida de Lua</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10067"/>
+        <location filename="../src/mainwindow.cpp" line="10092"/>
         <source>&amp;Recent</source>
         <translation>&amp;Recientes</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="10087"/>
+        <location filename="../src/mainwindow.cpp" line="10112"/>
         <source>&amp;Clear list</source>
         <translation>&amp;Limpiar lista</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2928"/>
+        <location filename="../src/mainwindow.cpp" line="2926"/>
         <source>&amp;About RX14</source>
         <translation>Acerca de RX14(&amp;A)</translation>
     </message>
@@ -4902,13 +4871,13 @@ Open it now?</source>
         <translation>Ejecutando script Lua...</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3564"/>
-        <location filename="../src/mainwindow.cpp" line="4474"/>
+        <location filename="../src/mainwindow.cpp" line="3562"/>
+        <location filename="../src/mainwindow.cpp" line="4453"/>
         <source>ECU detected: %1</source>
         <translation>ECU detectada: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3630"/>
+        <location filename="../src/mainwindow.cpp" line="3628"/>
         <source>romHEX14 can automatically scan every ROM file you open and highlight the maps it finds in the 2D waveform view.
 
 This is a fallback while you haven&apos;t imported an A2L — once an A2L is loaded, the auto-detected overlays disappear and the real maps take over.</source>
@@ -4917,18 +4886,18 @@ This is a fallback while you haven&apos;t imported an A2L — once an A2L is loa
 Esto es una alternativa mientras no hayas importado un A2L — una vez cargado un A2L, las superposiciones autodetectadas desaparecen y los mapas reales toman el control.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3639"/>
+        <location filename="../src/mainwindow.cpp" line="3637"/>
         <source>Enable automatic map scanning for every ROM I open</source>
         <translation>Activar el escaneo automático de mapas para cada ROM que abra</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3710"/>
-        <location filename="../src/mainwindow.cpp" line="7778"/>
+        <location filename="../src/mainwindow.cpp" line="3708"/>
+        <location filename="../src/mainwindow.cpp" line="7824"/>
         <source>Auto-detected: %1</source>
         <translation>Autodetectado: %1</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src/mainwindow.cpp" line="3730"/>
+        <location filename="../src/mainwindow.cpp" line="3728"/>
         <source>Auto-detected %n map(s) — visible in 2D view until an A2L is imported</source>
         <translation>
             <numerusform>Autodetectado %n mapa — visible en la vista 2D hasta que se importe un A2L</numerusform>
@@ -4936,55 +4905,70 @@ Esto es una alternativa mientras no hayas importado un A2L — una vez cargado u
         </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4046"/>
+        <location filename="../src/mainwindow.cpp" line="4044"/>
         <source>&lt;div style=&apos;background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:12px; margin:4px 0;&apos;&gt;&lt;b style=&apos;font-size:11pt;&apos;&gt;%1 %2: %3%&lt;/b&gt;&lt;br&gt;&lt;pre style=&apos;color:%5; font-size:8pt; margin-top:6px;&apos;&gt;%4&lt;/pre&gt;&lt;/div&gt;</source>
         <translation>&lt;div style=&apos;background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:12px; margin:4px 0;&apos;&gt;&lt;b style=&apos;font-size:11pt;&apos;&gt;%1 %2: %3%&lt;/b&gt;&lt;br&gt;&lt;pre style=&apos;color:%5; font-size:8pt; margin-top:6px;&apos;&gt;%4&lt;/pre&gt;&lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4208"/>
-        <location filename="../src/mainwindow.cpp" line="4238"/>
-        <location filename="../src/mainwindow.cpp" line="4279"/>
+        <location filename="../src/mainwindow.cpp" line="4206"/>
+        <location filename="../src/mainwindow.cpp" line="4236"/>
+        <location filename="../src/mainwindow.cpp" line="4347"/>
         <source>Import KP</source>
         <translation>Importar KP</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4209"/>
+        <location filename="../src/mainwindow.cpp" line="4207"/>
         <source>Open a project with ROM data first. KP map packs are added on top of an existing project (the same way A2L files are).</source>
         <translation>Abre primero un proyecto con datos de ROM. Los paquetes de mapas KP se agregan sobre un proyecto existente (igual que los archivos A2L).</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4217"/>
+        <location filename="../src/mainwindow.cpp" line="4215"/>
         <source>Import KP map pack</source>
         <translation>Importar paquete de mapas KP</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4218"/>
+        <location filename="../src/mainwindow.cpp" line="4216"/>
         <source>KP map packs (*.kp);;All files (*)</source>
         <translation>Paquetes de mapas KP (*.kp);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4239"/>
+        <location filename="../src/mainwindow.cpp" line="4237"/>
         <source>No maps found in this .kp file.</source>
         <translation>No se encontraron mapas en este archivo .kp.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4380"/>
+        <location filename="../src/mainwindow.cpp" line="4357"/>
         <source>Imported %1 maps from %2</source>
         <translation>Importados %1 mapas desde %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4383"/>
+        <location filename="../src/mainwindow.cpp" line="4358"/>
+        <source>Updated existing maps from %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="4360"/>
         <source> (%1 already present, skipped)</source>
         <translation> (%1 ya presentes, omitidos)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7280"/>
-        <location filename="../src/mainwindow.cpp" line="7310"/>
+        <location filename="../src/mainwindow.cpp" line="4362"/>
+        <source>; %1 data range(s) applied</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="5780"/>
+        <source>Folder — use the arrow to expand or collapse</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="7320"/>
+        <location filename="../src/mainwindow.cpp" line="7350"/>
         <source>Similarity index</source>
         <translation>Similarity index</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7281"/>
+        <location filename="../src/mainwindow.cpp" line="7321"/>
         <source>No scan roots configured.
 
 Open Project Manager → WinOLS Catalog → Settings to import paths from WinOLS&apos; ols.cfg first.</source>
@@ -4993,12 +4977,12 @@ Open Project Manager → WinOLS Catalog → Settings to import paths from WinOLS
 Open Project Manager → WinOLS Catalog → Settings to import paths from WinOLS&apos; ols.cfg first.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7291"/>
+        <location filename="../src/mainwindow.cpp" line="7331"/>
         <source>Build similarity index</source>
         <translation>Build similarity index</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7292"/>
+        <location filename="../src/mainwindow.cpp" line="7332"/>
         <source>Scan the following %1 folder(s) recursively for .ols / .kp / .bin / .rom files and build the similarity index?
 
 %2
@@ -5009,329 +4993,328 @@ This may take a while (potentially hours for terabyte collections).  You can pau
 This may take a while (potentially hours for terabyte collections).  You can pause or cancel at any point — already-processed files are kept.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7311"/>
+        <location filename="../src/mainwindow.cpp" line="7351"/>
         <source>Could not open index database:
 %1</source>
         <translation>Could not open index database:
 %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7320"/>
+        <location filename="../src/mainwindow.cpp" line="7360"/>
         <source>Similarity index ready</source>
         <translation>Similarity index ready</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7328"/>
+        <location filename="../src/mainwindow.cpp" line="7368"/>
         <source>Open a project first to find similar files.</source>
         <translation>Open a project first to find similar files.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7346"/>
+        <location filename="../src/mainwindow.cpp" line="7386"/>
         <source>Open similar</source>
         <translation>Open similar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7347"/>
-        <location filename="../src/mainwindow.cpp" line="7407"/>
+        <location filename="../src/mainwindow.cpp" line="7387"/>
+        <location filename="../src/mainwindow.cpp" line="7447"/>
         <source>Could not read file: %1</source>
         <translation>Could not read file: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7362"/>
-        <location filename="../src/mainwindow.cpp" line="7367"/>
-        <location filename="../src/mainwindow.cpp" line="7376"/>
-        <location filename="../src/mainwindow.cpp" line="7420"/>
-        <location filename="../src/mainwindow.cpp" line="7424"/>
-        <location filename="../src/mainwindow.cpp" line="7429"/>
+        <location filename="../src/mainwindow.cpp" line="7402"/>
+        <location filename="../src/mainwindow.cpp" line="7407"/>
+        <location filename="../src/mainwindow.cpp" line="7416"/>
+        <location filename="../src/mainwindow.cpp" line="7460"/>
+        <location filename="../src/mainwindow.cpp" line="7464"/>
+        <location filename="../src/mainwindow.cpp" line="7469"/>
         <source>Import error</source>
         <translation>Import error</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7363"/>
-        <location filename="../src/mainwindow.cpp" line="7421"/>
+        <location filename="../src/mainwindow.cpp" line="7403"/>
+        <location filename="../src/mainwindow.cpp" line="7461"/>
         <source>OLS import threw: %1</source>
         <translation>OLS import threw: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7368"/>
-        <location filename="../src/mainwindow.cpp" line="7425"/>
+        <location filename="../src/mainwindow.cpp" line="7408"/>
+        <location filename="../src/mainwindow.cpp" line="7465"/>
         <source>OLS import threw an unknown exception</source>
         <translation>OLS import threw an unknown exception</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7485"/>
+        <location filename="../src/mainwindow.cpp" line="7525"/>
         <source>Current</source>
         <translation>Current</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7492"/>
-        <location filename="../src/mainwindow.cpp" line="7497"/>
+        <location filename="../src/mainwindow.cpp" line="7532"/>
+        <location filename="../src/mainwindow.cpp" line="7537"/>
         <source>Open version</source>
         <translation>Open version</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7493"/>
+        <location filename="../src/mainwindow.cpp" line="7533"/>
         <source>Version index %1 out of range</source>
         <translation>Version index %1 out of range</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7498"/>
+        <location filename="../src/mainwindow.cpp" line="7538"/>
         <source>That version has no ROM data.</source>
         <translation>That version has no ROM data.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7534"/>
+        <location filename="../src/mainwindow.cpp" line="7574"/>
         <source>Opened %1 alongside %2</source>
         <translation>Opened %1 alongside %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9167"/>
+        <location filename="../src/mainwindow.cpp" line="9221"/>
         <source>Insert comment</source>
         <translation>Insertar comentario</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9168"/>
+        <location filename="../src/mainwindow.cpp" line="9222"/>
         <source>Comment for offset 0x%1:</source>
         <translation>Comentario para offset 0x%1:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9178"/>
+        <location filename="../src/mainwindow.cpp" line="9232"/>
         <source>Comment added at 0x%1</source>
         <translation>Comentario añadido en 0x%1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9191"/>
+        <location filename="../src/mainwindow.cpp" line="9245"/>
         <source>Marker added at 0x%1</source>
         <translation>Marcador añadido en 0x%1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9213"/>
-        <location filename="../src/mainwindow.cpp" line="9235"/>
+        <location filename="../src/mainwindow.cpp" line="9267"/>
+        <location filename="../src/mainwindow.cpp" line="9289"/>
         <source>Export map list</source>
         <translation>Exportar lista de mapas</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9214"/>
-        <location filename="../src/mainwindow.cpp" line="9236"/>
-        <location filename="../src/mainwindow.cpp" line="9478"/>
-        <location filename="../src/mainwindow.cpp" line="9506"/>
+        <location filename="../src/mainwindow.cpp" line="9268"/>
+        <location filename="../src/mainwindow.cpp" line="9290"/>
+        <location filename="../src/mainwindow.cpp" line="9532"/>
         <source>Open a project with at least one map first.</source>
         <translation>请先打开至少包含一个标定图的项目。</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9219"/>
+        <location filename="../src/mainwindow.cpp" line="9273"/>
         <source>Export map list as CSV</source>
         <translation>Exportar lista como CSV</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9220"/>
+        <location filename="../src/mainwindow.cpp" line="9274"/>
         <source>CSV (*.csv)</source>
         <translation>CSV (*.csv)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9224"/>
-        <location filename="../src/mainwindow.cpp" line="9246"/>
+        <location filename="../src/mainwindow.cpp" line="9278"/>
+        <location filename="../src/mainwindow.cpp" line="9300"/>
         <source>Export failed</source>
         <translation>导出失败</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9227"/>
-        <location filename="../src/mainwindow.cpp" line="9249"/>
+        <location filename="../src/mainwindow.cpp" line="9281"/>
+        <location filename="../src/mainwindow.cpp" line="9303"/>
         <source>Wrote %1 maps to %2</source>
         <translation>已写入 %1 个标定图到 %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9241"/>
+        <location filename="../src/mainwindow.cpp" line="9295"/>
         <source>Export map list as JSON</source>
         <translation>Exportar lista como JSON</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9242"/>
+        <location filename="../src/mainwindow.cpp" line="9296"/>
         <source>JSON (*.json)</source>
         <translation>JSON (*.json)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9535"/>
+        <location filename="../src/mainwindow.cpp" line="9560"/>
         <source>No annotations in this project.</source>
         <translation>No hay anotaciones en este proyecto.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9543"/>
+        <location filename="../src/mainwindow.cpp" line="9568"/>
         <source>→ 0x%1</source>
         <translation>→ 0x%1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9563"/>
-        <location filename="../src/mainwindow.cpp" line="9722"/>
+        <location filename="../src/mainwindow.cpp" line="9588"/>
+        <location filename="../src/mainwindow.cpp" line="9747"/>
         <source>Change absolute</source>
         <translation>Cambio absoluto</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9564"/>
+        <location filename="../src/mainwindow.cpp" line="9589"/>
         <source>Set every selected cell to:</source>
         <translation>将每个选中单元格设为：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9573"/>
+        <location filename="../src/mainwindow.cpp" line="9598"/>
         <source>Change relative</source>
         <translation>Cambio relativo</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9574"/>
+        <location filename="../src/mainwindow.cpp" line="9599"/>
         <source>Enter delta (e.g. +5, -3, *1.10, +5%):</source>
         <translation>输入差值（如 +5、-3、*1.10、+5%）：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9602"/>
-        <location filename="../src/mainwindow.cpp" line="9647"/>
-        <location filename="../src/mainwindow.cpp" line="9654"/>
-        <location filename="../src/mainwindow.cpp" line="9662"/>
+        <location filename="../src/mainwindow.cpp" line="9627"/>
+        <location filename="../src/mainwindow.cpp" line="9672"/>
+        <location filename="../src/mainwindow.cpp" line="9679"/>
+        <location filename="../src/mainwindow.cpp" line="9687"/>
         <source>Selection</source>
         <translation>Selección</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9625"/>
-        <location filename="../src/mainwindow.cpp" line="9628"/>
-        <location filename="../src/mainwindow.cpp" line="9631"/>
-        <location filename="../src/mainwindow.cpp" line="9724"/>
+        <location filename="../src/mainwindow.cpp" line="9650"/>
+        <location filename="../src/mainwindow.cpp" line="9653"/>
+        <location filename="../src/mainwindow.cpp" line="9656"/>
+        <location filename="../src/mainwindow.cpp" line="9749"/>
         <source>Round / limit</source>
         <translation>Redondear / limitar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9626"/>
+        <location filename="../src/mainwindow.cpp" line="9651"/>
         <source>Round to nearest multiple of:</source>
         <translation>取整为最近的倍数：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9629"/>
+        <location filename="../src/mainwindow.cpp" line="9654"/>
         <source>Minimum allowed value:</source>
         <translation>允许的最小值：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9632"/>
+        <location filename="../src/mainwindow.cpp" line="9657"/>
         <source>Maximum allowed value:</source>
         <translation>允许的最大值：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9648"/>
+        <location filename="../src/mainwindow.cpp" line="9673"/>
         <source>No active project view.</source>
         <translation>Sin vista de proyecto activa.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9655"/>
+        <location filename="../src/mainwindow.cpp" line="9680"/>
         <source>Editor not ready for this view.</source>
         <translation>Editor no preparado para esta vista.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9695"/>
+        <location filename="../src/mainwindow.cpp" line="9720"/>
         <source>Find similar</source>
         <translation>Buscar similares</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9696"/>
+        <location filename="../src/mainwindow.cpp" line="9721"/>
         <source>Need at least 2 maps in the project to compare.</source>
         <translation>项目中至少需要2个标定图才能比较。</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9722"/>
+        <location filename="../src/mainwindow.cpp" line="9747"/>
         <source>Change relative (delta)</source>
         <translation>Cambio relativo (delta)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9723"/>
+        <location filename="../src/mainwindow.cpp" line="9748"/>
         <source>Change relative (scale ×)</source>
         <translation>Cambio relativo (escala ×)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9725"/>
+        <location filename="../src/mainwindow.cpp" line="9750"/>
         <source>Restore original</source>
         <translation>Restaurar original</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9729"/>
+        <location filename="../src/mainwindow.cpp" line="9754"/>
         <source>Bulk edit %1 maps</source>
         <translation>Editar %1 mapas</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9730"/>
+        <location filename="../src/mainwindow.cpp" line="9755"/>
         <source>Operation:</source>
         <translation>Operación:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9743"/>
-        <location filename="../src/mainwindow.cpp" line="9751"/>
-        <location filename="../src/mainwindow.cpp" line="9760"/>
-        <location filename="../src/mainwindow.cpp" line="9769"/>
-        <location filename="../src/mainwindow.cpp" line="9773"/>
+        <location filename="../src/mainwindow.cpp" line="9768"/>
         <location filename="../src/mainwindow.cpp" line="9776"/>
-        <location filename="../src/mainwindow.cpp" line="9786"/>
+        <location filename="../src/mainwindow.cpp" line="9785"/>
+        <location filename="../src/mainwindow.cpp" line="9794"/>
+        <location filename="../src/mainwindow.cpp" line="9798"/>
+        <location filename="../src/mainwindow.cpp" line="9801"/>
+        <location filename="../src/mainwindow.cpp" line="9811"/>
         <source>Bulk edit</source>
         <translation>Edición masiva</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9743"/>
+        <location filename="../src/mainwindow.cpp" line="9768"/>
         <source>Absolute value:</source>
         <translation>Valor absoluto:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9751"/>
+        <location filename="../src/mainwindow.cpp" line="9776"/>
         <source>Add delta (raw):</source>
         <translation>添加差值（原始）：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9760"/>
+        <location filename="../src/mainwindow.cpp" line="9785"/>
         <source>Scale factor (1.05 = +5%):</source>
         <translation>比例系数（1.05 = +5%）：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9769"/>
+        <location filename="../src/mainwindow.cpp" line="9794"/>
         <source>Round to multiple of:</source>
         <translation>取整为倍数：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9773"/>
+        <location filename="../src/mainwindow.cpp" line="9798"/>
         <source>Min:</source>
         <translation>最小：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9776"/>
+        <location filename="../src/mainwindow.cpp" line="9801"/>
         <source>Max:</source>
         <translation>最大：</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9787"/>
+        <location filename="../src/mainwindow.cpp" line="9812"/>
         <source>This will modify %1 byte ranges across %2 maps. Proceed?</source>
         <translation>这将修改 %2 个标定图中的 %1 个字节范围。继续？</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9812"/>
+        <location filename="../src/mainwindow.cpp" line="9837"/>
         <source>Bulk edit applied to %1 maps</source>
         <translation>Edición masiva aplicada a %1 mapas</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4224"/>
-        <location filename="../src/mainwindow.cpp" line="4397"/>
-        <location filename="../src/mainwindow.cpp" line="6099"/>
-        <location filename="../src/mainwindow.cpp" line="9426"/>
+        <location filename="../src/mainwindow.cpp" line="4222"/>
+        <location filename="../src/mainwindow.cpp" line="4376"/>
+        <location filename="../src/mainwindow.cpp" line="6139"/>
+        <location filename="../src/mainwindow.cpp" line="9480"/>
         <source>Cannot open file: %1</source>
         <translation>No se puede abrir el archivo: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4234"/>
-        <location filename="../src/mainwindow.cpp" line="4406"/>
-        <location filename="../src/mainwindow.cpp" line="4422"/>
-        <location filename="../src/mainwindow.cpp" line="6107"/>
-        <location filename="../src/mainwindow.cpp" line="6113"/>
+        <location filename="../src/mainwindow.cpp" line="4232"/>
+        <location filename="../src/mainwindow.cpp" line="4385"/>
+        <location filename="../src/mainwindow.cpp" line="4401"/>
+        <location filename="../src/mainwindow.cpp" line="6147"/>
+        <location filename="../src/mainwindow.cpp" line="6153"/>
         <source>Import Error</source>
         <translation>Error de importación</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4410"/>
+        <location filename="../src/mainwindow.cpp" line="4389"/>
         <source>Import completed with %1 warning(s)</source>
         <translation>Importación completada con %1 advertencia(s)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src/mainwindow.cpp" line="4670"/>
+        <location filename="../src/mainwindow.cpp" line="4649"/>
         <source>%n modules</source>
         <translation>
             <numerusform>%n módulo</numerusform>
@@ -5339,152 +5322,152 @@ This may take a while (potentially hours for terabyte collections).  You can pau
         </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4671"/>
+        <location filename="../src/mainwindow.cpp" line="4650"/>
         <source>Free</source>
         <translation>Gratis</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4709"/>
+        <location filename="../src/mainwindow.cpp" line="4688"/>
         <source>Sign in</source>
         <translation>Iniciar sesión</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4711"/>
+        <location filename="../src/mainwindow.cpp" line="4690"/>
         <source>Sign in to your account</source>
         <translation>Inicia sesión en tu cuenta</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4764"/>
+        <location filename="../src/mainwindow.cpp" line="4743"/>
         <source>Help</source>
         <translation>Ayuda</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4755"/>
-        <location filename="../src/mainwindow.cpp" line="4980"/>
+        <location filename="../src/mainwindow.cpp" line="4734"/>
+        <location filename="../src/mainwindow.cpp" line="4959"/>
         <source>Preferences</source>
         <translation>Preferencias</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5162"/>
+        <location filename="../src/mainwindow.cpp" line="5141"/>
         <source>Recent projects</source>
         <translation>Proyectos recientes</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5766"/>
+        <location filename="../src/mainwindow.cpp" line="5751"/>
         <source>Auto-detected  (%1)</source>
         <translation>Autodetectado  (%1)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5807"/>
+        <location filename="../src/mainwindow.cpp" line="5847"/>
         <source>Scanning…</source>
         <translation>Escaneando…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5810"/>
+        <location filename="../src/mainwindow.cpp" line="5850"/>
         <source>Linked-ROM reference (ORI)</source>
         <translation>Referencia de ROM enlazada (ORI)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5813"/>
+        <location filename="../src/mainwindow.cpp" line="5853"/>
         <source>Linked-ROM child</source>
         <translation>ROM enlazada (hijo)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5819"/>
-        <location filename="../src/mainwindow.cpp" line="5845"/>
+        <location filename="../src/mainwindow.cpp" line="5859"/>
+        <location filename="../src/mainwindow.cpp" line="5885"/>
         <source>Saved</source>
         <translation>Guardado</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5825"/>
+        <location filename="../src/mainwindow.cpp" line="5865"/>
         <source>ORI</source>
         <translation>ORI</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5838"/>
+        <location filename="../src/mainwindow.cpp" line="5878"/>
         <source>Modified — autosave in %1s</source>
         <translation>Modificado — guardado automático en %1s</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5847"/>
+        <location filename="../src/mainwindow.cpp" line="5887"/>
         <source>Saved · %1s ago</source>
         <translation>Guardado · hace %1s</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5849"/>
+        <location filename="../src/mainwindow.cpp" line="5889"/>
         <source>Saved · %1m ago</source>
         <translation>Guardado · hace %1m</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5851"/>
+        <location filename="../src/mainwindow.cpp" line="5891"/>
         <source>Saved · %1h ago</source>
         <translation>Guardado · hace %1h</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6177"/>
+        <location filename="../src/mainwindow.cpp" line="6217"/>
         <source>Open RX14 Project</source>
         <translation>Abrir proyecto RX14</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6256"/>
-        <location filename="../src/mainwindow.cpp" line="6323"/>
+        <location filename="../src/mainwindow.cpp" line="6296"/>
+        <location filename="../src/mainwindow.cpp" line="6363"/>
         <source>Save &amp;&amp; Close</source>
         <translation>Guardar y cerrar</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2323"/>
-        <location filename="../src/mainwindow.cpp" line="6469"/>
-        <location filename="../src/mainwindow.cpp" line="9339"/>
+        <location filename="../src/mainwindow.cpp" line="6509"/>
+        <location filename="../src/mainwindow.cpp" line="9393"/>
         <source>Open a project with ROM data first.</source>
         <translation>Abra primero un proyecto con datos ROM.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6532"/>
+        <location filename="../src/mainwindow.cpp" line="6572"/>
         <source>Export Error</source>
         <translation>Error de exportación</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6540"/>
+        <location filename="../src/mainwindow.cpp" line="6580"/>
         <source>Could not write file: %1</source>
         <translation>No se pudo escribir el archivo: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6552"/>
+        <location filename="../src/mainwindow.cpp" line="6592"/>
         <source> — %1 warning(s)</source>
         <translation> — %1 advertencia(s)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7146"/>
+        <location filename="../src/mainwindow.cpp" line="7186"/>
         <source>%1  |  %2  |  Addr: %3  |  %4×%5</source>
         <translation>%1  |  %2  |  Dir: %3  |  %4×%5</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7639"/>
+        <location filename="../src/mainwindow.cpp" line="7685"/>
         <source>ROM files (*.bin *.hex *.rom *.mpc);;All files (*)</source>
         <translation>Archivos ROM (*.bin *.hex *.rom *.mpc);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8119"/>
+        <location filename="../src/mainwindow.cpp" line="8173"/>
         <source>ECU dumps (*.bin *.hex *.rom *.s19 *.srec *.s28 *.s37 *.mpc);;All files (*)</source>
         <translation>Volcados ECU (*.bin *.hex *.rom *.s19 *.srec *.s28 *.s37 *.mpc);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8178"/>
+        <location filename="../src/mainwindow.cpp" line="8232"/>
         <source>No detector matched. The flash does not contain any of the 73 known ECU family anchors. (See RE/winOLS/winols_analysis/ECU_PATTERN_DB.json for the catalog.)</source>
         <translation>Ningún detector coincidió.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8219"/>
+        <location filename="../src/mainwindow.cpp" line="8273"/>
         <source>&lt;h3&gt;%1&lt;/h3&gt;</source>
         <translation>&lt;h3&gt;%1&lt;/h3&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8236"/>
+        <location filename="../src/mainwindow.cpp" line="8290"/>
         <source>No maps in active project</source>
         <translation>Sin mapas en el proyecto activo</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8237"/>
+        <location filename="../src/mainwindow.cpp" line="8291"/>
         <source>The currently active project has no map definitions to match against.
 
 Link ROM to Project works by taking the maps from the ACTIVE project (the reference) and locating them in the ROM you select.  So the active project must be the one WITH metadata — typically the .ols / .kp file, or a project that already has an A2L imported.
@@ -5496,24 +5479,24 @@ Workflow:
         <translation>El proyecto activo no tiene definiciones de mapas.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8381"/>
+        <location filename="../src/mainwindow.cpp" line="8435"/>
         <source>  ⇔  Cursors are now synchronized.
        Click this button to unlink them.</source>
         <translation>  ⇔  Los cursores están sincronizados.
        Haga clic en este botón para desvincularlos.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8417"/>
+        <location filename="../src/mainwindow.cpp" line="8471"/>
         <source>ROM files (*.bin *.hex *.rom *.ori *.mpc);;All files (*)</source>
         <translation>Archivos ROM (*.bin *.hex *.rom *.ori *.mpc);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8731"/>
+        <location filename="../src/mainwindow.cpp" line="8785"/>
         <source>Checksum OK — %1 (%2)</source>
         <translation>Suma de comprobación OK — %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8735"/>
+        <location filename="../src/mainwindow.cpp" line="8789"/>
         <source>✗ Checksum mismatch
 
 ECU: %1
@@ -5528,7 +5511,7 @@ Algoritmo: %2
 Use &quot;Corregir checksum&quot; para arreglarlo antes de flashear.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8740"/>
+        <location filename="../src/mainwindow.cpp" line="8794"/>
         <source>Checksum verification is not supported for this ECU.
 
 ECU: %1</source>
@@ -5537,7 +5520,7 @@ ECU: %1</source>
 ECU: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8742"/>
+        <location filename="../src/mainwindow.cpp" line="8796"/>
         <source>Native checksum verification unavailable for this ECU on macOS/Linux.
 
 ECU: %1</source>
@@ -5546,80 +5529,80 @@ ECU: %1</source>
 ECU: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8777"/>
-        <location filename="../src/mainwindow.cpp" line="8846"/>
+        <location filename="../src/mainwindow.cpp" line="8831"/>
+        <location filename="../src/mainwindow.cpp" line="8900"/>
         <source>Checksum corrected — %1 (%2)</source>
         <translation>Suma de comprobación corregida — %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8901"/>
+        <location filename="../src/mainwindow.cpp" line="8955"/>
         <source>open</source>
         <translation>abrir</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8917"/>
+        <location filename="../src/mainwindow.cpp" line="8971"/>
         <source>Language</source>
         <translation>Idioma</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8918"/>
+        <location filename="../src/mainwindow.cpp" line="8972"/>
         <source>Change UI language</source>
         <translation>Cambiar idioma de la interfaz</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8919"/>
+        <location filename="../src/mainwindow.cpp" line="8973"/>
         <source>Auto Save Mode</source>
         <translation>Modo de guardado automático</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8920"/>
+        <location filename="../src/mainwindow.cpp" line="8974"/>
         <source>Off / After Delay / On Focus Change / On Window Deactivate</source>
         <translation>Desactivado / Tras retardo / Al cambiar foco / Al desactivar ventana</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8921"/>
+        <location filename="../src/mainwindow.cpp" line="8975"/>
         <source>Byte Order</source>
         <translation>Orden de bytes</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8922"/>
+        <location filename="../src/mainwindow.cpp" line="8976"/>
         <source>Little Endian / Big Endian</source>
         <translation>Little Endian / Big Endian</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8923"/>
+        <location filename="../src/mainwindow.cpp" line="8977"/>
         <source>Theme &amp; Colors</source>
         <translation>Tema y colores</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8924"/>
+        <location filename="../src/mainwindow.cpp" line="8978"/>
         <source>Open Preferences → Colors</source>
         <translation>Abrir Preferencias → Colores</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1014"/>
-        <location filename="../src/mainwindow.cpp" line="2965"/>
+        <location filename="../src/mainwindow.cpp" line="2963"/>
         <source>Map Selection</source>
         <translation>Selección de Mapas</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2967"/>
+        <location filename="../src/mainwindow.cpp" line="2965"/>
         <source>Filter maps…</source>
         <translation>Filtrar mapas…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2969"/>
-        <location filename="../src/mainwindow.cpp" line="7705"/>
+        <location filename="../src/mainwindow.cpp" line="2967"/>
+        <location filename="../src/mainwindow.cpp" line="7751"/>
         <source>Name</source>
         <translation>Nombre</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2969"/>
+        <location filename="../src/mainwindow.cpp" line="2967"/>
         <source>Type</source>
         <translation>Tipo</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2969"/>
+        <location filename="../src/mainwindow.cpp" line="2967"/>
         <source>Addr</source>
         <translation>Dir.</translation>
     </message>
@@ -5672,50 +5655,50 @@ ECU: %1</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="444"/>
-        <location filename="../src/mainwindow.cpp" line="3015"/>
+        <location filename="../src/mainwindow.cpp" line="3013"/>
         <source>Ready  —  Open a ROM file or project to begin.</source>
         <translation>Listo  —  Abra un archivo ROM o proyecto para comenzar.</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1397"/>
-        <location filename="../src/mainwindow.cpp" line="2976"/>
+        <location filename="../src/mainwindow.cpp" line="2974"/>
         <source>All</source>
         <translation>Todos</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1398"/>
-        <location filename="../src/mainwindow.cpp" line="2977"/>
-        <location filename="../src/mainwindow.cpp" line="5816"/>
+        <location filename="../src/mainwindow.cpp" line="2975"/>
+        <location filename="../src/mainwindow.cpp" line="5856"/>
         <source>Modified</source>
         <translation>Modificado</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1399"/>
-        <location filename="../src/mainwindow.cpp" line="2978"/>
+        <location filename="../src/mainwindow.cpp" line="2976"/>
         <source>Starred</source>
         <translation>Destacado</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1400"/>
-        <location filename="../src/mainwindow.cpp" line="2979"/>
+        <location filename="../src/mainwindow.cpp" line="2977"/>
         <source>Recent</source>
         <translation>Reciente</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1409"/>
-        <location filename="../src/mainwindow.cpp" line="2980"/>
+        <location filename="../src/mainwindow.cpp" line="2978"/>
         <source>Values</source>
         <translation>Valores</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1411"/>
-        <location filename="../src/mainwindow.cpp" line="2981"/>
+        <location filename="../src/mainwindow.cpp" line="2979"/>
         <source>Curves</source>
         <translation>Curvas</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1413"/>
-        <location filename="../src/mainwindow.cpp" line="2982"/>
+        <location filename="../src/mainwindow.cpp" line="2980"/>
         <source>Maps</source>
         <translation>Mapas</translation>
     </message>
@@ -5731,58 +5714,58 @@ ECU: %1</translation>
         <translation>Mostrar/ocultar el panel del asistente de IA (Ctrl+\)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3178"/>
+        <location filename="../src/mainwindow.cpp" line="3176"/>
         <source>Hex editor font size</source>
         <translation>Tamaño de fuente del editor hexadecimal</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3454"/>
+        <location filename="../src/mainwindow.cpp" line="3452"/>
         <source>Loading ROM</source>
         <translation>Cargando ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3455"/>
-        <location filename="../src/mainwindow.cpp" line="3465"/>
+        <location filename="../src/mainwindow.cpp" line="3453"/>
+        <location filename="../src/mainwindow.cpp" line="3463"/>
         <source>Reading  %1…</source>
         <translation>Leyendo  %1…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3466"/>
+        <location filename="../src/mainwindow.cpp" line="3464"/>
         <source>Parsing ROM format…</source>
         <translation>Analizando formato ROM…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3467"/>
+        <location filename="../src/mainwindow.cpp" line="3465"/>
         <source>Detecting ECU type…</source>
         <translation>Detectando tipo de ECU…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3468"/>
-        <location filename="../src/mainwindow.cpp" line="3809"/>
+        <location filename="../src/mainwindow.cpp" line="3466"/>
+        <location filename="../src/mainwindow.cpp" line="3807"/>
         <source>Almost done…</source>
         <translation>Casi listo…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3497"/>
-        <location filename="../src/mainwindow.cpp" line="3745"/>
-        <location filename="../src/mainwindow.cpp" line="4223"/>
-        <location filename="../src/mainwindow.cpp" line="4397"/>
-        <location filename="../src/mainwindow.cpp" line="5385"/>
-        <location filename="../src/mainwindow.cpp" line="6084"/>
-        <location filename="../src/mainwindow.cpp" line="6098"/>
-        <location filename="../src/mainwindow.cpp" line="6183"/>
-        <location filename="../src/mainwindow.cpp" line="6199"/>
+        <location filename="../src/mainwindow.cpp" line="3495"/>
+        <location filename="../src/mainwindow.cpp" line="3743"/>
+        <location filename="../src/mainwindow.cpp" line="4221"/>
+        <location filename="../src/mainwindow.cpp" line="4376"/>
+        <location filename="../src/mainwindow.cpp" line="5364"/>
+        <location filename="../src/mainwindow.cpp" line="6124"/>
+        <location filename="../src/mainwindow.cpp" line="6138"/>
+        <location filename="../src/mainwindow.cpp" line="6223"/>
         <location filename="../src/mainwindow.cpp" line="6239"/>
-        <location filename="../src/mainwindow.cpp" line="6458"/>
-        <location filename="../src/mainwindow.cpp" line="6539"/>
-        <location filename="../src/mainwindow.cpp" line="8422"/>
-        <location filename="../src/mainwindow.cpp" line="8968"/>
-        <location filename="../src/mainwindow.cpp" line="9426"/>
+        <location filename="../src/mainwindow.cpp" line="6279"/>
+        <location filename="../src/mainwindow.cpp" line="6498"/>
+        <location filename="../src/mainwindow.cpp" line="6579"/>
+        <location filename="../src/mainwindow.cpp" line="8476"/>
+        <location filename="../src/mainwindow.cpp" line="9022"/>
+        <location filename="../src/mainwindow.cpp" line="9480"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3498"/>
+        <location filename="../src/mainwindow.cpp" line="3496"/>
         <source>Cannot load ROM file:
 %1
 
@@ -5793,14 +5776,14 @@ ECU: %1</translation>
 %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3745"/>
+        <location filename="../src/mainwindow.cpp" line="3743"/>
         <source>Cannot open A2L file:
 </source>
         <translation>No se puede abrir el archivo A2L:
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3788"/>
+        <location filename="../src/mainwindow.cpp" line="3786"/>
         <source>Parsing A2L file…</source>
         <translation>Analizando archivo A2L…</translation>
     </message>
@@ -5810,66 +5793,66 @@ ECU: %1</translation>
         <translation>Analizando A2L…  %1  (%2%)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3793"/>
+        <location filename="../src/mainwindow.cpp" line="3791"/>
         <source>Importing A2L</source>
         <translation>Importando A2L</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3794"/>
-        <location filename="../src/mainwindow.cpp" line="3804"/>
+        <location filename="../src/mainwindow.cpp" line="3792"/>
+        <location filename="../src/mainwindow.cpp" line="3802"/>
         <source>Parsing  %1…</source>
         <translation>Analizando  %1…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3805"/>
+        <location filename="../src/mainwindow.cpp" line="3803"/>
         <source>Reading RECORD_LAYOUTs…</source>
         <translation>Leyendo RECORD_LAYOUTs…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3806"/>
+        <location filename="../src/mainwindow.cpp" line="3804"/>
         <source>Parsing CHARACTERISTIC blocks…</source>
         <translation>Analizando bloques CHARACTERISTIC…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3807"/>
+        <location filename="../src/mainwindow.cpp" line="3805"/>
         <source>Resolving COMPU_METHODs…</source>
         <translation>Resolviendo COMPU_METHODs…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3808"/>
+        <location filename="../src/mainwindow.cpp" line="3806"/>
         <source>Building map list…</source>
         <translation>Construyendo lista de mapas…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3861"/>
+        <location filename="../src/mainwindow.cpp" line="3859"/>
         <source>A2L import cancelled.</source>
         <translation>Importación de A2L cancelada.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5743"/>
+        <location filename="../src/mainwindow.cpp" line="5728"/>
         <source>This map has unsaved edits</source>
         <translation>Este mapa tiene ediciones sin guardar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6169"/>
-        <location filename="../src/mainwindow.cpp" line="6196"/>
-        <location filename="../src/mainwindow.cpp" line="6220"/>
+        <location filename="../src/mainwindow.cpp" line="6209"/>
+        <location filename="../src/mainwindow.cpp" line="6236"/>
+        <location filename="../src/mainwindow.cpp" line="6260"/>
         <source>Project saved: </source>
         <translation>Proyecto guardado: </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6199"/>
         <location filename="../src/mainwindow.cpp" line="6239"/>
+        <location filename="../src/mainwindow.cpp" line="6279"/>
         <source>Failed to save project.</source>
         <translation>Error al guardar el proyecto.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6162"/>
-        <location filename="../src/mainwindow.cpp" line="6215"/>
-        <location filename="../src/mainwindow.cpp" line="6267"/>
-        <location filename="../src/mainwindow.cpp" line="7912"/>
-        <location filename="../src/mainwindow.cpp" line="8010"/>
-        <location filename="../src/mainwindow.cpp" line="8657"/>
+        <location filename="../src/mainwindow.cpp" line="6202"/>
+        <location filename="../src/mainwindow.cpp" line="6255"/>
+        <location filename="../src/mainwindow.cpp" line="6307"/>
+        <location filename="../src/mainwindow.cpp" line="7958"/>
+        <location filename="../src/mainwindow.cpp" line="8064"/>
+        <location filename="../src/mainwindow.cpp" line="8711"/>
         <source>Save Project As</source>
         <translation>Guardar Proyecto Como</translation>
     </message>
@@ -5916,252 +5899,252 @@ ECU: %1</translation>
         <translation>Exportar proyecto OLS (.ols)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2989"/>
+        <location filename="../src/mainwindow.cpp" line="2987"/>
         <source>N+</source>
         <extracomment>Toolbar icon label for &quot;New Project&quot; (keep very short, 2-3 chars)</extracomment>
         <translation>N+</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2991"/>
+        <location filename="../src/mainwindow.cpp" line="2989"/>
         <source>V+</source>
         <comment>toolbar icon</comment>
         <extracomment>Toolbar icon label for &quot;Add Version&quot; (keep very short, 2-3 chars)</extracomment>
         <translation>V+</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2993"/>
+        <location filename="../src/mainwindow.cpp" line="2991"/>
         <source>EXP</source>
         <comment>toolbar icon</comment>
         <extracomment>Toolbar icon label for &quot;Export ROM&quot; (keep very short, 2-3 chars)</extracomment>
         <translation>EXP</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2995"/>
+        <location filename="../src/mainwindow.cpp" line="2993"/>
         <source>LE</source>
         <comment>toolbar icon</comment>
         <extracomment>Toolbar icon label for &quot;Little Endian&quot; byte order (keep very short)</extracomment>
         <translation>LE</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2997"/>
+        <location filename="../src/mainwindow.cpp" line="2995"/>
         <source>BE</source>
         <comment>toolbar icon</comment>
         <extracomment>Toolbar icon label for &quot;Big Endian&quot; byte order (keep very short)</extracomment>
         <translation>BE</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3905"/>
+        <location filename="../src/mainwindow.cpp" line="3903"/>
         <source>EPK &quot;%1&quot; found in ROM</source>
         <translation>EPK &quot;%1&quot; encontrado en ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3908"/>
+        <location filename="../src/mainwindow.cpp" line="3906"/>
         <source>EPK &quot;%1&quot; NOT found in ROM</source>
         <translation>EPK &quot;%1&quot; NO encontrado en ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3911"/>
+        <location filename="../src/mainwindow.cpp" line="3909"/>
         <source>No EPK in A2L (skipped)</source>
         <translation>Sin EPK en A2L (omitido)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3936"/>
+        <location filename="../src/mainwindow.cpp" line="3934"/>
         <source>Axis header check: %1% match (%2/%3)</source>
         <translation>Verificación de encabezado de eje: %1% coincidencia (%2/%3)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3940"/>
+        <location filename="../src/mainwindow.cpp" line="3938"/>
         <source>Axis header check: skipped (no STD_AXIS maps)</source>
         <translation>Verificación de encabezado de eje: omitido (sin mapas STD_AXIS)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3978"/>
+        <location filename="../src/mainwindow.cpp" line="3976"/>
         <source>MAP data smoothness: %1% (%2/%3 maps)</source>
         <translation>Suavidad de datos MAP: %1% (%2/%3 mapas)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3982"/>
+        <location filename="../src/mainwindow.cpp" line="3980"/>
         <source>MAP data smoothness: skipped (not enough MAPs)</source>
         <translation>Suavidad de datos MAP: omitido (no hay suficientes MAPs)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4000"/>
+        <location filename="../src/mainwindow.cpp" line="3998"/>
         <source>A2L Import Results</source>
         <translation>Resultados de importación A2L</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4016"/>
+        <location filename="../src/mainwindow.cpp" line="4014"/>
         <source>&lt;b&gt;A2L does not match this ROM&lt;/b&gt;</source>
         <translation>&lt;b&gt;A2L no coincide con esta ROM&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4017"/>
+        <location filename="../src/mainwindow.cpp" line="4015"/>
         <source>&lt;b&gt;A2L Import Complete&lt;/b&gt;</source>
         <translation>&lt;b&gt;Importación A2L completada&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4025"/>
+        <location filename="../src/mainwindow.cpp" line="4023"/>
         <source>&lt;tr&gt;&lt;td style=&apos;padding:2px 12px;&apos;&gt;Total maps in A2L:&lt;/td&gt;&lt;td&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;</source>
         <translation>&lt;tr&gt;&lt;td style=&apos;padding:2px 12px;&apos;&gt;Total de mapas en A2L:&lt;/td&gt;&lt;td&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/td&gt;&lt;/tr&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4026"/>
+        <location filename="../src/mainwindow.cpp" line="4024"/>
         <source>&lt;tr&gt;&lt;td style=&apos;padding:2px 12px; color:#3fb950;&apos;&gt;Valid (in ROM):&lt;/td&gt;&lt;td&gt;&lt;b&gt;%1&lt;/b&gt; (%2%)&lt;/td&gt;&lt;/tr&gt;</source>
         <translation>&lt;tr&gt;&lt;td style=&apos;padding:2px 12px; color:#3fb950;&apos;&gt;Válidos (en ROM):&lt;/td&gt;&lt;td&gt;&lt;b&gt;%1&lt;/b&gt; (%2%)&lt;/td&gt;&lt;/tr&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4027"/>
+        <location filename="../src/mainwindow.cpp" line="4025"/>
         <source>&lt;tr&gt;&lt;td style=&apos;padding:2px 12px; color:#ff7b72;&apos;&gt;Out of bounds:&lt;/td&gt;&lt;td&gt;&lt;b&gt;%1&lt;/b&gt; (%2%)&lt;/td&gt;&lt;/tr&gt;</source>
         <translation>&lt;tr&gt;&lt;td style=&apos;padding:2px 12px; color:#ff7b72;&apos;&gt;Fuera de rango:&lt;/td&gt;&lt;td&gt;&lt;b&gt;%1&lt;/b&gt; (%2%)&lt;/td&gt;&lt;/tr&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4031"/>
+        <location filename="../src/mainwindow.cpp" line="4029"/>
         <source>&lt;tr&gt;&lt;td style=&apos;padding:1px 8px;&apos;&gt;MAPs:&lt;/td&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td style=&apos;padding:1px 8px;&apos;&gt;CURVEs:&lt;/td&gt;&lt;td&gt;%2&lt;/td&gt;&lt;td style=&apos;padding:1px 8px;&apos;&gt;VALUEs:&lt;/td&gt;&lt;td&gt;%3&lt;/td&gt;&lt;/tr&gt;</source>
         <translation>&lt;tr&gt;&lt;td style=&apos;padding:1px 8px;&apos;&gt;MAPs:&lt;/td&gt;&lt;td&gt;%1&lt;/td&gt;&lt;td style=&apos;padding:1px 8px;&apos;&gt;CURVEs:&lt;/td&gt;&lt;td&gt;%2&lt;/td&gt;&lt;td style=&apos;padding:1px 8px;&apos;&gt;VALUEs:&lt;/td&gt;&lt;td&gt;%3&lt;/td&gt;&lt;/tr&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4052"/>
+        <location filename="../src/mainwindow.cpp" line="4050"/>
         <source>Compatibility</source>
         <translation>Compatibilidad</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4062"/>
+        <location filename="../src/mainwindow.cpp" line="4060"/>
         <source>&lt;div style=&apos;background:rgba(255,123,114,0.1); border:1px solid rgba(255,123,114,0.3); border-radius:8px; padding:12px; margin:8px 0;&apos;&gt;&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;&lt;br&gt;%2&lt;br&gt;&lt;br&gt;&lt;b&gt;%3&lt;/b&gt; %4&lt;/div&gt;</source>
         <translation>&lt;div style=&apos;background:rgba(255,123,114,0.1); border:1px solid rgba(255,123,114,0.3); border-radius:8px; padding:12px; margin:8px 0;&apos;&gt;&lt;b&gt;%1&lt;/b&gt;&lt;br&gt;&lt;br&gt;%2&lt;br&gt;&lt;br&gt;&lt;b&gt;%3&lt;/b&gt; %4&lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4068"/>
+        <location filename="../src/mainwindow.cpp" line="4066"/>
         <source>This A2L file does not match the loaded ROM.</source>
         <translation>Este archivo A2L no coincide con la ROM cargada.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4069"/>
+        <location filename="../src/mainwindow.cpp" line="4067"/>
         <source>Most map addresses point outside the ROM data, which means this A2L was created for a different firmware version.</source>
         <translation>La mayoría de las direcciones de mapas apuntan fuera de los datos ROM, lo que significa que este A2L fue creado para una versión de firmware diferente.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4071"/>
+        <location filename="../src/mainwindow.cpp" line="4069"/>
         <source>Recommendation:</source>
         <translation>Recomendación:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4072"/>
+        <location filename="../src/mainwindow.cpp" line="4070"/>
         <source>Import the A2L into the &lt;i&gt;original&lt;/i&gt; matching ROM file first, then use &lt;b&gt;Link ROM&lt;/b&gt; to transfer the maps to this file.</source>
         <translation>Importe el A2L en el archivo ROM &lt;i&gt;original&lt;/i&gt; correspondiente primero, luego use &lt;b&gt;Link ROM&lt;/b&gt; para transferir los mapas a este archivo.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4082"/>
+        <location filename="../src/mainwindow.cpp" line="4080"/>
         <source>Import %1 valid maps anyway</source>
         <translation>Importar %1 mapas válidos de todos modos</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4091"/>
+        <location filename="../src/mainwindow.cpp" line="4089"/>
         <source>Cancel import</source>
         <translation>Cancelar importación</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4117"/>
+        <location filename="../src/mainwindow.cpp" line="4115"/>
         <source>No valid maps to import.</source>
         <translation>No hay mapas válidos para importar.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4391"/>
+        <location filename="../src/mainwindow.cpp" line="4370"/>
         <source>Import WinOLS Project</source>
         <translation>Importar proyecto OLS</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4392"/>
+        <location filename="../src/mainwindow.cpp" line="4371"/>
         <source>WinOLS files (*.ols *.kp);;All files (*)</source>
         <translation>Archivos OLS (*.ols *.kp);;Todos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4423"/>
-        <location filename="../src/mainwindow.cpp" line="6114"/>
+        <location filename="../src/mainwindow.cpp" line="4402"/>
+        <location filename="../src/mainwindow.cpp" line="6154"/>
         <source>No Versions found in WinOLS file.</source>
         <translation>No se encontraron versiones en el archivo OLS.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4487"/>
+        <location filename="../src/mainwindow.cpp" line="4466"/>
         <source>Imported WinOLS project: %1 — %2 maps, %3 extra version(s)</source>
         <translation>Proyecto OLS importado</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4492"/>
+        <location filename="../src/mainwindow.cpp" line="4471"/>
         <source>Imported WinOLS project: %1 — %2 maps loaded</source>
         <translation>Proyecto OLS importado</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4834"/>
+        <location filename="../src/mainwindow.cpp" line="4813"/>
         <source>romHEX 14</source>
         <translation>romHEX 14</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4849"/>
+        <location filename="../src/mainwindow.cpp" line="4828"/>
         <source>AI-assisted ECU calibration</source>
         <translation>Calibración de ECU asistida por IA</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4906"/>
+        <location filename="../src/mainwindow.cpp" line="4885"/>
         <source>Drop a ROM file to start</source>
         <translation>Suelta un archivo ROM para empezar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4919"/>
+        <location filename="../src/mainwindow.cpp" line="4898"/>
         <source>or click to browse</source>
         <translation>o haz clic para explorar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4935"/>
+        <location filename="../src/mainwindow.cpp" line="4914"/>
         <source>Supported: .hex .bin .rom .ori .s19 .mpc</source>
         <translation>Soportados: .hex .bin .rom .ori .s19 .mpc</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4972"/>
+        <location filename="../src/mainwindow.cpp" line="4951"/>
         <source>Open</source>
         <translation>Abrir</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4974"/>
+        <location filename="../src/mainwindow.cpp" line="4953"/>
         <source>New</source>
         <translation>Nuevo</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4976"/>
+        <location filename="../src/mainwindow.cpp" line="4955"/>
         <source>Manager</source>
         <translation>Gestor</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4978"/>
+        <location filename="../src/mainwindow.cpp" line="4957"/>
         <source>Find</source>
         <translation>Buscar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4982"/>
+        <location filename="../src/mainwindow.cpp" line="4961"/>
         <source>Documentation</source>
         <translation>Documentación</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="4992"/>
+        <location filename="../src/mainwindow.cpp" line="4971"/>
         <source>About</source>
         <translation>Acerca de</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5176"/>
+        <location filename="../src/mainwindow.cpp" line="5155"/>
         <source>View all  →</source>
         <translation>Ver todos  →</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5214"/>
+        <location filename="../src/mainwindow.cpp" line="5193"/>
         <source>today</source>
         <translation>hoy</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5215"/>
+        <location filename="../src/mainwindow.cpp" line="5194"/>
         <source>yesterday</source>
         <translation>ayer</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src/mainwindow.cpp" line="5216"/>
+        <location filename="../src/mainwindow.cpp" line="5195"/>
         <source>%n days ago</source>
         <translation>
             <numerusform>hace %n día</numerusform>
@@ -6169,7 +6152,7 @@ ECU: %1</translation>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src/mainwindow.cpp" line="5219"/>
+        <location filename="../src/mainwindow.cpp" line="5198"/>
         <source>%n weeks ago</source>
         <translation>
             <numerusform>hace %n semana</numerusform>
@@ -6177,7 +6160,7 @@ ECU: %1</translation>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src/mainwindow.cpp" line="5222"/>
+        <location filename="../src/mainwindow.cpp" line="5201"/>
         <source>%n months ago</source>
         <translation>
             <numerusform>hace %n mes</numerusform>
@@ -6185,90 +6168,90 @@ ECU: %1</translation>
         </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5430"/>
+        <location filename="../src/mainwindow.cpp" line="5409"/>
         <source>No projects yet — drop a ROM above to begin.</source>
         <translation>Aún no hay proyectos — suelta una ROM arriba para empezar.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5455"/>
+        <location filename="../src/mainwindow.cpp" line="5434"/>
         <source>Recent maps</source>
         <translation>Mapas recientes</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5586"/>
+        <location filename="../src/mainwindow.cpp" line="5565"/>
         <source>CT14 Garage · Bangkok, Thailand · © 2026</source>
         <translation>CT14 Garage · Bangkok, Tailandia · © 2026</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6131"/>
+        <location filename="../src/mainwindow.cpp" line="6171"/>
         <source>ROM files (*.bin *.hex *.rom *.ori *.bbf *.mot *.s19 *.mpc);;All files (*)</source>
         <translation>Archivos ROM (*.bin *.hex *.rom *.ori *.bbf *.mot *.s19 *.mpc);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5386"/>
-        <location filename="../src/mainwindow.cpp" line="6183"/>
+        <location filename="../src/mainwindow.cpp" line="5365"/>
+        <location filename="../src/mainwindow.cpp" line="6223"/>
         <source>Failed to open project:
 %1</source>
         <translation>Error al abrir el proyecto:
 %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5659"/>
+        <location filename="../src/mainwindow.cpp" line="5638"/>
         <source>Linked ROMs</source>
         <translation>ROMs vinculadas</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5661"/>
+        <location filename="../src/mainwindow.cpp" line="5640"/>
         <source>Versions</source>
         <translation>Versiones</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5877"/>
+        <location filename="../src/mainwindow.cpp" line="5917"/>
         <source>Hexdump  </source>
         <translation>Hexdump  </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5889"/>
+        <location filename="../src/mainwindow.cpp" line="5929"/>
         <source>Linked ROMs  (%1)</source>
         <translation>ROMs vinculadas  (%1)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5914"/>
+        <location filename="../src/mainwindow.cpp" line="5954"/>
         <source>Versions  (%1)</source>
         <translation>Versiones  (%1)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5753"/>
+        <location filename="../src/mainwindow.cpp" line="5738"/>
         <source>My maps  (%1)</source>
         <translation>Mis mapas  (%1)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="5941"/>
+        <location filename="../src/mainwindow.cpp" line="5981"/>
         <source>Potential maps  (0)</source>
         <translation>Mapas potenciales  (0)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6084"/>
-        <location filename="../src/mainwindow.cpp" line="8969"/>
+        <location filename="../src/mainwindow.cpp" line="6124"/>
+        <location filename="../src/mainwindow.cpp" line="9023"/>
         <source>Failed to open project:
 </source>
         <translation>Error al abrir proyecto:
 </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6163"/>
-        <location filename="../src/mainwindow.cpp" line="6178"/>
-        <location filename="../src/mainwindow.cpp" line="6217"/>
-        <location filename="../src/mainwindow.cpp" line="6269"/>
-        <location filename="../src/mainwindow.cpp" line="7915"/>
-        <location filename="../src/mainwindow.cpp" line="8011"/>
-        <location filename="../src/mainwindow.cpp" line="8585"/>
-        <location filename="../src/mainwindow.cpp" line="8659"/>
+        <location filename="../src/mainwindow.cpp" line="6203"/>
+        <location filename="../src/mainwindow.cpp" line="6218"/>
+        <location filename="../src/mainwindow.cpp" line="6257"/>
+        <location filename="../src/mainwindow.cpp" line="6309"/>
+        <location filename="../src/mainwindow.cpp" line="7961"/>
+        <location filename="../src/mainwindow.cpp" line="8065"/>
+        <location filename="../src/mainwindow.cpp" line="8639"/>
+        <location filename="../src/mainwindow.cpp" line="8713"/>
         <source>RX14 Projects (*.rx14proj);;All Files (*)</source>
         <translation>Proyectos RX14 (*.rx14proj);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8641"/>
+        <location filename="../src/mainwindow.cpp" line="8695"/>
         <source>Unsaved Changes</source>
         <translation>Cambios Sin Guardar</translation>
     </message>
@@ -6277,78 +6260,78 @@ ECU: %1</translation>
         <location filename="../src/mainwindow.cpp" line="2322"/>
         <location filename="../src/mainwindow.cpp" line="2333"/>
         <location filename="../src/mainwindow.cpp" line="2355"/>
-        <location filename="../src/mainwindow.cpp" line="6369"/>
-        <location filename="../src/mainwindow.cpp" line="8231"/>
-        <location filename="../src/mainwindow.cpp" line="8411"/>
-        <location filename="../src/mainwindow.cpp" line="8460"/>
-        <location filename="../src/mainwindow.cpp" line="8509"/>
-        <location filename="../src/mainwindow.cpp" line="8689"/>
+        <location filename="../src/mainwindow.cpp" line="6409"/>
+        <location filename="../src/mainwindow.cpp" line="8285"/>
+        <location filename="../src/mainwindow.cpp" line="8465"/>
+        <location filename="../src/mainwindow.cpp" line="8514"/>
+        <location filename="../src/mainwindow.cpp" line="8563"/>
+        <location filename="../src/mainwindow.cpp" line="8743"/>
         <source>No project</source>
         <translation>Sin proyecto</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3678"/>
+        <location filename="../src/mainwindow.cpp" line="3676"/>
         <source>Scanning  %1  for maps…</source>
         <translation>Escaneando  %1  en busca de mapas…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3738"/>
+        <location filename="../src/mainwindow.cpp" line="3736"/>
         <source>Scanning ROM for maps in the background…</source>
         <translation>Escaneando la ROM en busca de mapas en segundo plano…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6370"/>
+        <location filename="../src/mainwindow.cpp" line="6410"/>
         <source>Open or create a project first.</source>
         <translation>Abra o cree un proyecto primero.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6398"/>
-        <location filename="../src/mainwindow.cpp" line="6449"/>
+        <location filename="../src/mainwindow.cpp" line="6438"/>
+        <location filename="../src/mainwindow.cpp" line="6489"/>
         <source>Export ROM</source>
         <translation>Exportar ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6401"/>
+        <location filename="../src/mainwindow.cpp" line="6441"/>
         <source>Select ROM version to export:</source>
         <translation>Seleccione la versión de ROM a exportar:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6404"/>
+        <location filename="../src/mainwindow.cpp" line="6444"/>
         <source>Current ROM (working)</source>
         <translation>ROM actual (en trabajo)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6450"/>
+        <location filename="../src/mainwindow.cpp" line="6490"/>
         <source>ROM Files (*.bin *.rom);;All Files (*)</source>
         <translation>Archivos ROM (*.bin *.rom);;Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6456"/>
+        <location filename="../src/mainwindow.cpp" line="6496"/>
         <source>Exported ROM to: </source>
         <translation>ROM exportada a: </translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6458"/>
+        <location filename="../src/mainwindow.cpp" line="6498"/>
         <source>Could not write file.</source>
         <translation>No se pudo escribir el archivo.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6468"/>
+        <location filename="../src/mainwindow.cpp" line="6508"/>
         <source>Export WinOLS</source>
         <translation>Exportar OLS</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6496"/>
+        <location filename="../src/mainwindow.cpp" line="6536"/>
         <source>Cannot Export to WinOLS</source>
         <translation>No se puede exportar a OLS</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6497"/>
+        <location filename="../src/mainwindow.cpp" line="6537"/>
         <source>This project cannot be exported to a WinOLS .ols file.</source>
         <translation>Este proyecto no puede exportarse a un archivo .ols.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6499"/>
+        <location filename="../src/mainwindow.cpp" line="6539"/>
         <source>WinOLS export requires the per-segment metadata that is only captured when importing an existing .ols file. This project was created from a raw ROM (HEX / BIN / SREC), so that metadata isn&apos;t available — WinOLS would reject the resulting file as corrupt.
 
 Alternatives:
@@ -6358,47 +6341,47 @@ Alternatives:
         <translation>La exportación OLS requiere metadatos por segmento</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6524"/>
+        <location filename="../src/mainwindow.cpp" line="6564"/>
         <source>Export WinOLS Project</source>
         <translation>Exportar proyecto OLS</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6525"/>
+        <location filename="../src/mainwindow.cpp" line="6565"/>
         <source>WinOLS files (*.ols);;All files (*)</source>
         <translation>Archivos OLS (*.ols);;Todos (*)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6546"/>
+        <location filename="../src/mainwindow.cpp" line="6586"/>
         <source>Exported WinOLS project to: %1 (%2 bytes, %3 maps)</source>
         <translation>Proyecto OLS exportado</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6589"/>
+        <location filename="../src/mainwindow.cpp" line="6629"/>
         <source>Compare</source>
         <translation>Comparar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6590"/>
+        <location filename="../src/mainwindow.cpp" line="6630"/>
         <source>Open at least two projects to compare.</source>
         <translation>Abra al menos dos proyectos para comparar.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6989"/>
+        <location filename="../src/mainwindow.cpp" line="7029"/>
         <source>Value not located — %1</source>
         <translation>Valor no localizado — %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7005"/>
+        <location filename="../src/mainwindow.cpp" line="7045"/>
         <source>Reference ROM value: &lt;b&gt;%1&lt;/b&gt; (0x%2)</source>
         <translation>Valor ROM de referencia: &lt;b&gt;%1&lt;/b&gt; (0x%2)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7009"/>
+        <location filename="../src/mainwindow.cpp" line="7049"/>
         <source>&lt;b&gt;%1&lt;/b&gt; could not be located in the linked ROM.</source>
         <translation>&lt;b&gt;%1&lt;/b&gt; no se pudo localizar en la ROM vinculada.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7012"/>
+        <location filename="../src/mainwindow.cpp" line="7052"/>
         <source>The surrounding maps disagreed on the address shift, so RomHEX 14 cannot safely determine where this value lives in the target ROM.
 
 %1
@@ -6411,179 +6394,179 @@ Description: %2</source>
 Descripción: %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7016"/>
+        <location filename="../src/mainwindow.cpp" line="7056"/>
         <source>(Reference ROM not available)</source>
         <translation>(ROM de referencia no disponible)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7161"/>
+        <location filename="../src/mainwindow.cpp" line="7201"/>
         <source>Map &quot;%1&quot; address 0x%2 is outside ROM bounds — skipped</source>
         <translation>Mapa &quot;%1&quot; dirección 0x%2 está fuera de los límites de ROM — omitido</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7552"/>
+        <location filename="../src/mainwindow.cpp" line="7592"/>
         <source>Switch Version</source>
         <translation>Cambiar Versión</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7553"/>
+        <location filename="../src/mainwindow.cpp" line="7593"/>
         <source>Switch to version &lt;b&gt;%1&lt;/b&gt;?&lt;br&gt;Unsaved changes to the current ROM will be lost.</source>
         <translation>¿Cambiar a la versión &lt;b&gt;%1&lt;/b&gt;?&lt;br&gt;Se perderán los cambios sin guardar de la ROM actual.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7560"/>
+        <location filename="../src/mainwindow.cpp" line="7600"/>
         <source>Switched to version %1</source>
         <translation>Cambiado a la versión %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6255"/>
-        <location filename="../src/mainwindow.cpp" line="6322"/>
-        <location filename="../src/mainwindow.cpp" line="7899"/>
+        <location filename="../src/mainwindow.cpp" line="6295"/>
+        <location filename="../src/mainwindow.cpp" line="6362"/>
+        <location filename="../src/mainwindow.cpp" line="7945"/>
         <source>This project has unsaved changes.</source>
         <translation>Este proyecto tiene cambios sin guardar.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7900"/>
+        <location filename="../src/mainwindow.cpp" line="7946"/>
         <source>Save &amp; Close</source>
         <translation>Guardar &amp; Cerrar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6257"/>
-        <location filename="../src/mainwindow.cpp" line="6324"/>
-        <location filename="../src/mainwindow.cpp" line="7901"/>
+        <location filename="../src/mainwindow.cpp" line="6297"/>
+        <location filename="../src/mainwindow.cpp" line="6364"/>
+        <location filename="../src/mainwindow.cpp" line="7947"/>
         <source>Close without saving</source>
         <translation>Cerrar sin guardar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8232"/>
+        <location filename="../src/mainwindow.cpp" line="8286"/>
         <source>Please open a project with maps before linking a ROM.</source>
         <translation>Por favor abra un proyecto con mapas antes de vincular un ROM.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8401"/>
+        <location filename="../src/mainwindow.cpp" line="8455"/>
         <source>Linked ROM &apos;%1&apos; opened — %2/%3 maps located.</source>
         <translation>ROM vinculado &apos;%1&apos; abierto — %2/%3 mapas ubicados.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8411"/>
-        <location filename="../src/mainwindow.cpp" line="8460"/>
-        <location filename="../src/mainwindow.cpp" line="8509"/>
+        <location filename="../src/mainwindow.cpp" line="8465"/>
+        <location filename="../src/mainwindow.cpp" line="8514"/>
+        <location filename="../src/mainwindow.cpp" line="8563"/>
         <source>No active project.</source>
         <translation>Sin proyecto activo.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8416"/>
+        <location filename="../src/mainwindow.cpp" line="8470"/>
         <source>Import ROM as Version</source>
         <translation>Importar ROM como Versión</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8422"/>
+        <location filename="../src/mainwindow.cpp" line="8476"/>
         <source>Cannot open file:
 %1</source>
         <translation>No se puede abrir el archivo:
 %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8429"/>
+        <location filename="../src/mainwindow.cpp" line="8483"/>
         <source>Version Label</source>
         <translation>Etiqueta de Versión</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8430"/>
+        <location filename="../src/mainwindow.cpp" line="8484"/>
         <source>Enter a name for this ROM version:</source>
         <translation>Ingrese un nombre para esta versión ROM:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8452"/>
+        <location filename="../src/mainwindow.cpp" line="8506"/>
         <source>Version &apos;%1&apos; imported from %2  (%3 bytes).</source>
         <translation>Versión &apos;%1&apos; importada de %2  (%3 bytes).</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8464"/>
+        <location filename="../src/mainwindow.cpp" line="8518"/>
         <source>No ROM</source>
         <translation>Sin ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8464"/>
+        <location filename="../src/mainwindow.cpp" line="8518"/>
         <source>The active project has no ROM data loaded.</source>
         <translation>El proyecto activo no tiene datos ROM cargados.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8474"/>
+        <location filename="../src/mainwindow.cpp" line="8528"/>
         <source>[Linked] %1</source>
         <translation>[Vinculado] %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8479"/>
+        <location filename="../src/mainwindow.cpp" line="8533"/>
         <source>[Version] %1  (%2)</source>
         <translation>[Versión] %1  (%2)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8486"/>
+        <location filename="../src/mainwindow.cpp" line="8540"/>
         <source>Nothing to compare</source>
         <translation>Nada que comparar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8487"/>
+        <location filename="../src/mainwindow.cpp" line="8541"/>
         <source>No linked ROMs or saved versions found.
 Use &apos;Link ROM to Project…&apos; or &apos;Import ROM as Version…&apos; first.</source>
         <translation>No se encontraron ROMs vinculados ni versiones guardadas.
 Use &apos;Vincular ROM al Proyecto…&apos; o &apos;Importar ROM como Versión…&apos; primero.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8493"/>
+        <location filename="../src/mainwindow.cpp" line="8547"/>
         <source>Compare ROM</source>
         <translation>Comparar ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8494"/>
+        <location filename="../src/mainwindow.cpp" line="8548"/>
         <source>Select a ROM to compare against the current data:</source>
         <translation>Seleccione un ROM para comparar con los datos actuales:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8583"/>
+        <location filename="../src/mainwindow.cpp" line="8637"/>
         <source>Auto-save: choose a location for this project</source>
         <translation>Guardado automático: elige una ubicación para este proyecto</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8603"/>
+        <location filename="../src/mainwindow.cpp" line="8657"/>
         <source>●  Modified</source>
         <translation>●  Modificado</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8613"/>
+        <location filename="../src/mainwindow.cpp" line="8667"/>
         <source>✓  Saved</source>
         <translation>✓  Guardado</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8614"/>
+        <location filename="../src/mainwindow.cpp" line="8668"/>
         <source>✓  Saved %1s ago</source>
         <translation>✓  Guardado hace %1s</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8615"/>
+        <location filename="../src/mainwindow.cpp" line="8669"/>
         <source>✓  Saved %1m ago</source>
         <translation>✓  Guardado hace %1m</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8616"/>
+        <location filename="../src/mainwindow.cpp" line="8670"/>
         <source>✓  Saved %1h ago</source>
         <translation>✓  Guardado hace %1h</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8690"/>
+        <location filename="../src/mainwindow.cpp" line="8744"/>
         <source>Open a project before importing a map pack.</source>
         <translation>Abra un proyecto antes de importar un paquete de mapas.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2950"/>
-        <location filename="../src/mainwindow.cpp" line="2958"/>
+        <location filename="../src/mainwindow.cpp" line="2948"/>
+        <location filename="../src/mainwindow.cpp" line="2956"/>
         <source>&amp;Account / Sign in…</source>
         <translation>&amp;Cuenta / Iniciar sesión…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2948"/>
-        <location filename="../src/mainwindow.cpp" line="2956"/>
+        <location filename="../src/mainwindow.cpp" line="2946"/>
+        <location filename="../src/mainwindow.cpp" line="2954"/>
         <source>&amp;Account: %1</source>
         <translation>&amp;Cuenta: %1</translation>
     </message>
@@ -6594,34 +6577,34 @@ Use &apos;Vincular ROM al Proyecto…&apos; o &apos;Importar ROM como Versión�
         <translation>Gestor de proyectos…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6130"/>
+        <location filename="../src/mainwindow.cpp" line="6170"/>
         <source>Select ROM file</source>
         <translation>Seleccionar archivo ROM</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="6143"/>
-        <location filename="../src/mainwindow.cpp" line="7997"/>
+        <location filename="../src/mainwindow.cpp" line="6183"/>
+        <location filename="../src/mainwindow.cpp" line="8051"/>
         <source>New Project — Import</source>
         <translation>Nuevo proyecto — Importar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8643"/>
+        <location filename="../src/mainwindow.cpp" line="8697"/>
         <source>The following projects have unsaved changes:</source>
         <translation>Los siguientes proyectos tienen cambios sin guardar:</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8645"/>
+        <location filename="../src/mainwindow.cpp" line="8699"/>
         <source>Save All &amp;&amp; Exit</source>
         <translation>Guardar todo y salir</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8646"/>
+        <location filename="../src/mainwindow.cpp" line="8700"/>
         <source>Exit Without Saving</source>
         <translation>Salir sin guardar</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1067"/>
-        <location filename="../src/mainwindow.cpp" line="2973"/>
+        <location filename="../src/mainwindow.cpp" line="2971"/>
         <source>✦ AI Translate</source>
         <translation>✦ AI Traducir</translation>
     </message>
@@ -6641,13 +6624,13 @@ Use &apos;Vincular ROM al Proyecto…&apos; o &apos;Importar ROM como Versión�
         <translation>Traducir todos los nombres de mapas con IA</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2933"/>
+        <location filename="../src/mainwindow.cpp" line="2931"/>
         <source>Check for &amp;Updates…</source>
         <translation>Buscar &amp;actualizaciones…</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="620"/>
-        <location filename="../src/mainwindow.cpp" line="3008"/>
+        <location filename="../src/mainwindow.cpp" line="3006"/>
         <source>Update available: &lt;b&gt;v%1&lt;/b&gt; — %2</source>
         <translation>Actualización disponible: &lt;b&gt;v%1&lt;/b&gt; — %2</translation>
     </message>
@@ -6723,12 +6706,12 @@ Importe primero un archivo A2L para definir los mapas ECU.</translation>
     <message>
         <location filename="../src/mainwindow.cpp" line="2042"/>
         <location filename="../src/mainwindow.cpp" line="2490"/>
-        <location filename="../src/mainwindow.cpp" line="8718"/>
-        <location filename="../src/mainwindow.cpp" line="8719"/>
-        <location filename="../src/mainwindow.cpp" line="8721"/>
-        <location filename="../src/mainwindow.cpp" line="8734"/>
-        <location filename="../src/mainwindow.cpp" line="8738"/>
-        <location filename="../src/mainwindow.cpp" line="8747"/>
+        <location filename="../src/mainwindow.cpp" line="8772"/>
+        <location filename="../src/mainwindow.cpp" line="8773"/>
+        <location filename="../src/mainwindow.cpp" line="8775"/>
+        <location filename="../src/mainwindow.cpp" line="8788"/>
+        <location filename="../src/mainwindow.cpp" line="8792"/>
+        <location filename="../src/mainwindow.cpp" line="8801"/>
         <source>Verify Checksum</source>
         <translation>Verificar checksum</translation>
     </message>
@@ -6750,36 +6733,36 @@ Importe primero un archivo A2L para definir los mapas ECU.</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2355"/>
-        <location filename="../src/mainwindow.cpp" line="8718"/>
-        <location filename="../src/mainwindow.cpp" line="8755"/>
-        <location filename="../src/mainwindow.cpp" line="9162"/>
-        <location filename="../src/mainwindow.cpp" line="9186"/>
+        <location filename="../src/mainwindow.cpp" line="8772"/>
+        <location filename="../src/mainwindow.cpp" line="8809"/>
+        <location filename="../src/mainwindow.cpp" line="9216"/>
+        <location filename="../src/mainwindow.cpp" line="9240"/>
         <source>Open a project first.</source>
         <translation>Abre un proyecto primero.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8719"/>
-        <location filename="../src/mainwindow.cpp" line="8756"/>
+        <location filename="../src/mainwindow.cpp" line="8773"/>
+        <location filename="../src/mainwindow.cpp" line="8810"/>
         <source>No ROM data loaded.</source>
         <translation>No hay datos de ROM cargados.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8747"/>
+        <location filename="../src/mainwindow.cpp" line="8801"/>
         <source>Checksum error: %1</source>
         <translation>Error de checksum: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8755"/>
-        <location filename="../src/mainwindow.cpp" line="8756"/>
-        <location filename="../src/mainwindow.cpp" line="8758"/>
-        <location filename="../src/mainwindow.cpp" line="8761"/>
-        <location filename="../src/mainwindow.cpp" line="8780"/>
-        <location filename="../src/mainwindow.cpp" line="8789"/>
+        <location filename="../src/mainwindow.cpp" line="8809"/>
+        <location filename="../src/mainwindow.cpp" line="8810"/>
+        <location filename="../src/mainwindow.cpp" line="8812"/>
+        <location filename="../src/mainwindow.cpp" line="8815"/>
+        <location filename="../src/mainwindow.cpp" line="8834"/>
+        <location filename="../src/mainwindow.cpp" line="8843"/>
         <source>Correct Checksum</source>
         <translation>Corregir checksum</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8762"/>
+        <location filename="../src/mainwindow.cpp" line="8816"/>
         <source>Recalculate and write checksum for:
 
 ECU: %1
@@ -6794,7 +6777,7 @@ Algoritmo: %2
 Esto modifica los datos ROM en memoria (no se guardan hasta exportar).</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8782"/>
+        <location filename="../src/mainwindow.cpp" line="8836"/>
         <source>Checksum correction is not supported for this ECU.
 
 ECU: %1</source>
@@ -6803,7 +6786,7 @@ ECU: %1</source>
 ECU: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8784"/>
+        <location filename="../src/mainwindow.cpp" line="8838"/>
         <source>Native checksum correction unavailable for this ECU on macOS/Linux.
 
 ECU: %1</source>
@@ -6812,7 +6795,7 @@ ECU: %1</source>
 ECU: %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8789"/>
+        <location filename="../src/mainwindow.cpp" line="8843"/>
         <source>Checksum correction failed: %1</source>
         <translation>Corrección de checksum fallida: %1</translation>
     </message>
@@ -6832,46 +6815,46 @@ ECU: %1</translation>
         <translation>Se tradujeron %1 mapas en el grupo &quot;%2&quot;.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2837"/>
+        <location filename="../src/mainwindow.cpp" line="2835"/>
         <source>Auto-detect &amp;Maps…</source>
         <translation>Detectar &amp;Mapas…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="2840"/>
+        <location filename="../src/mainwindow.cpp" line="2838"/>
         <source>Auto-detect &amp;ECU…</source>
         <translation>Detectar &amp;ECU…</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7638"/>
+        <location filename="../src/mainwindow.cpp" line="7684"/>
         <source>Select ROM to scan</source>
         <translation>Seleccione la ROM a escanear</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="3625"/>
-        <location filename="../src/mainwindow.cpp" line="7643"/>
-        <location filename="../src/mainwindow.cpp" line="7651"/>
-        <location filename="../src/mainwindow.cpp" line="7661"/>
-        <location filename="../src/mainwindow.cpp" line="7685"/>
-        <location filename="../src/mainwindow.cpp" line="7765"/>
-        <location filename="../src/mainwindow.cpp" line="7804"/>
+        <location filename="../src/mainwindow.cpp" line="3623"/>
+        <location filename="../src/mainwindow.cpp" line="7689"/>
+        <location filename="../src/mainwindow.cpp" line="7697"/>
+        <location filename="../src/mainwindow.cpp" line="7707"/>
+        <location filename="../src/mainwindow.cpp" line="7731"/>
+        <location filename="../src/mainwindow.cpp" line="7811"/>
+        <location filename="../src/mainwindow.cpp" line="7850"/>
         <source>Auto-detect Maps</source>
         <translation>Detectar Mapas</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7644"/>
-        <location filename="../src/mainwindow.cpp" line="8125"/>
+        <location filename="../src/mainwindow.cpp" line="7690"/>
+        <location filename="../src/mainwindow.cpp" line="8179"/>
         <source>Could not open file:
 %1</source>
         <translation>No se pudo abrir el archivo:
 %1</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7652"/>
+        <location filename="../src/mainwindow.cpp" line="7698"/>
         <source>ROM is empty — nothing to scan.</source>
         <translation>La ROM está vacía: no hay nada que escanear.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7658"/>
+        <location filename="../src/mainwindow.cpp" line="7704"/>
         <source>Scanning ROM for map candidates…
 Source: %1
 Size: %2 KB</source>
@@ -6880,90 +6863,90 @@ Origen: %1
 Tamaño: %2 KB</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7686"/>
+        <location filename="../src/mainwindow.cpp" line="7732"/>
         <source>No map candidates found in the ROM.</source>
         <translation>No se encontraron mapas candidatos en la ROM.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7692"/>
+        <location filename="../src/mainwindow.cpp" line="7738"/>
         <source>Auto-detected Map Candidates — %1 (%2)</source>
         <translation>Mapas detectados — %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7697"/>
+        <location filename="../src/mainwindow.cpp" line="7743"/>
         <source>Found %1 candidate map(s). Select rows and click “Add selected” to create them in the active project.</source>
         <translation>Se encontraron %1 mapa(s) candidato(s). Seleccione filas y haga clic en “Añadir seleccionados” para crearlos en el proyecto activo.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7705"/>
+        <location filename="../src/mainwindow.cpp" line="7751"/>
         <source>Address</source>
         <translation>Dirección</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7705"/>
+        <location filename="../src/mainwindow.cpp" line="7751"/>
         <source>W × H</source>
         <translation>An × Al</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7706"/>
+        <location filename="../src/mainwindow.cpp" line="7752"/>
         <source>Bits</source>
         <translation>Bits</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7706"/>
+        <location filename="../src/mainwindow.cpp" line="7752"/>
         <source>Score</source>
         <translation>Puntuación</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7706"/>
+        <location filename="../src/mainwindow.cpp" line="7752"/>
         <source>Reason</source>
         <translation>Motivo</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7747"/>
+        <location filename="../src/mainwindow.cpp" line="7793"/>
         <source>Add selected to project</source>
         <translation>Añadir seleccionados al proyecto</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7748"/>
+        <location filename="../src/mainwindow.cpp" line="7794"/>
         <source>Close</source>
         <translation>Cerrar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7752"/>
+        <location filename="../src/mainwindow.cpp" line="7798"/>
         <source>Open or create a project to import these maps.</source>
         <translation>Abra o cree un proyecto para importar estos mapas.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7766"/>
+        <location filename="../src/mainwindow.cpp" line="7812"/>
         <source>No rows selected.</source>
         <translation>No hay filas seleccionadas.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="7805"/>
+        <location filename="../src/mainwindow.cpp" line="7851"/>
         <source>Added %1 new map(s) to the project.</source>
         <translation>Se añadieron %1 mapa(s) nuevo(s) al proyecto.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8117"/>
+        <location filename="../src/mainwindow.cpp" line="8171"/>
         <source>Select ROM to identify</source>
         <translation>Seleccione la ROM a identificar</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8124"/>
-        <location filename="../src/mainwindow.cpp" line="8133"/>
-        <location filename="../src/mainwindow.cpp" line="8155"/>
-        <location filename="../src/mainwindow.cpp" line="8177"/>
+        <location filename="../src/mainwindow.cpp" line="8178"/>
+        <location filename="../src/mainwindow.cpp" line="8187"/>
+        <location filename="../src/mainwindow.cpp" line="8209"/>
+        <location filename="../src/mainwindow.cpp" line="8231"/>
         <source>Auto-detect ECU</source>
         <translation>Detectar ECU</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8134"/>
+        <location filename="../src/mainwindow.cpp" line="8188"/>
         <source>ROM is empty — nothing to detect.</source>
         <translation>La ROM está vacía: no hay nada que detectar.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8148"/>
+        <location filename="../src/mainwindow.cpp" line="8202"/>
         <source>Identifying ECU…
 Source: %1
 Size: %2 KB%3</source>
@@ -6972,67 +6955,67 @@ Origen: %1
 Tamaño: %2 KB%3</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8150"/>
+        <location filename="../src/mainwindow.cpp" line="8204"/>
         <source> (decoded from %1 to %2 KB)</source>
         <translation> (decodificado de %1 a %2 KB)</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8191"/>
+        <location filename="../src/mainwindow.cpp" line="8245"/>
         <source>Family</source>
         <translation>Familia</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8192"/>
+        <location filename="../src/mainwindow.cpp" line="8246"/>
         <source>Detector</source>
         <translation>Detector</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8193"/>
+        <location filename="../src/mainwindow.cpp" line="8247"/>
         <source>HW number</source>
         <translation>Número HW</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8194"/>
+        <location filename="../src/mainwindow.cpp" line="8248"/>
         <source>SW number</source>
         <translation>Número SW</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8195"/>
+        <location filename="../src/mainwindow.cpp" line="8249"/>
         <source>SW version</source>
         <translation>Versión SW</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8196"/>
+        <location filename="../src/mainwindow.cpp" line="8250"/>
         <source>Production no.</source>
         <translation>Núm. de producción</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8197"/>
+        <location filename="../src/mainwindow.cpp" line="8251"/>
         <source>HW alt number</source>
         <translation>Número HW alt.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8198"/>
+        <location filename="../src/mainwindow.cpp" line="8252"/>
         <source>Engine code</source>
         <translation>Código de motor</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8200"/>
+        <location filename="../src/mainwindow.cpp" line="8254"/>
         <source>ID block offset</source>
         <translation>Desplazamiento del bloque ID</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8205"/>
+        <location filename="../src/mainwindow.cpp" line="8259"/>
         <source>Data areas</source>
         <translation>Áreas de datos</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8211"/>
+        <location filename="../src/mainwindow.cpp" line="8265"/>
         <source>Raw ID block</source>
         <translation>Bloque ID en bruto</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="8216"/>
+        <location filename="../src/mainwindow.cpp" line="8270"/>
         <source>Auto-detect ECU — %1</source>
         <translation>Detectar ECU — %1</translation>
     </message>
@@ -9670,12 +9653,12 @@ el usuario</translation>
         <translation>Traduciendo mapas…  %1 / %2</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9059"/>
+        <location filename="../src/mainwindow.cpp" line="9113"/>
         <source>No active project view.</source>
         <translation>Sin vista de proyecto activa.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="9081"/>
+        <location filename="../src/mainwindow.cpp" line="9135"/>
         <source>Select a map (or drag a range in the waveform / hex view) first.</source>
         <translation>请先选择标定图（或在波形/十六进制视图中拖拽范围）。</translation>
     </message>
@@ -9872,8 +9855,8 @@ el usuario</translation>
         <translation>Mapa grande</translation>
     </message>
     <message>
-        <location filename="../src/lua/LuaEngine.cpp" line="229"/>
         <location filename="../src/lua/LuaApi_Global.cpp" line="274"/>
+        <location filename="../src/lua/LuaEngine.cpp" line="229"/>
         <source>Lua script</source>
         <translation>Script Lua</translation>
     </message>
@@ -10702,39 +10685,6 @@ This cannot be undone.</source>
     </message>
 </context>
 <context>
-    <name>datalog::ChannelTreeWidget</name>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="29"/>
-        <source>Search channels…</source>
-        <translation>Buscar canales…</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="33"/>
-        <source>Clear</source>
-        <translation>Limpiar</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="34"/>
-        <source>Deselect all channels</source>
-        <translation>Deseleccionar todos los canales</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="42"/>
-        <source>Channel</source>
-        <translation>Canal</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="42"/>
-        <source>Unit</source>
-        <translation>Unidad</translation>
-    </message>
-    <message>
-        <location filename="../src/datalog/ChannelTreeWidget.cpp" line="169"/>
-        <source>Other (raw)</source>
-        <translation>Otros (sin procesar)</translation>
-    </message>
-</context>
-<context>
     <name>datalog::CompareLogsDialog</name>
     <message>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="18"/>
@@ -11264,99 +11214,142 @@ Familia A: %1 · Familia B: %2</translation>
     </message>
 </context>
 <context>
-    <name>ols::KpExporter</name>
-    <message>
-        <location filename="../src/io/ols/KpExporter.cpp" line="144"/>
-        <source>No maps to export</source>
-        <translation>No hay mapas para exportar</translation>
-    </message>
-    <message>
-        <location filename="../src/io/ols/KpExporter.cpp" line="156"/>
-        <source>Compression failed</source>
-        <translation>Error de compresión</translation>
-    </message>
-</context>
-<context>
     <name>ols::KpImporter</name>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="818"/>
-        <source>intern map_count = %1 but parser decoded %2 records</source>
-        <translation>map_count interno = %1 pero el parser decodificó %2 registros</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="199"/>
+        <source>KP map-value payload was not found; importing structure only</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1003"/>
-        <source>schema-750 deterministic walk: map_count %1, decoded %2 objects</source>
-        <translation>recorrido determinista schema-750: map_count %1, %2 objetos decodificados</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="1487"/>
+        <source>schema-750 folder table is incomplete</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1027"/>
-        <source>No PKZIP local file header (PK\x03\x04) found</source>
-        <translation>No se encontró cabecera local PKZIP (PK\x03\x04)</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="1586"/>
+        <source>legacy KP folder table is incomplete</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1032"/>
-        <source>Truncated ZIP local file header</source>
-        <translation>Cabecera local ZIP truncada</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="1676"/>
+        <source>schema-597 folder table is incomplete</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1047"/>
-        <source>Truncated ZIP filename</source>
-        <translation>Nombre de archivo ZIP truncado</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="1725"/>
+        <source>schema-750 object %1: %2</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1057"/>
-        <source>ZIP compressed data extends beyond file end (offset 0x%1, size %2, file %3)</source>
-        <translation>Los datos comprimidos ZIP se extienden más allá del final del archivo (offset 0x%1, tamaño %2, archivo %3)</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="1974"/>
+        <source>schema-750 object %1: descriptor range is retained but does not match its decoded dimensions</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1078"/>
+        <location filename="../src/io/ols/KpImporter.cpp" line="1979"/>
+        <source>schema-750 object %1: non-positive dimensions or element size cannot be projected into MapInfo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2056"/>
+        <source>schema-750 objects end at 0x%1, intern ends at 0x%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2080"/>
+        <source>schema-292 object %1: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2279"/>
+        <source>schema-292 object %1: descriptor range or shape cannot be projected exactly</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2286"/>
+        <source>schema-292 objects end at 0x%1, intern ends at 0x%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2361"/>
+        <source>No validated embedded ZIP entry named &apos;intern&apos; found</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2373"/>
         <source>File too small for KP header (%1 bytes)</source>
         <translation>Archivo demasiado pequeño para cabecera KP (%1 bytes)</translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1088"/>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2383"/>
         <source>Invalid OLS magic header</source>
         <translation>Cabecera mágica OLS no válida</translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1099"/>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2394"/>
         <source>Header declares file size %1 but actual is %2</source>
         <translation>La cabecera declara tamaño de archivo %1 pero el real es %2</translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1122"/>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2429"/>
+        <source>Schema-750 import-model metadata is invalid at %1 (offset 0x%2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2440"/>
+        <source>Schema-750 root stream is invalid at %1 (offset 0x%2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2447"/>
+        <source>Schema-750 root stream ends at 0x%1, expected ZIP at 0x%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2462"/>
         <source>Failed to inflate intern: %1</source>
         <translation>Fallo al descomprimir intern: %1</translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1129"/>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2469"/>
         <source>Unsupported ZIP compression method %1</source>
         <translation>Método de compresión ZIP no admitido %1</translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1136"/>
-        <source>Decompressed size %1 != declared %2</source>
-        <translation>Tamaño descomprimido %1 ≠ declarado %2</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2475"/>
+        <source>Decompressed intern size %1 != declared %2</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="1156"/>
-        <source>schema-750 walk covered %1/%2 objects; using heuristic parser</source>
-        <translation>el recorrido schema-750 cubrió %1/%2 objetos; usando el analizador heurístico</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2482"/>
+        <source>Intern CRC-32 0x%1 != declared 0x%2</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="670"/>
-        <source>intern payload too small (%1 bytes)</source>
-        <translation>Carga útil intern demasiado pequeña (%1 bytes)</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2513"/>
+        <source>Schema-292 parser recognized %1 of %2 maps; refusing an incomplete import rather than guessing the remaining layout</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="632"/>
-        <source>KP folder table: parsed %1 of %2 folders</source>
-        <translation>tabla de carpetas KP: %1 de %2 carpetas analizadas</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2525"/>
+        <source>Schema-750 parser recognized %1 of %2 maps; refusing an incomplete import rather than guessing the remaining layout</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/io/ols/KpImporter.cpp" line="678"/>
-        <source>intern payload map count %1 out of range</source>
-        <translation>Recuento de mapas %1 fuera de rango en la carga intern</translation>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2543"/>
+        <source>Schema-597 parser recognized %1 of %2 maps; refusing an incomplete import rather than guessing the remaining layout</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2572"/>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2595"/>
+        <source>Schema-%1 parser recognized %2 of %3 maps; refusing an incomplete import rather than guessing the remaining layout</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/io/ols/KpImporter.cpp" line="2585"/>
+        <source>Unsupported KP schema %1: current WinOLS accepts schemas 6 through 834</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
