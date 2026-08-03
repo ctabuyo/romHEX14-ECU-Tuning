@@ -6020,6 +6020,9 @@ void MainWindow::refreshProjectTreeNow()
             else                          mi->setIcon(0, iconValue);
             const TranslationResult *tx = m_translations.contains(m.name)
                                           ? &m_translations[m.name] : nullptr;
+            // Prefer the normalized technical ID when available. Until the parser
+            // enhancement is merged, imported KP maps expose the named ID as kpIdName.
+            // Keep the legacy identifier and map name as compatibility fallbacks.
             QString mapIdentifier = m.getSideProp(QStringLiteral("kpTechnicalId")).toString();
             if (mapIdentifier.isEmpty())
                 mapIdentifier = m.getSideProp(QStringLiteral("kpIdName")).toString();
