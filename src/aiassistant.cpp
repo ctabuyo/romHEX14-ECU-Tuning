@@ -427,6 +427,9 @@ public:
         m_textLabel->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::LinksAccessibleByMouse);
 
         if (role == User) {
+            // Keep sent messages right-aligned, but let them use the same
+            // readable column as assistant replies instead of content width.
+            m_bubbleFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
             m_textLabel->setTextFormat(Qt::PlainText);
             m_textLabel->setStyleSheet(
                 "color:#c9d1d9; background:#1a3a5f; border-radius:12px;"
@@ -434,8 +437,8 @@ public:
             bubbleLay->addWidget(m_textLabel);
 
             // User bubbles dock to the right next to the avatar.
-            hl->addStretch(1);
-            hl->addWidget(m_bubbleFrame, 0);
+            hl->addStretch(0);
+            hl->addWidget(m_bubbleFrame, 1);
             auto *av = new UserAvatar(28);
             hl->addWidget(av, 0, Qt::AlignTop);
 
