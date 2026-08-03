@@ -440,6 +440,11 @@ public:
             hl->addWidget(av, 0, Qt::AlignTop);
 
         } else if (role == Assistant) {
+            // Assistant replies should use the readable column available beside
+            // the avatar.  A trailing stretch with a zero-stretch bubble makes
+            // Qt keep the frame at its content width, which turns long prose
+            // into a very narrow column.
+            m_bubbleFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
             m_textLabel->setTextFormat(Qt::RichText);
             m_textLabel->setStyleSheet(
                 "color:#c9d1d9; background:#1c2128; border-radius:12px;"
@@ -448,8 +453,8 @@ public:
 
             m_orb = new ClaudeOrb(28);
             hl->addWidget(m_orb, 0, Qt::AlignTop);
-            hl->addWidget(m_bubbleFrame, 0);
-            hl->addStretch(1);
+            hl->addWidget(m_bubbleFrame, 1);
+            hl->addStretch(0);
 
         } else if (role == Tool) {
             // Collapsible tool-call row, indented under the assistant gutter.
