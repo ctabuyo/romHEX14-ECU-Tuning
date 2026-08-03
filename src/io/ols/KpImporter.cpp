@@ -1061,8 +1061,12 @@ bool parseSchema750AxisBlock(const QByteArray &data, qsizetype start,
         precision = peekI32(data, cursor); // +0x68
         cursor += 4;
     }
-    // Gate 834's +0x8c integer is absent in every currently-supported
-    // production schema.  +0x90 starts at schema 8.
+    // Schema 834 adds +0x8c before the older +0x90 member.
+    if (schemaVersion >= 834) {
+        if (cursor + 4 > limit) return false;
+        cursor += 4; // int +0x8c
+    }
+    // +0x90 starts at schema 8.
     if (schemaVersion >= 8) {
         if (cursor + 4 > limit) return false;
         cursor += 4;
@@ -1119,6 +1123,27 @@ bool parseSchema750AxisBlock(const QByteArray &data, qsizetype start,
     if (schemaVersion >= 440) {
         if (cursor + 4 > limit) return false;
         cursor += 4; // +0x88 enum
+    }
+    if (schemaVersion >= 834) {
+        if (cursor + 8 > limit) return false;
+        cursor += 8; // int +0x94, int +0x98
+
+        const int32_t wordCount = peekI32(data, cursor);
+        cursor += 4;
+        if (wordCount < 0 || qsizetype(wordCount) > (limit - cursor) / 4)
+            return false;
+        cursor += qsizetype(wordCount) * 4; // int vector +0xa0
+
+        const int32_t stringCount = peekI32(data, cursor);
+        cursor += 4;
+        if (stringCount < 0 || qsizetype(stringCount) > (limit - cursor) / 4)
+            return false;
+        for (int32_t index = 0; index < stringCount; ++index) {
+            Kp750SerializedString entry;
+            if (!readKpStringForVersion(data, cursor, limit, schemaVersion, &entry))
+                return false;
+            cursor = entry.end; // object-pointer vector +0xc8
+        }
     }
 
     Kp750AxisBlock block;
@@ -1279,8 +1304,7 @@ bool readKp750MapRecord(const QByteArray &data, qsizetype start, qsizetype limit
         || !reader.int32(kp750Path(map, 0xac)))
         return false;
     if (schemaVersion >= 476) {
-        if (!reader.int32(kp750Path(map, 0x1b0))
-            || !readKp750Int32Vector(reader, kp750Path(map, 0x1b8)))
+        if (!readKp750Int32Vector(reader, kp750Path(map, 0x1b8)))
             return false;
         const QString objectVector = kp750Path(map, 0x1e0);
         const int vector = reader.beginVector(objectVector);
@@ -1291,6 +1315,8 @@ bool readKp750MapRecord(const QByteArray &data, qsizetype start, qsizetype limit
         }
         reader.endVector(vector);
     }
+    if (schemaVersion >= 834 && !reader.int32(kp750Path(map, 0x1b0)))
+        return false;
     if (schemaVersion >= 503
         && (!reader.uint32(kp750Path(map, 0xb0))
             || !reader.raw(kp750Path(map, 0xb8), 8)))
@@ -1326,7 +1352,10 @@ QHash<uint32_t, KpFolder> parseKpFolderTable(const QByteArray &fileData,
                                              QStringList *warnings)
 {
     QHash<uint32_t, KpFolder> folders;
-    if (formatVersion != 750 || archiveEnd < 0 || archiveEnd + 16 > fileData.size())
+    // Native folder records add their final field at schema 750; no later
+    // folder gate exists through the current WinOLS ceiling (834).
+    if (formatVersion < 750 || formatVersion > 834
+        || archiveEnd < 0 || archiveEnd + 16 > fileData.size())
         return folders;
     const uint32_t marker1 = peekU32(fileData, archiveEnd);
     const uint32_t reserved = peekU32(fileData, archiveEnd + 4);
@@ -1866,6 +1895,8 @@ QVector<MapInfo> parseSchema750Deterministic(
         if ((schemaVersion >= 476
                 && (!readWordVector(QStringLiteral("post-axis word vector"), &wordVectorCount)
                     || !readObjectStringVector(&stringVectorCount)))
+            || (schemaVersion >= 834
+                && !skip(4, QStringLiteral("post-axis v834 integer")))
             || (schemaVersion >= 503
                 && !skip(12, QStringLiteral("post-axis v503")))
             || (schemaVersion >= 596
@@ -2457,17 +2488,10 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
     // Folder tree lives in the trailing metadata (after the ZIP), not in
     // `intern` — parse it so maps can be grouped like WinOLS shows them.
     QHash<uint32_t, KpFolder> folders;
-    if (result.formatVersion == 245 || result.formatVersion == 249
-        || result.formatVersion == 252 || result.formatVersion == 264
-        || result.formatVersion == 288 || result.formatVersion == 290
-        || result.formatVersion == 292 || result.formatVersion == 315
-        || result.formatVersion == 330 || result.formatVersion == 356
-        || result.formatVersion == 372 || result.formatVersion == 396
-        || result.formatVersion == 397 || result.formatVersion == 440
-        || result.formatVersion == 479 || result.formatVersion == 503) {
+    if (result.formatVersion < 597) {
         folders = parseKpFolderTableLegacy(fileData, archiveEnd, result.formatVersion,
                                            &result.folders, &result.warnings);
-    } else if (result.formatVersion == 597) {
+    } else if (result.formatVersion < 750) {
         folders = parseKpFolderTable597(fileData, archiveEnd, result.formatVersion,
                                         &result.folders, &result.warnings);
     } else {
@@ -2476,11 +2500,10 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
     }
     const QHash<uint32_t, QString> folderPaths = resolveKpFolderPaths(folders);
 
-    // Select a codec by its exact native serialization version. Adjacent
-    // WinOLS versions add gated fields, so treating an arbitrary newer stream
-    // as schema 750 can move every following field while still producing
-    // plausible-looking maps. A version without a traced codec is rejected;
-    // it must never fall back to a scanner.
+    // WinOLS's schema value is cumulative, not a format-family identifier:
+    // each serializer call compares its effective version to its own gate.
+    // The current native reader accepts 6 through 834; the portable walk
+    // mirrors those gates and verifies that every map record is consumed.
     const uint32_t internMapCount = intern.size() >= 5 ? peekU32(intern, 1) : 0;
     switch (result.formatVersion) {
     case 292:
@@ -2558,11 +2581,27 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
                             &result.warnings, false, true);
         break;
     default:
-        result.error = KpImporter::tr(
-            "Unsupported KP schema %1: no deterministic native codec is "
-            "implemented for this version")
-            .arg(result.formatVersion);
-        return result;
+        if (result.formatVersion < 6 || result.formatVersion > 834) {
+            result.error = KpImporter::tr(
+                "Unsupported KP schema %1: current WinOLS accepts schemas 6 through 834")
+                .arg(result.formatVersion);
+            return result;
+        }
+        result.maps = parseSchema750Deterministic(intern, baseAddress, romSize,
+                                                  folderPaths, &result.mapRecords,
+                                                  &result.warnings,
+                                                  result.formatVersion);
+        if (internMapCount > 0 && result.maps.size() != int(internMapCount)) {
+            result.error = KpImporter::tr(
+                "Schema-%1 parser recognized %2 of %3 maps; refusing an incomplete import "
+                "rather than guessing the remaining layout")
+                .arg(result.formatVersion).arg(result.maps.size()).arg(internMapCount);
+            return result;
+        }
+        attachKpCarriedData(fileData, &result.maps, &result.carriedData,
+                            &result.warnings, result.formatVersion >= 750,
+                            result.formatVersion < 750);
+        break;
     }
     result.mapCount = static_cast<uint32_t>(result.maps.size());
 
