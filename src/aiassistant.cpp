@@ -1929,6 +1929,87 @@ void AIAssistant::retranslateUi()
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 
+QString AIAssistant::buildMapPreflight(const QString &userMessage)
+{
+    if (!m_project || !m_executor || userMessage.isEmpty()) return {};
+
+    // Only preflight explicit project-map names.  This keeps broad tuning
+    // questions small while ensuring that same-named maps are inspected as a
+    // group rather than leaving the provider to pick an arbitrary first match.
+    const QString foldedQuestion = userMessage.toCaseFolded();
+    QStringList requestedNames;
+    for (const MapInfo &map : m_project->maps) {
+        const QString name = map.name.trimmed();
+        if (name.size() < 4 || !foldedQuestion.contains(name.toCaseFolded()))
+            continue;
+        bool alreadyAdded = false;
+        for (const QString &existing : requestedNames) {
+            if (existing.compare(name, Qt::CaseInsensitive) == 0) {
+                alreadyAdded = true;
+                break;
+            }
+        }
+        if (!alreadyAdded) requestedNames.append(name);
+        if (requestedNames.size() == 3) break;
+    }
+    if (requestedNames.isEmpty()) return {};
+
+    auto parseObject = [](const QString &json) {
+        const QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
+        return doc.isObject() ? doc.object() : QJsonObject{};
+    };
+    auto compactAxis = [](QJsonObject axis) {
+        const QJsonArray values = axis.value("values").toArray();
+        constexpr int kMaxAxisValues = 64;
+        if (values.size() <= kMaxAxisValues) return axis;
+
+        QJsonArray preview;
+        for (int i = 0; i < 32; ++i) preview.append(values.at(i));
+        for (int i = values.size() - 32; i < values.size(); ++i) preview.append(values.at(i));
+        axis["values"] = preview;
+        axis["truncated"] = true;
+        axis["fullPoints"] = values.size();
+        return axis;
+    };
+
+    QJsonArray maps;
+    constexpr int kMaxMaps = 8;
+    for (const QString &name : requestedNames) {
+        for (const MapInfo &map : m_project->maps) {
+            if (map.name.compare(name, Qt::CaseInsensitive) != 0) continue;
+            if (maps.size() == kMaxMaps) break;
+
+            const QString selector = QString("@0x%1").arg(map.rawAddress, 8, 16, QChar('0'));
+            const QJsonObject input{{"name", selector}};
+            QJsonObject entry;
+            entry["selector"] = selector;
+            entry["folderPath"] = map.folderPath;
+            entry["metadata"] = parseObject(m_executor->execute("get_map_info", input));
+
+            QJsonObject axes = parseObject(m_executor->execute("get_axis_values", input));
+            if (axes.contains("xAxis")) axes["xAxis"] = compactAxis(axes["xAxis"].toObject());
+            if (axes.contains("yAxis")) axes["yAxis"] = compactAxis(axes["yAxis"].toObject());
+            entry["axes"] = axes;
+
+            const qint64 cells = qint64(map.dimensions.x) * map.dimensions.y;
+            if (cells <= 256) {
+                entry["values"] = parseObject(m_executor->execute("get_map_values", input));
+            } else {
+                entry["statistics"] = parseObject(m_executor->execute("get_map_statistics", input));
+                entry["valuesNote"] = "Grid omitted from preflight because it exceeds 256 cells.";
+            }
+            maps.append(entry);
+        }
+        if (maps.size() == kMaxMaps) break;
+    }
+    if (maps.isEmpty()) return {};
+
+    QJsonObject evidence;
+    evidence["source"] = "host-side read-only map preflight";
+    evidence["maps"] = maps;
+    return QString::fromUtf8(QJsonDocument(evidence).toJson(QJsonDocument::Compact));
+}
+
 void AIAssistant::buildSystemPrompt()
 {
     QString projectTitle = m_project ? m_project->fullTitle() : "No project loaded";
@@ -1975,6 +2056,19 @@ void AIAssistant::buildSystemPrompt()
     .arg(mapCount)
     .arg(selMap)
     .arg(romVersion);
+
+    for (auto it = m_history.crbegin(); it != m_history.crend(); ++it) {
+        if (it->role != AIMessage::User) continue;
+        const QString evidence = buildMapPreflight(it->content);
+        if (!evidence.isEmpty()) {
+            m_systemPrompt +=
+                "HOST-PREFLIGHT EVIDENCE: The host has already read these exact project maps locally. "
+                "Use this evidence; do not claim map inspection is unavailable. Each selector is an exact map "
+                "identity, not a display name. Code/disassembler cross-references are not included.\n"
+                + evidence + "\n\n";
+        }
+        break;
+    }
 
     // Verbose mode: instruct the AI to narrate its reasoning
     if (m_verboseMode) {

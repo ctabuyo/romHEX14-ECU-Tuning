@@ -70,6 +70,7 @@ private:
     void manageContext();
     QString classifyIntent(const QString &userMessage);
     QStringList toolsForCategory(const QString &category);
+    QString buildMapPreflight(const QString &userMessage);
 
     // UI
     QWidget        *m_header        = nullptr;
