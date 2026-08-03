@@ -121,7 +121,6 @@
 #include <QDialogButtonBox>
 #include <QComboBox>
 #include <QPainter>
-#include <QStyledItemDelegate>
 #include <QFont>
 #include <QLibraryInfo>
 #include <QSettings>
@@ -134,79 +133,7 @@
 #include <QUrl>
 #include <functional>
 
-// ── Project-tree delegate ─────────────────────────────────────────────────────
-// Two-column layout: fixed address column on the left | icon + text on the right
-// Group/section headers have no address data — they get a blank left column.
-static const int kTreeAddrRole = Qt::UserRole + 4;
-
-class ProjectTreeDelegate : public QStyledItemDelegate {
-    QFont m_addrFont;
-    int   m_colW = 0;   // fixed width of the address column (px)
-public:
-    explicit ProjectTreeDelegate(QObject* parent = nullptr)
-        : QStyledItemDelegate(parent)
-    {
-        m_addrFont = QFont("Consolas", 7);
-        m_addrFont.setStyleHint(QFont::Monospace);
-        m_colW = QFontMetrics(m_addrFont).horizontalAdvance("FFFFFF") + 4;
-    }
-
-    void paint(QPainter* p, const QStyleOptionViewItem& option,
-               const QModelIndex& index) const override
-    {
-        const QString addr = index.data(kTreeAddrRole).toString();
-
-        // Group / section headers — no address, use default rendering
-        if (addr.isEmpty()) {
-            QStyledItemDelegate::paint(p, option, index);
-            return;
-        }
-
-        // Map leaf: address pinned at far left, then icon + name
-        QStyleOptionViewItem opt = option;
-        initStyleOption(&opt, index);
-
-        // Derive column's left edge in viewport coords (strips indentation + scroll)
-        auto *tree = qobject_cast<const QTreeView*>(parent());
-        const int colW = tree ? tree->header()->sectionSize(index.column())
-                              : opt.rect.width();
-        const int baseX = opt.rect.left() + opt.rect.width() - colW;
-
-        // Background — full row from column left
-        QStyleOptionViewItem bgOpt = opt;
-        bgOpt.text.clear();
-        bgOpt.icon = QIcon();
-        bgOpt.rect.setLeft(baseX);
-        opt.widget->style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &bgOpt, p, opt.widget);
-
-        const QRect r   = opt.rect;
-        const bool  sel = opt.state & QStyle::State_Selected;
-
-        // ── Address pinned at far left ────────────────────────────────────────
-        p->setFont(m_addrFont);
-        p->setPen(sel ? QColor(140, 175, 230) : QColor(85, 112, 150));
-        p->drawText(QRect(baseX + 1, r.top(), m_colW, r.height()),
-                    Qt::AlignVCenter | Qt::AlignRight, addr);
-
-        // ── Icon + name start right after address column ──────────────────────
-        int x = baseX + m_colW + 3;
-
-        if (!opt.icon.isNull()) {
-            const int sz = opt.decorationSize.width();
-            opt.icon.paint(p, QRect(x, r.top() + (r.height() - sz) / 2, sz, sz));
-            x += sz + 3;
-        }
-
-        const int textEnd = baseX + colW - 2;
-        const QRect textRect(x, r.top(), textEnd - x, r.height());
-        p->setFont(opt.font);
-        QColor fg = index.data(Qt::ForegroundRole).value<QColor>();
-        if (!fg.isValid()) fg = sel ? Qt::white : QColor(201, 209, 217);
-        p->setPen(fg);
-        p->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft,
-                    opt.fontMetrics.elidedText(opt.text, Qt::ElideRight, textRect.width()));
-    }
-};
+static const int kTreeFolderRole = Qt::UserRole + 5;
 
 // ── Icon factory ──────────────────────────────────────────────────────────────
 // Creates a 22×22 icon by rendering a short symbol string in the given colour.
@@ -408,7 +335,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_mainSplitter->setStretchFactor(0, 0);
     m_mainSplitter->setStretchFactor(1, 1);
     m_mainSplitter->setStretchFactor(2, 0);
-    m_mainSplitter->setSizes({220, 1180, 0});
+    m_mainSplitter->setSizes({360, 1040, 0});
 
     connect(m_aiAssistant, &AIAssistant::projectModified, this, [this]() {
         // Don't gate refresh on activeProject(): when the AI panel has focus,
@@ -1004,7 +931,7 @@ void MainWindow::buildLeftPanel()
 {
     m_leftPanel = new QWidget();
     m_leftPanel->setMinimumWidth(260);
-    m_leftPanel->setMaximumWidth(480);
+    m_leftPanel->setMaximumWidth(1100);
     auto *lay = new QVBoxLayout(m_leftPanel);
     lay->setContentsMargins(0, 0, 0, 0);
     lay->setSpacing(0);
@@ -1441,10 +1368,12 @@ void MainWindow::buildLeftPanel()
     connect(m_chipCurve,    &QPushButton::clicked, this, [this, onChip]{ onChip(m_chipCurve,    PanelFilter::TypeCurve); });
     connect(m_chipMap,      &QPushButton::clicked, this, [this, onChip]{ onChip(m_chipMap,      PanelFilter::TypeMap); });
 
-    // ── Tree — single column, full-width names, type shown as icon ────────
+    // ── Tree — configurable table columns, with the hierarchy in Name ─────
     m_projectTree = new QTreeWidget();
-    m_projectTree->setColumnCount(1);
-    m_projectTree->setHeaderHidden(true);
+    m_projectTree->setColumnCount(5);
+    m_projectTree->setHeaderLabels({tr("Name"), tr("Address"), tr("ID"),
+                                    tr("Type"), tr("Size")});
+    m_projectTree->setHeaderHidden(false);
     // Sprint E — multi-select for bulk edit (Ctrl+click / Shift+click).
     m_projectTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_projectTree->setRootIsDecorated(true);
@@ -1453,14 +1382,57 @@ void MainWindow::buildLeftPanel()
     m_projectTree->setUniformRowHeights(true);
     m_projectTree->setIndentation(14);
     m_projectTree->setIconSize(QSize(14, 14));
-    m_projectTree->setTextElideMode(Qt::ElideNone);
+    m_projectTree->setTextElideMode(Qt::ElideRight);
     m_projectTree->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_projectTree->header()->setSectionResizeMode(0, QHeaderView::Fixed);
-    m_projectTree->header()->setStretchLastSection(false);
-    m_projectTree->header()->setDefaultSectionSize(600);
-    m_projectTree->setItemDelegate(new ProjectTreeDelegate(m_projectTree));
+    m_projectTree->setAllColumnsShowFocus(true);
+    auto *treeHeader = m_projectTree->header();
+    treeHeader->setSectionsMovable(true);
+    treeHeader->setStretchLastSection(false);
+    treeHeader->setSectionResizeMode(QHeaderView::Interactive);
+    treeHeader->resizeSection(0, 260);
+    treeHeader->resizeSection(1, 96);
+    treeHeader->resizeSection(2, 260);
+    treeHeader->resizeSection(3, 72);
+    treeHeader->resizeSection(4, 72);
+
+    const QString treeHeaderStateKey = QStringLiteral("projectTree/headerStateV3");
+    const QByteArray savedHeaderState = rx14::appSettings()
+                                            .value(treeHeaderStateKey)
+                                            .toByteArray();
+    if (!savedHeaderState.isEmpty())
+        treeHeader->restoreState(savedHeaderState);
+
+    auto saveTreeHeaderState = [treeHeader, treeHeaderStateKey]() {
+        rx14::appSettings().setValue(treeHeaderStateKey, treeHeader->saveState());
+    };
+    connect(treeHeader, &QHeaderView::sectionResized, this,
+            [saveTreeHeaderState](int, int, int) { saveTreeHeaderState(); });
+    connect(treeHeader, &QHeaderView::sectionMoved, this,
+            [saveTreeHeaderState](int, int, int) { saveTreeHeaderState(); });
+    treeHeader->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(treeHeader, &QHeaderView::customContextMenuRequested, this,
+            [this, treeHeader, treeHeaderStateKey, saveTreeHeaderState](const QPoint &pos) {
+        QMenu menu(treeHeader);
+        for (int column = 0; column < m_projectTree->columnCount(); ++column) {
+            auto *action = menu.addAction(
+                m_projectTree->headerItem()->text(column));
+            action->setCheckable(true);
+            action->setChecked(!m_projectTree->isColumnHidden(column));
+            if (column == 0) {
+                action->setEnabled(false); // hierarchy must remain visible
+                continue;
+            }
+            connect(action, &QAction::toggled, &menu,
+                    [this, column, treeHeaderStateKey, saveTreeHeaderState](bool visible) {
+                m_projectTree->setColumnHidden(column, !visible);
+                saveTreeHeaderState();
+            });
+        }
+        menu.exec(treeHeader->mapToGlobal(pos));
+    });
     m_projectTree->setStyleSheet(
         "QTreeWidget { background:" + AppConfig::instance().colors.uiBg.name() + "; color:" + AppConfig::instance().colors.uiText.name() + "; border:none; }"
+        "QHeaderView::section { background:" + AppConfig::instance().colors.uiPanel.name() + "; color:" + AppConfig::instance().colors.uiTextDim.name() + "; border:0; border-right:1px solid " + AppConfig::instance().colors.uiBorder.name() + "; border-bottom:1px solid " + AppConfig::instance().colors.uiBorder.name() + "; padding:4px 6px; font-weight:600; }"
         "QTreeWidget::item { padding:3px 6px; min-height:24px; }"
         "QTreeWidget::item:selected { background:#1f3a6e; color:#ffffff; }"
         "QTreeWidget::item:hover:!selected { background:" + AppConfig::instance().colors.uiPanel.name() + "; }"
@@ -1476,6 +1448,19 @@ void MainWindow::buildLeftPanel()
         "QScrollBar::groove:horizontal { background:" + AppConfig::instance().colors.uiBg.name() + "; }"
         "QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background:" + AppConfig::instance().colors.uiBg.name() + "; }"
         "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width:0; }");
+
+    // Folder navigation nodes use the platform's open/closed folder icons.
+    // Map leaves retain their colored type icon instead.
+    connect(m_projectTree, &QTreeWidget::itemExpanded, this,
+            [](QTreeWidgetItem *item) {
+        if (item->data(0, kTreeFolderRole).toBool())
+            item->setIcon(0, QApplication::style()->standardIcon(QStyle::SP_DirOpenIcon));
+    });
+    connect(m_projectTree, &QTreeWidget::itemCollapsed, this,
+            [](QTreeWidgetItem *item) {
+        if (item->data(0, kTreeFolderRole).toBool())
+            item->setIcon(0, QApplication::style()->standardIcon(QStyle::SP_DirClosedIcon));
+    });
 
     // ── Recent Maps strip (above the tree) ────────────────────────────────
     m_recentMapsStrip = new QWidget();
@@ -3285,7 +3270,8 @@ void MainWindow::retranslateUi()
     if (m_filterEdit)
         m_filterEdit->setPlaceholderText(tr("Filter maps…"));
     if (m_projectTree)
-        m_projectTree->setHeaderLabels({tr("Addr"), tr("Name"), tr("Type")});
+        m_projectTree->setHeaderLabels({tr("Name"), tr("Address"), tr("ID"),
+                                        tr("Type"), tr("Size")});
 
     // ── AI Translate button ───────────────────────────────────────────
     if (m_btnTranslateAll)
@@ -6006,6 +5992,8 @@ void MainWindow::refreshProjectTreeNow()
     static const QIcon iconCurve = makeIcon("\u223F", QColor("#bc8cff"), 10);
     static const QIcon iconValue = makeIcon("\u25CF", QColor("#3fb950"), 9);
     static const QIcon iconBlk   = makeIcon("\u25AA", QColor("#6e7681"), 9);
+    const QIcon iconFolderClosed = QApplication::style()->standardIcon(QStyle::SP_DirClosedIcon);
+    const QIcon iconFolderOpen   = QApplication::style()->standardIcon(QStyle::SP_DirOpenIcon);
 
     // Render "My maps (N)" tree for any Project under the given tree item.
     // Shared by top-level projects AND sub-projects (multi-Version .ols
@@ -6032,27 +6020,40 @@ void MainWindow::refreshProjectTreeNow()
             else                          mi->setIcon(0, iconValue);
             const TranslationResult *tx = m_translations.contains(m.name)
                                           ? &m_translations[m.name] : nullptr;
-            mi->setData(0, kTreeAddrRole,
-                        QString("%1").arg(m.address, 6, 16, QChar('0')).toUpper());
-            const QString baseName = tx
-                ? ("[" + m.name + "]  " + tx->translation)
-                : (!m.description.isEmpty() && m.description != m.name)
-                    ? (m.name + "  " + m.description)
-                    : m.name;
-            QString displayName = baseName;
+            QString mapIdentifier = m.getSideProp(QStringLiteral("kpTechnicalId")).toString();
+            if (mapIdentifier.isEmpty())
+                mapIdentifier = m.getSideProp(QStringLiteral("kpIdName")).toString();
+            if (mapIdentifier.isEmpty())
+                mapIdentifier = m.getSideProp(QStringLiteral("kpMapIdentifier")).toString();
+            if (mapIdentifier.isEmpty())
+                mapIdentifier = m.name;
+            QString displayName = m.name;
             if (changed)                displayName.prepend("\u25cf ");
             if (!m.userNotes.isEmpty()) displayName.prepend("\u270e ");
             if (starred)                displayName.prepend("\u2605 ");
             mi->setText(0, displayName);
+            mi->setText(1, QStringLiteral("0x%1")
+                .arg(m.address, 8, 16, QChar('0')).toUpper());
+            mi->setText(2, mapIdentifier);
+            mi->setText(3, m.type);
+            mi->setText(4, QStringLiteral("%1x%2")
+                .arg(m.dimensions.x).arg(m.dimensions.y));
             mi->setFont(0, leafFont);
+            mi->setFont(1, monoFont);
+            mi->setTextAlignment(4, Qt::AlignRight | Qt::AlignVCenter);
+            QColor mapColor;
             if (starred)
-                mi->setForeground(0, changed ? QColor("#ff7b72") : QColor("#d4a017"));
+                mapColor = changed ? QColor("#ff7b72") : QColor("#d4a017");
             else if (changed)
-                mi->setForeground(0, QColor("#ff7b72"));
+                mapColor = QColor("#ff7b72");
             else if (!m.userNotes.isEmpty())
-                mi->setForeground(0, QColor("#d29a22"));
+                mapColor = QColor("#d29a22");
             else if (!tx)
-                mi->setForeground(0, QColor("" + AppConfig::instance().colors.uiTextDim.name() + ""));
+                mapColor = QColor(AppConfig::instance().colors.uiTextDim);
+            if (mapColor.isValid()) {
+                for (int column = 0; column < mi->columnCount(); ++column)
+                    mi->setForeground(column, mapColor);
+            }
             if (!isLargeProject) {
                 QString tip = m.name;
                 if (tx)  tip += "\n" + tx->translation;
@@ -6068,11 +6069,23 @@ void MainWindow::refreshProjectTreeNow()
             mi->setData(0, Qt::UserRole + 2, QVariant::fromValue(m));
         };
 
+        const bool hasFolderPaths = std::any_of(
+            p->maps.cbegin(), p->maps.cend(),
+            [](const MapInfo &m) { return !m.folderPath.isEmpty(); });
+        const int unfiledMapCount = std::count_if(
+            p->maps.cbegin(), p->maps.cend(),
+            [](const MapInfo &m) { return m.folderPath.isEmpty(); });
+
+        // My maps is always present at the project root. Imported folder
+        // paths are its siblings; only maps without a folder live inside it.
         auto *myMaps = new QTreeWidgetItem(under);
-        myMaps->setText(0, tr("My maps  (%1)").arg(p->maps.size()));
+        const int mapCount = hasFolderPaths ? unfiledMapCount : p->maps.size();
+        myMaps->setText(0, tr("My maps  (%1)").arg(mapCount));
+        myMaps->setData(0, kTreeFolderRole, true);
         myMaps->setFont(0, boldFont);
         myMaps->setForeground(0, QColor("" + AppConfig::instance().colors.uiText.name() + ""));
         myMaps->setExpanded(!isLargeProject);
+        myMaps->setIcon(0, myMaps->isExpanded() ? iconFolderOpen : iconFolderClosed);
         myMaps->setFlags(myMaps->flags() & ~Qt::ItemIsSelectable);
 
         // ── Auto-detected maps (overlay layer while no A2L is imported) ──
@@ -6084,14 +6097,70 @@ void MainWindow::refreshProjectTreeNow()
             auto *autoGroup = new QTreeWidgetItem(under);
             autoGroup->setText(0, tr("Auto-detected  (%1)")
                                       .arg(p->autoDetectedMaps.size()));
+            autoGroup->setData(0, kTreeFolderRole, true);
             autoGroup->setFont(0, boldFont);
             autoGroup->setForeground(0, QColor("#d29922"));   // amber
             autoGroup->setExpanded(!isLargeProject);
+            autoGroup->setIcon(0, autoGroup->isExpanded() ? iconFolderOpen : iconFolderClosed);
             autoGroup->setFlags(autoGroup->flags() & ~Qt::ItemIsSelectable);
             for (const auto &m : p->autoDetectedMaps) addLeaf(autoGroup, m);
         }
 
-        if (p->groups.isEmpty()) {
+        if (hasFolderPaths) {
+            // KP schema-750 stores the actual folder path on every
+            // map.  It takes precedence over Project::groups, which may be
+            // legacy A2L data or the former name-prefix heuristic.  Render it
+            // directly so nesting and identically named maps are preserved.
+            QHash<QString, QTreeWidgetItem *> folderNodes;
+            std::function<QTreeWidgetItem *(const QString &)> folderFor =
+                [&](const QString &path) -> QTreeWidgetItem * {
+                if (path.isEmpty()) return myMaps;
+                if (auto it = folderNodes.constFind(path); it != folderNodes.cend())
+                    return it.value();
+                const int slash = path.lastIndexOf(QLatin1Char('/'));
+                const QString parentPath = slash < 0 ? QString() : path.left(slash);
+                const QString name = slash < 0 ? path : path.mid(slash + 1);
+                auto *node = new QTreeWidgetItem(
+                    parentPath.isEmpty() ? under : folderFor(parentPath));
+                node->setText(0, name);
+                node->setData(0, kTreeFolderRole, true);
+                node->setToolTip(0, tr("Folder — use the arrow to expand or collapse"));
+                node->setFont(0, boldFont);
+                node->setExpanded(forceExpandAll || !isLargeProject);
+                node->setIcon(0, node->isExpanded() ? iconFolderOpen : iconFolderClosed);
+                node->setFlags(node->flags() & ~Qt::ItemIsSelectable);
+                folderNodes.insert(path, node);
+                return node;
+            };
+
+            QVector<int> order(p->maps.size());
+            std::iota(order.begin(), order.end(), 0);
+            std::sort(order.begin(), order.end(), [p](int a, int b) {
+                const MapInfo &ma = p->maps[a], &mb = p->maps[b];
+                return ma.folderPath == mb.folderPath
+                    ? ma.address < mb.address : ma.folderPath < mb.folderPath;
+            });
+            for (int i : order)
+                addLeaf(folderFor(p->maps[i].folderPath), p->maps[i]);
+
+            // A folder count represents every map below it, not merely its
+            // direct children, making nested folders useful at a glance.
+            std::function<int(QTreeWidgetItem *)> countMaps =
+                [&](QTreeWidgetItem *node) -> int {
+                int count = 0;
+                for (int child = 0; child < node->childCount(); ++child) {
+                    QTreeWidgetItem *item = node->child(child);
+                    if (item->data(0, Qt::UserRole + 2).isValid()) ++count;
+                    else count += countMaps(item);
+                }
+                return count;
+            };
+            for (auto it = folderNodes.cbegin(); it != folderNodes.cend(); ++it) {
+                QTreeWidgetItem *node = it.value();
+                node->setText(0, QStringLiteral("%1  (%2)")
+                    .arg(node->text(0)).arg(countMaps(node)));
+            }
+        } else if (p->groups.isEmpty()) {
             for (const auto &m : p->maps) addLeaf(myMaps, m);
         } else {
             QHash<QString, int> lookup;
@@ -6101,8 +6170,10 @@ void MainWindow::refreshProjectTreeNow()
             for (const auto &g : p->groups) {
                 auto *gi = new QTreeWidgetItem(myMaps);
                 gi->setText(0, g.name + QString("  (%1)").arg(g.characteristics.size()));
+                gi->setData(0, kTreeFolderRole, true);
                 gi->setFont(0, boldFont);
                 gi->setExpanded(forceExpandAll || expandedGroups.contains(g.name));
+                gi->setIcon(0, gi->isExpanded() ? iconFolderOpen : iconFolderClosed);
                 gi->setFlags(gi->flags() & ~Qt::ItemIsSelectable);
                 for (const auto &cn : g.characteristics) {
                     auto it = lookup.find(cn);
@@ -6340,7 +6411,10 @@ void MainWindow::applyTreeFilter()
         // Fuzzy text matching: substring, separator-stripped, or subsequence
         bool textMatch = true;
         if (!txt.isEmpty()) {
-            QString itemText = it->text(0).toLower();
+            QString itemText;
+            for (int column = 0; column < m_projectTree->columnCount(); ++column)
+                itemText += QLatin1Char(' ') + it->text(column);
+            itemText = itemText.toLower();
             QString queryLow = txt.toLower();
             if (itemText.contains(queryLow)) {
                 textMatch = true;

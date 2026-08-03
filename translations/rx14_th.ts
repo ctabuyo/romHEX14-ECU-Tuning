@@ -7044,6 +7044,191 @@ Size: %2 KB%3</source>
         <source>Auto-detect ECU — %1</source>
         <translation>ตรวจจับ ECU อัตโนมัติ — %1</translation>
     </message>
+
+<message>
+        <location filename="../src/mainwindow.cpp" line="1448"/>
+        <location filename="../src/mainwindow.cpp" line="3347"/>
+        <source>ID</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1449"/>
+        <location filename="../src/mainwindow.cpp" line="3348"/>
+        <source>Size</source>
+        <translation type="unfinished">ขนาด</translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1669"/>
+        <source>View in hexdump</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1670"/>
+        <source>Search for name</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1671"/>
+        <source>Copy name</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1674"/>
+        <source>Close selected map windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1675"/>
+        <source>Close all map windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1683"/>
+        <source>Unstar %1 maps</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1684"/>
+        <source>Unstar map</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1685"/>
+        <source>Star %1 maps</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1686"/>
+        <source>Star map</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1688"/>
+        <source>Duplicate %1 maps</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1689"/>
+        <source>Duplicate</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1690"/>
+        <source>Select…</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1691"/>
+        <source>All maps</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1692"/>
+        <source>Starred maps</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1693"/>
+        <source>Clear selection</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1695"/>
+        <source>New folder with selected maps…</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1697"/>
+        <source>Move to folder…</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1707"/>
+        <source>Properties…</source>
+        <translation type="unfinished">คุณสมบัติ…</translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1710"/>
+        <source>Delete %1 maps…</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1711"/>
+        <source>Delete Map…</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1833"/>
+        <source>Copied %1 map name(s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1896"/>
+        <source>Map</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1897"/>
+        <source> copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1904"/>
+        <source> copy %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1972"/>
+        <source>New folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1974"/>
+        <source>New Folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1975"/>
+        <location filename="../src/mainwindow.cpp" line="1987"/>
+        <source>Folder path:</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1984"/>
+        <location filename="../src/mainwindow.cpp" line="1989"/>
+        <source>(Project root)</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="1986"/>
+        <source>Move to Folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="2034"/>
+        <source>Delete Map</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="2036"/>
+        <source>Delete %1 selected map definitions?</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="2037"/>
+        <source>Delete the map definition &quot;%1&quot;?</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="2903"/>
+        <source>Value ℡</source>
+        <translation type="unfinished"></translation>
+    </message>
+<message>
+        <location filename="../src/mainwindow.cpp" line="6201"/>
+        <source>Folder — use the arrow to expand or collapse</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>Map3DSimWidget</name>
