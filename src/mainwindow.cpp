@@ -79,6 +79,7 @@
 #include <QTableWidgetItem>
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QStyle>
 #include <QMouseEvent>
 #include <QPointer>
 #include <QPainterPath>
@@ -128,6 +129,7 @@
 #include <QLinearGradient>
 #include <QUrl>
 #include <functional>
+#include <numeric>
 
 // ── Project-tree delegate ─────────────────────────────────────────────────────
 // Two-column layout: fixed address column on the left | icon + text on the right
@@ -4262,123 +4264,102 @@ void MainWindow::actImportKP(const QString &droppedPath)
     for (const auto &m : proj->maps)
         existing.insert({m.name, m.address});
 
-    int added = 0, skipped = 0;
-    QStringList addedNames;
-    addedNames.reserve(chosenMaps.size());
+    int added = 0, skipped = 0, valueRanges = 0;
+    bool existingMetadataUpdated = false;
+    auto transferRange = [&](uint32_t destination, uint32_t source, int length) {
+        if (length <= 0
+            || uint64_t(destination) + uint64_t(length) > uint64_t(proj->currentData.size())
+            || uint64_t(source) + uint64_t(length) > uint64_t(result.carriedData.size()))
+            return false;
+        std::memcpy(proj->currentData.data() + destination,
+                    result.carriedData.constData() + source, size_t(length));
+        ++valueRanges;
+        return true;
+    };
+    // Keep every parser-provided field intact here.  In particular, KP folder
+    // paths and axis point addresses are consumed by the project tree and map
+    // overlay respectively; deriving replacement groups or map records loses
+    // that schema-750 metadata.
     for (const auto &m : chosenMaps) {
-        if (existing.contains({m.name, m.address})) { ++skipped; continue; }
+        const bool duplicate = existing.contains({m.name, m.address});
+        if (importValues) {
+            transferRange(m.address,
+                          m.getSideProp(QStringLiteral("kpValueOffset")).toUInt(),
+                          m.getSideProp(QStringLiteral("kpValueLength")).toInt());
+            if (m.xAxis.hasPtsAddress)
+                transferRange(m.xAxis.ptsAddress,
+                              m.getSideProp(QStringLiteral("kpXAxisOffset")).toUInt(),
+                              m.getSideProp(QStringLiteral("kpXAxisLength")).toInt());
+            if (m.yAxis.hasPtsAddress)
+                transferRange(m.yAxis.ptsAddress,
+                              m.getSideProp(QStringLiteral("kpYAxisOffset")).toUInt(),
+                              m.getSideProp(QStringLiteral("kpYAxisLength")).toInt());
+        }
+        // Duplicate avoidance concerns the map definition, not its selected
+        // carried bytes. This lets a user re-import the same pack to apply its
+        // values to an already-present map without creating a second tree row.
+        if (duplicate) {
+            for (auto &existingMap : proj->maps) {
+                if (existingMap.name == m.name && existingMap.address == m.address) {
+                    if (existingMap.columnMajor != m.columnMajor) {
+                        existingMap.columnMajor = m.columnMajor;
+                        existingMetadataUpdated = true;
+                    }
+                    if (existingMap.dataSigned != m.dataSigned) {
+                        existingMap.dataSigned = m.dataSigned;
+                        existingMetadataUpdated = true;
+                    }
+                    if (existingMap.xAxis.ptsSigned != m.xAxis.ptsSigned) {
+                        existingMap.xAxis.ptsSigned = m.xAxis.ptsSigned;
+                        existingMetadataUpdated = true;
+                    }
+                    if (existingMap.yAxis.ptsSigned != m.yAxis.ptsSigned) {
+                        existingMap.yAxis.ptsSigned = m.yAxis.ptsSigned;
+                        existingMetadataUpdated = true;
+                    }
+                    if (!m.scaling.format.isEmpty()
+                        && existingMap.scaling.format != m.scaling.format) {
+                        existingMap.scaling.format = m.scaling.format;
+                        existingMetadataUpdated = true;
+                    }
+                    if (!m.xAxis.scaling.format.isEmpty()
+                        && existingMap.xAxis.scaling.format != m.xAxis.scaling.format) {
+                        existingMap.xAxis.scaling.format = m.xAxis.scaling.format;
+                        existingMetadataUpdated = true;
+                    }
+                    if (!m.yAxis.scaling.format.isEmpty()
+                        && existingMap.yAxis.scaling.format != m.yAxis.scaling.format) {
+                        existingMap.yAxis.scaling.format = m.yAxis.scaling.format;
+                        existingMetadataUpdated = true;
+                    }
+                    break;
+                }
+            }
+            ++skipped;
+            continue;
+        }
         proj->maps.append(m);
         existing.insert({m.name, m.address});
-        addedNames.append(m.name);
         ++added;
     }
 
-    if (added == 0) {
+    if (added == 0 && valueRanges == 0 && !existingMetadataUpdated) {
         QMessageBox::information(this, tr("Import KP"),
             tr("All %1 selected maps were already present in the project.")
                 .arg(chosenMaps.size()));
         return;
     }
 
-    // ── Folder grouping for KP-imported maps ─────────────────────────────
-    //
-    // The .kp wire format does not carry per-map folder info, so we derive
-    // groups heuristically by name prefix.  Scope is the newly-imported KP
-    // maps only — existing proj->groups (from a prior A2L/OLS import) are
-    // preserved and we append new buckets to them rather than replacing
-    // the whole list.  Issue #23.
-    if (!addedNames.isEmpty()) {
-        QHash<QString, QStringList>        bucketsCanonical;   // key → names
-        QHash<QString, QHash<QString,int>> bucketDisplays;     // key → (display→count)
-
-        auto firstToken = [](const QString &s) -> QString {
-            for (int i = 0; i < s.size(); ++i) {
-                if (!s[i].isLetter())
-                    return s.left(i);
-            }
-            return s;
-        };
-
-        for (const QString &name : addedNames) {
-            const QString first = firstToken(name).trimmed();
-            const QString key = first.isEmpty() ? QStringLiteral("__other__")
-                                                : first.toLower();
-            bucketsCanonical[key].append(name);
-            if (!first.isEmpty())
-                ++bucketDisplays[key][first];
-        }
-
-        // Skip group names that already exist in proj->groups so a second KP
-        // import doesn't shadow / duplicate buckets the user already has.
-        QSet<QString> existingGroupNames;
-        for (const auto &g : proj->groups)
-            existingGroupNames.insert(g.name.toLower());
-
-        QStringList singletons;
-        QVector<A2LGroup> newGroups;
-        for (auto it = bucketsCanonical.constBegin();
-             it != bucketsCanonical.constEnd(); ++it) {
-            const QString &key = it.key();
-            const QStringList &names = it.value();
-            if (key == QStringLiteral("__other__") || names.size() < 2) {
-                singletons += names;
-                continue;
-            }
-            const auto &displays = bucketDisplays[key];
-            QString best = key;
-            int bestCount = 0;
-            for (auto dit = displays.constBegin(); dit != displays.constEnd(); ++dit) {
-                if (dit.value() > bestCount) {
-                    bestCount = dit.value();
-                    best = dit.key();
-                }
-            }
-            if (existingGroupNames.contains(best.toLower())) {
-                singletons += names;
-                continue;
-            }
-            A2LGroup g;
-            g.name = best;
-            g.characteristics = names;
-            newGroups.append(std::move(g));
-        }
-        std::sort(newGroups.begin(), newGroups.end(),
-                  [](const A2LGroup &a, const A2LGroup &b) {
-                      return a.name.toLower() < b.name.toLower();
-                  });
-        if (!singletons.isEmpty()) {
-            std::sort(singletons.begin(), singletons.end(),
-                      [](const QString &a, const QString &b) {
-                          return a.toLower() < b.toLower();
-                      });
-            // Append singletons to existing "Other" if one is already there,
-            // otherwise create a fresh "Other" bucket.
-            A2LGroup *otherGroup = nullptr;
-            for (auto &g : proj->groups) {
-                if (g.name.compare(tr("Other"), Qt::CaseInsensitive) == 0) {
-                    otherGroup = &g;
-                    break;
-                }
-            }
-            if (otherGroup) {
-                otherGroup->characteristics += singletons;
-            } else {
-                A2LGroup other;
-                other.name = tr("Other");
-                other.characteristics = singletons;
-                newGroups.append(std::move(other));
-            }
-        }
-        proj->groups += newGroups;
-    }
-
     proj->modified = true;
     emit proj->dataChanged();   // tree refresh + autosave
 
-    QString msg = tr("Imported %1 maps from %2")
-                      .arg(added).arg(QFileInfo(path).fileName());
+    QString msg = added > 0
+        ? tr("Imported %1 maps from %2").arg(added).arg(QFileInfo(path).fileName())
+        : tr("Updated existing maps from %1").arg(QFileInfo(path).fileName());
     if (skipped > 0)
         msg += tr(" (%1 already present, skipped)").arg(skipped);
+    if (valueRanges > 0)
+        msg += tr("; %1 data range(s) applied").arg(valueRanges);
     statusBar()->showMessage(msg, 6000);
 }
 
@@ -5685,6 +5666,9 @@ void MainWindow::refreshProjectTreeNow()
     static const QIcon iconCurve = makeIcon("\u223F", QColor("#bc8cff"), 10);
     static const QIcon iconValue = makeIcon("\u25CF", QColor("#3fb950"), 9);
     static const QIcon iconBlk   = makeIcon("\u25AA", QColor("#6e7681"), 9);
+    // KP folders are navigation nodes. The platform folder glyph makes the
+    // disclosure arrow beside it clearly indicate expand/collapse behavior.
+    static const QIcon iconFolder = QApplication::style()->standardIcon(QStyle::SP_DirIcon);
 
     // Render "My maps (N)" tree for any Project under the given tree item.
     // Shared by top-level projects AND sub-projects (multi-Version .ols
@@ -5718,7 +5702,10 @@ void MainWindow::refreshProjectTreeNow()
                 : (!m.description.isEmpty() && m.description != m.name)
                     ? (m.name + "  " + m.description)
                     : m.name;
-            QString displayName = baseName;
+            // Keep the shape beside every map name so similarly named tables
+            // remain distinguishable without opening the map overlay.
+            QString displayName = QStringLiteral("%1  %2x%3")
+                .arg(baseName).arg(m.dimensions.x).arg(m.dimensions.y);
             if (changed)                displayName.prepend("\u25cf ");
             if (!m.userNotes.isEmpty()) displayName.prepend("\u270e ");
             if (starred)                displayName.prepend("\u2605 ");
@@ -5770,7 +5757,62 @@ void MainWindow::refreshProjectTreeNow()
             for (const auto &m : p->autoDetectedMaps) addLeaf(autoGroup, m);
         }
 
-        if (p->groups.isEmpty()) {
+        const bool hasFolderPaths = std::any_of(
+            p->maps.cbegin(), p->maps.cend(),
+            [](const MapInfo &m) { return !m.folderPath.isEmpty(); });
+        if (hasFolderPaths) {
+            // KP schema-750 stores the actual WinOLS folder path on every
+            // map.  It takes precedence over Project::groups, which may be
+            // legacy A2L data or the former name-prefix heuristic.  Render it
+            // directly so nesting and identically named maps are preserved.
+            QHash<QString, QTreeWidgetItem *> folderNodes;
+            std::function<QTreeWidgetItem *(const QString &)> folderFor =
+                [&](const QString &path) -> QTreeWidgetItem * {
+                if (path.isEmpty()) return myMaps;
+                if (auto it = folderNodes.constFind(path); it != folderNodes.cend())
+                    return it.value();
+                const int slash = path.lastIndexOf(QLatin1Char('/'));
+                const QString parentPath = slash < 0 ? QString() : path.left(slash);
+                const QString name = slash < 0 ? path : path.mid(slash + 1);
+                auto *node = new QTreeWidgetItem(folderFor(parentPath));
+                node->setText(0, name);
+                node->setIcon(0, iconFolder);
+                node->setToolTip(0, tr("Folder — use the arrow to expand or collapse"));
+                node->setFont(0, boldFont);
+                node->setExpanded(forceExpandAll || !isLargeProject);
+                node->setFlags(node->flags() & ~Qt::ItemIsSelectable);
+                folderNodes.insert(path, node);
+                return node;
+            };
+
+            QVector<int> order(p->maps.size());
+            std::iota(order.begin(), order.end(), 0);
+            std::sort(order.begin(), order.end(), [p](int a, int b) {
+                const MapInfo &ma = p->maps[a], &mb = p->maps[b];
+                return ma.folderPath == mb.folderPath
+                    ? ma.address < mb.address : ma.folderPath < mb.folderPath;
+            });
+            for (int i : order)
+                addLeaf(folderFor(p->maps[i].folderPath), p->maps[i]);
+
+            // A folder count represents every map below it, not merely its
+            // direct children, so a nested WinOLS folder is useful at a glance.
+            std::function<int(QTreeWidgetItem *)> countMaps =
+                [&](QTreeWidgetItem *node) -> int {
+                int count = 0;
+                for (int child = 0; child < node->childCount(); ++child) {
+                    QTreeWidgetItem *item = node->child(child);
+                    if (item->data(0, Qt::UserRole + 2).isValid()) ++count;
+                    else count += countMaps(item);
+                }
+                return count;
+            };
+            for (auto it = folderNodes.cbegin(); it != folderNodes.cend(); ++it) {
+                QTreeWidgetItem *node = it.value();
+                node->setText(0, QStringLiteral("%1  (%2)")
+                    .arg(node->text(0)).arg(countMaps(node)));
+            }
+        } else if (p->groups.isEmpty()) {
             for (const auto &m : p->maps) addLeaf(myMaps, m);
         } else {
             QHash<QString, int> lookup;
