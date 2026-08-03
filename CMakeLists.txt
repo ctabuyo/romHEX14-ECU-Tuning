@@ -547,6 +547,55 @@ else()
 endif()
 
 if(BUILD_TESTING)
+    add_executable(test_kp_schema479_503 tests/test_kp_schema479_503.cpp
+        src/io/ols/KpImporter.cpp
+        src/io/ols/ZipDecompressor.cpp
+    )
+    target_include_directories(test_kp_schema479_503 PRIVATE src)
+    target_compile_definitions(test_kp_schema479_503 PRIVATE
+        KP_CORPUS_DIR="${CMAKE_SOURCE_DIR}/mappacks"
+    )
+    target_link_libraries(test_kp_schema479_503 PRIVATE Qt6::Core Qt6::Gui)
+    if(ZLIB_FOUND)
+        target_link_libraries(test_kp_schema479_503 PRIVATE ZLIB::ZLIB)
+    else()
+        target_link_libraries(test_kp_schema479_503 PRIVATE z)
+    endif()
+    add_test(NAME kp_schema479_503_codec COMMAND test_kp_schema479_503)
+
+    add_executable(test_kp_schema597 tests/test_kp_schema597.cpp
+        src/io/ols/KpImporter.cpp
+        src/io/ols/ZipDecompressor.cpp
+    )
+    target_include_directories(test_kp_schema597 PRIVATE src)
+    target_compile_definitions(test_kp_schema597 PRIVATE
+        KP_SCHEMA597_FIXTURE="${CMAKE_SOURCE_DIR}/mappacks/Honda_Civic_1.0_Turbo_VTec_125Hp_MED17.9.3_0261B18059_37805-5AZ-E140_10SW01865793B2V115_018657_4D57.kp"
+    )
+    target_link_libraries(test_kp_schema597 PRIVATE Qt6::Core Qt6::Gui)
+    if(ZLIB_FOUND)
+        target_link_libraries(test_kp_schema597 PRIVATE ZLIB::ZLIB)
+    else()
+        target_link_libraries(test_kp_schema597 PRIVATE z)
+    endif()
+    add_test(NAME kp_schema597_codec COMMAND test_kp_schema597)
+
+    add_executable(test_kp_schema292 tests/test_kp_schema292.cpp
+        src/io/ols/KpImporter.cpp
+        src/io/ols/ZipDecompressor.cpp
+    )
+    target_include_directories(test_kp_schema292 PRIVATE src)
+    target_compile_definitions(test_kp_schema292 PRIVATE
+        KP_SCHEMA292_FIXTURE="${CMAKE_SOURCE_DIR}/mappacks/31 exclusive firmware packages for chip-tuning_RM-Chiptuning__Tuning DPF EGR off files_Audi_A3 1.9 TDI Tune Stage 1 Sw 371093 Hw 0281011832 EDC16U1_Tuning MapPack.kp"
+        KP_CORPUS_DIR="${CMAKE_SOURCE_DIR}/mappacks"
+    )
+    target_link_libraries(test_kp_schema292 PRIVATE Qt6::Core Qt6::Gui)
+    if(ZLIB_FOUND)
+        target_link_libraries(test_kp_schema292 PRIVATE ZLIB::ZLIB)
+    else()
+        target_link_libraries(test_kp_schema292 PRIVATE z)
+    endif()
+    add_test(NAME kp_schema292_codec COMMAND test_kp_schema292)
+
     add_executable(test_kp_schema750 tests/test_kp_schema750.cpp
         src/io/ols/KpImporter.cpp
         src/io/ols/ZipDecompressor.cpp
