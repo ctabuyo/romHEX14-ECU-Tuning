@@ -972,6 +972,8 @@ struct Kp750AxisBlock {
     Kp750SerializedString identifier;
     uint32_t structuredNameCount = 0;
     QByteArray byteVector;
+    bool flag80 = false;
+    bool flag81 = false;
     qsizetype nextAxis = 0;
 };
 
@@ -1050,7 +1052,9 @@ bool parseSchema750AxisBlock(const QByteArray &data, qsizetype start,
     const int32_t size = peekI32(data, cursor + 12);
     const int32_t wireRecordType = peekI32(data, cursor + 16);
     cursor += 20;
-    cursor += 2; // bool +0x80, bool +0x81
+    const bool flag80 = data.at(int(cursor)) != 0;     // bool +0x80
+    const bool flag81 = data.at(int(cursor + 1)) != 0; // bool +0x81
+    cursor += 2;
     if (schemaVersion >= 264) {
         if (cursor + 8 > limit) return false;
         cursor += 8; // raw64 +0x58
@@ -1164,6 +1168,8 @@ bool parseSchema750AxisBlock(const QByteArray &data, qsizetype start,
     block.identifier = identifier;
     block.structuredNameCount = structuredNameCount;
     block.byteVector = byteVector;
+    block.flag80 = flag80;
+    block.flag81 = flag81;
     block.nextAxis = cursor;
     *out = block;
     return true;
@@ -1298,10 +1304,11 @@ bool readKp750MapRecord(const QByteArray &data, qsizetype start, qsizetype limit
         || !reader.int32(kp750Path(map, 0x194))
         || !reader.uint32(kp750Path(map, 0x168), KpSchema750Field::Type::Enum32)
         || !reader.raw(kp750Path(map, 0x16c), 16)
-        || !reader.int32(kp750Path(map, 0x1ac))
+        || !reader.int32(kp750Path(map, 0xa8))
         || !reader.uint32(kp750Path(map, 0xc4))
         || !reader.uint32(kp750Path(map, 200))
-        || !reader.int32(kp750Path(map, 0xac)))
+        || !reader.int32(kp750Path(map, 0xac))
+        || (schemaVersion >= 476 && !reader.int32(kp750Path(map, 0x1ac))))
         return false;
     if (schemaVersion >= 476) {
         if (!readKp750Int32Vector(reader, kp750Path(map, 0x1b8)))
@@ -1867,6 +1874,10 @@ QVector<MapInfo> parseSchema750Deterministic(
         const uint32_t mapStart = peekU32(payload, cursor + 16);
         const uint32_t mapEnd = peekU32(payload, cursor + 20);
         const uint32_t mapBase = peekU32(payload, cursor + 24);
+        // Native member +0x260: gate 264 raw64 — extra map-scaling double
+        // compared by WinOLS duplicate detection alongside factor and offset.
+        const double scaleExtra = schemaVersion >= 264
+            ? peekF64(payload, cursor + 28) : 0.0;
         cursor += propertyBytes;
         Kp750AxisBlock axisX, axisY;
         if (!parseSchema750AxisBlock(payload, cursor, sz, &axisX, schemaVersion)
@@ -1954,6 +1965,7 @@ QVector<MapInfo> parseSchema750Deterministic(
         map.setSideProp(QStringLiteral("kpUnit"), unit.text);
         map.setSideProp(QStringLiteral("kpMapFactor"), factor);
         map.setSideProp(QStringLiteral("kpMapOffset"), offset);
+        map.setSideProp(QStringLiteral("kpMapScaleExtra"), scaleExtra);
         map.setSideProp(QStringLiteral("kpMapStart"), mapStart);
         map.setSideProp(QStringLiteral("kpMapEnd"), mapEnd);
         map.setSideProp(QStringLiteral("kpMapPrecisionRaw"), precision);
@@ -1985,9 +1997,9 @@ QVector<MapInfo> parseSchema750Deterministic(
             map.scaling.type = CompuMethod::Type::Linear;
             map.scaling.linA = factor;
             map.scaling.linB = offset;
-            map.hasScaling = (factor != 1.0 || offset != 0.0);
-            if (precision <= 6)
-                map.scaling.format = QStringLiteral("1.%1f").arg(precision);
+            // The serialized integer is preserved as kpMapPrecisionRaw above.
+            // It is not a proven display-format field.
+            map.hasScaling = factor != 1.0 || offset != 0.0;
         }
 
         uint32_t fileOffset = 0;
@@ -2016,8 +2028,6 @@ QVector<MapInfo> parseSchema750Deterministic(
             destination.hasScaling = std::isfinite(axis.factor)
                 && std::isfinite(axis.offset)
                 && (axis.factor != 1.0 || axis.offset != 0.0);
-            if (axis.precision >= 0 && axis.precision <= 6)
-                destination.scaling.format = QStringLiteral("1.%1f").arg(axis.precision);
             destination.ptsDataSize = axis.dataSize;
             destination.ptsDataType = axis.dataType;
             destination.ptsBigEndian = false;
@@ -2034,6 +2044,8 @@ QVector<MapInfo> parseSchema750Deterministic(
             map.setSideProp(prefix + QStringLiteral("RawAddress"), axis.rawAddr);
             map.setSideProp(prefix + QStringLiteral("RecordTypeWire"), axis.wireRecordType);
             map.setSideProp(prefix + QStringLiteral("RecordType"), axis.nativeRecordType);
+            map.setSideProp(prefix + QStringLiteral("AxisFlag80"), source.flag80);
+            map.setSideProp(prefix + QStringLiteral("AxisFlag81"), source.flag81);
             uint32_t pointOffset = 0;
             if (axis.rawAddr != 0
                 && normalizeKpAxisAddress(axis.rawAddr, pointCount, axis.dataSize,
@@ -2504,7 +2516,14 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
     // each serializer call compares its effective version to its own gate.
     // The current native reader accepts 6 through 834; the portable walk
     // mirrors those gates and verifies that every map record is consumed.
+    //
+    // ReadWriteKpInternMapObjectArray gate 0xf3 (243): the nested intern
+    // reader inherits the parent's effective version only when the outer
+    // schema is at least 243.  Below that threshold the default file-reader
+    // version (0) applies, so no object-codec gates are active.
     const uint32_t internMapCount = intern.size() >= 5 ? peekU32(intern, 1) : 0;
+    const uint32_t effectiveMapVersion = (result.formatVersion >= 243)
+        ? result.formatVersion : 0;
     switch (result.formatVersion) {
     case 292:
         result.maps = parseSchema292Deterministic(intern, baseAddress, romSize,
@@ -2587,10 +2606,20 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
                 .arg(result.formatVersion);
             return result;
         }
+        // ReadWriteKpInternMapObjectArray gate 0xf2 (242): schemas below 242
+        // use the direct (non-ZIP) path.  The embedded ZIP is absent and an
+        // importer cannot reconstruct the intern stream without decompressing it.
+        if (result.formatVersion < 242) {
+            result.error = KpImporter::tr(
+                "Schema-%1 KP files predate the ZIP container (gate 242); only schema 242+ "
+                "archive-backed containers are supported")
+                .arg(result.formatVersion);
+            return result;
+        }
         result.maps = parseSchema750Deterministic(intern, baseAddress, romSize,
                                                   folderPaths, &result.mapRecords,
                                                   &result.warnings,
-                                                  result.formatVersion);
+                                                  effectiveMapVersion);
         if (internMapCount > 0 && result.maps.size() != int(internMapCount)) {
             result.error = KpImporter::tr(
                 "Schema-%1 parser recognized %2 of %3 maps; refusing an incomplete import "
