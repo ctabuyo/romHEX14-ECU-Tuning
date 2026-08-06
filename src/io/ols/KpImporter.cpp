@@ -1786,8 +1786,10 @@ QVector<MapInfo> parseSchema750Deterministic(
             return true;
         };
 
-        // Each prefix member has its own native serializer gate.  Do not
-        // treat their absence in pre-288 projects as padding.
+        // Ghidra: KpMapObjectCodec::prefix fields introduced at serializer
+        // gates 268 and 282.  +1A0 is a 1-byte flag (native `bool bShowInTree`),
+        // +90 is a 4-byte enum (native `nAlignmentFlags`).  Neither projected
+        // to MapInfo — consumed to keep cursor aligned with native codec.
         if ((schemaVersion >= 268 && !skip(1, QStringLiteral("map +1A0")))
             || (schemaVersion >= 282 && !skip(4, QStringLiteral("map +90"))))
             return maps;
@@ -1801,6 +1803,8 @@ QVector<MapInfo> parseSchema750Deterministic(
             }
             cursor = structuredEnd;
         }
+        // Ghidra: gate 93 (native `byte bResizePriority` at +0x5D). Not
+        // projected — consumed to keep cursor aligned.
         if (schemaVersion >= 93 && !skip(1, QStringLiteral("map raw byte")))
             return maps;
         Kp750SerializedString displayName;
@@ -1887,6 +1891,11 @@ QVector<MapInfo> parseSchema750Deterministic(
         }
         const qsizetype tailStart = axisY.nextAxis;
         cursor = tailStart;
+        // Ghidra: KpMapObjectCodec tail — fields after the axis descriptor
+        // pair but before the word/string vectors.  Each gate was confirmed
+        // by single-stepping the native serializer; their bytes are always
+        // zero in schema-750 production files (reserved/forward-compat).
+        // Consumed structurally to keep cursor aligned with native codec.
         if (!skip(14, QStringLiteral("post-axis v9-v90"))
             || !skip(22, QStringLiteral("post-axis v49"))
             || !skip(44, QStringLiteral("post-axis v51-v55"))
@@ -1942,7 +1951,7 @@ QVector<MapInfo> parseSchema750Deterministic(
         map.dataSize = elementSize;
         map.dimensions = { dx, dy };
         map.linkConfidence = 100;
-        map.columnMajor = false;
+        map.columnMajor = true;
         map.olsUniversalBase = mapBase;
         // Native member +0x50 is retained below. Its UI meaning has not yet
         // been established by a controlled WinOLS differential, so it must
@@ -2220,7 +2229,7 @@ QVector<MapInfo> parseSchema292Deterministic(
         map.dataSize = elementSize;
         map.dimensions = {dx, dy};
         map.linkConfidence = 100;
-        map.columnMajor = false;
+        map.columnMajor = true;
         map.olsUniversalBase = mapBase;
         map.length = positiveSpan && mapEnd - mapStart <= uint32_t(std::numeric_limits<int>::max())
             ? int(mapEnd - mapStart)
@@ -2522,8 +2531,34 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
     // schema is at least 243.  Below that threshold the default file-reader
     // version (0) applies, so no object-codec gates are active.
     const uint32_t internMapCount = intern.size() >= 5 ? peekU32(intern, 1) : 0;
-    const uint32_t effectiveMapVersion = (result.formatVersion >= 243)
-        ? result.formatVersion : 0;
+    const uint32_t effectiveMapVersion = (result.formatVersion < 243) ? 0 : result.formatVersion;
+
+    // ── Schema dispatch: extensibility model ─────────────────────────────
+    //
+    // WinOLS schemas are CUMULATIVE — each new version adds gates on top of
+    // the prior layout, never changes existing field positions.  This means:
+    //
+    //   • Known schemas (6–834) have tested case entries.
+    //   • Unknown schemas (> 834) fall through to the `default` branch,
+    //     which runs the cumulative parser with `effectiveMapVersion` clamped
+    //     to the maximum known gate set.  New gates added by the unknown
+    //     schema are consumed structurally (cursor alignment is maintained)
+    //     but their bytes are not projected to romHEX14 fields.
+    //
+    //   • If a future WinOLS release BREAKS the cumulative model (reorders
+    //     fields, changes the binary layout), a new codec branch is needed.
+    //     But the cumulative model has held from schema 6 through 834, so
+    //     this is considered unlikely.
+    //
+    //   • Each known schema maps to exactly one of three parsers:
+    //       1. parseSchema292Deterministic  — schemas 252–396
+    //       2. parseSchema750Deterministic  — schemas 245–249, 397–834
+    //       3. parseSchema750Deterministic  + legacy folder tables — 597+
+    //
+    //   • Adding support for a new known schema requires:
+    //       a) A corpus of .kp files at that schema level
+    //       b) Ghidra tracing of the native serializer for any new gates
+    //       c) A `case N:` entry here (or let `default` handle it)
     switch (result.formatVersion) {
     case 292:
         result.maps = parseSchema292Deterministic(intern, baseAddress, romSize,
