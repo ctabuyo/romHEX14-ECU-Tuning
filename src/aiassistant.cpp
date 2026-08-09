@@ -427,6 +427,9 @@ public:
         m_textLabel->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::LinksAccessibleByMouse);
 
         if (role == User) {
+            // Keep sent messages right-aligned, but let them use the same
+            // readable column as assistant replies instead of content width.
+            m_bubbleFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
             m_textLabel->setTextFormat(Qt::PlainText);
             m_textLabel->setStyleSheet(
                 "color:#c9d1d9; background:#1a3a5f; border-radius:12px;"
@@ -434,12 +437,17 @@ public:
             bubbleLay->addWidget(m_textLabel);
 
             // User bubbles dock to the right next to the avatar.
-            hl->addStretch(1);
-            hl->addWidget(m_bubbleFrame, 0);
+            hl->addStretch(0);
+            hl->addWidget(m_bubbleFrame, 1);
             auto *av = new UserAvatar(28);
             hl->addWidget(av, 0, Qt::AlignTop);
 
         } else if (role == Assistant) {
+            // Assistant replies should use the readable column available beside
+            // the avatar.  A trailing stretch with a zero-stretch bubble makes
+            // Qt keep the frame at its content width, which turns long prose
+            // into a very narrow column.
+            m_bubbleFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
             m_textLabel->setTextFormat(Qt::RichText);
             m_textLabel->setStyleSheet(
                 "color:#c9d1d9; background:#1c2128; border-radius:12px;"
@@ -448,8 +456,8 @@ public:
 
             m_orb = new ClaudeOrb(28);
             hl->addWidget(m_orb, 0, Qt::AlignTop);
-            hl->addWidget(m_bubbleFrame, 0);
-            hl->addStretch(1);
+            hl->addWidget(m_bubbleFrame, 1);
+            hl->addStretch(0);
 
         } else if (role == Tool) {
             // Collapsible tool-call row, indented under the assistant gutter.
@@ -1069,6 +1077,8 @@ static QString friendlyToolCall(const QString &name, const QJsonObject &input)
         {"snapshot_version",      "💾", "Creating snapshot:",         "label"},
         {"restore_version",       "↩",  "Restoring version",          ""},
         {"list_maps",             "📋", "Listing all maps",           ""},
+        {"list_folders",          "📁", "Listing map folders",        ""},
+        {"get_folder_maps",       "📁", "Listing folder maps:",       "folder"},
         {"get_project_info",      "ℹ",  "Getting project info",       ""},
         {"list_linked_roms",      "🔗", "Listing linked ROMs",        ""},
         {"select_target_rom",     "🎯", "Switching target ROM",       ""},
@@ -1106,7 +1116,7 @@ AIAssistant::AIAssistant(QWidget *parent) : QWidget(parent)
         {"claude",    "Claude (Anthropic)",    "",                                                         "claude-sonnet-4-6",         true,  0},
         {"openai",    "OpenAI (GPT-4o)",       "https://api.openai.com/v1",                                "gpt-4o",                    false, 1},
         {"qwen",      "Qwen (Alibaba)",        "https://dashscope.aliyuncs.com/compatible-mode/v1",        "qwen-plus",                 false, 2},
-        {"deepseek",  "DeepSeek",              "https://api.deepseek.com/v1",                              "deepseek-chat",             false, 2},
+        {"deepseek",  "DeepSeek",              "https://api.deepseek.com/v1",                              "deepseek-v4-flash",         false, 2},
         {"gemini",    "Gemini (Google)",       "https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.0-flash",          false, 2},
         {"groq",      "Groq",                  "https://api.groq.com/openai/v1",                           "llama-3.3-70b-versatile",   false, 2},
         {"ollama",    "Ollama (local)",        "http://localhost:11434/v1",                                "llama3.2",                  false, 2},
@@ -1402,7 +1412,10 @@ void AIAssistant::manageContext()
     static constexpr int kMinKeep     = 6;
 
     auto sizeOf = [](const AIMessage &m) {
-        return m.content.size() + m.toolResultJson.size() + m.toolInputJson.size();
+        int n = m.content.size() + m.toolResultJson.size() + m.toolInputJson.size();
+        for (const AIToolCall &call : m.toolCalls)
+            n += call.id.size() + call.name.size() + call.argumentsJson.size();
+        return n;
     };
 
     int totalSize = 0;
@@ -1438,15 +1451,18 @@ void AIAssistant::manageContext()
     {
         if (lastUserIdx == 0) break;          // active task is already at the front
         const AIMessage &front = m_history.first();
-        // If removing this message would orphan a ToolResult (next message is a
-        // ToolResult referring to this ToolUse), drop the pair together.
-        if (front.role == AIMessage::ToolUse && m_history.size() >= 2
-            && m_history[1].role == AIMessage::ToolResult)
-        {
-            totalSize -= sizeOf(m_history[0]) + sizeOf(m_history[1]);
+        // Tool calls from a single provider response are followed by one or
+        // more tool results.  Drop the complete exchange together so an API
+        // never receives an orphaned result.
+        if (front.role == AIMessage::ToolUse) {
+            totalSize -= sizeOf(m_history[0]);
             m_history.removeFirst();
-            m_history.removeFirst();
-            if (lastUserIdx >= 0) lastUserIdx -= 2;
+            if (lastUserIdx >= 0) --lastUserIdx;
+            while (!m_history.isEmpty() && m_history.first().role == AIMessage::ToolResult) {
+                totalSize -= sizeOf(m_history.first());
+                m_history.removeFirst();
+                if (lastUserIdx >= 0) --lastUserIdx;
+            }
         } else {
             totalSize -= sizeOf(front);
             m_history.removeFirst();
@@ -1915,6 +1931,131 @@ void AIAssistant::retranslateUi()
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 
+QString AIAssistant::buildMapPreflight(const QString &userMessage)
+{
+    if (!m_project || !m_executor || userMessage.isEmpty()) return {};
+
+    // Only preflight explicit project-map names or folder names. This keeps
+    // broad tuning questions small while making names and hierarchy evidence
+    // available without leaving the provider to infer either from keywords.
+    const QString foldedQuestion = userMessage.toCaseFolded();
+    QStringList requestedNames;
+    for (const MapInfo &map : m_project->maps) {
+        const QString name = map.name.trimmed();
+        if (name.size() < 4 || !foldedQuestion.contains(name.toCaseFolded()))
+            continue;
+        bool alreadyAdded = false;
+        for (const QString &existing : requestedNames) {
+            if (existing.compare(name, Qt::CaseInsensitive) == 0) {
+                alreadyAdded = true;
+                break;
+            }
+        }
+        if (!alreadyAdded) requestedNames.append(name);
+        if (requestedNames.size() == 3) break;
+    }
+
+    const bool asksForFolder = QRegularExpression(
+        "\\b(folder|folders|directory|directories)\\b",
+        QRegularExpression::CaseInsensitiveOption).match(userMessage).hasMatch();
+    QStringList requestedFolders;
+    if (asksForFolder) {
+        for (const MapInfo &map : m_project->maps) {
+            const QString path = map.folderPath.trimmed();
+            if (path.isEmpty()) continue;
+            const QString leaf = path.section('/', -1);
+            if (!foldedQuestion.contains(path.toCaseFolded())
+                && !foldedQuestion.contains(leaf.toCaseFolded()))
+                continue;
+            if (!requestedFolders.contains(path)) requestedFolders.append(path);
+            if (requestedFolders.size() == 3) break;
+        }
+    }
+    if (requestedNames.isEmpty() && requestedFolders.isEmpty()) return {};
+
+    auto parseObject = [](const QString &json) {
+        const QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
+        return doc.isObject() ? doc.object() : QJsonObject{};
+    };
+    auto compactAxis = [](QJsonObject axis) {
+        const QJsonArray values = axis.value("values").toArray();
+        constexpr int kMaxAxisValues = 64;
+        if (values.size() <= kMaxAxisValues) return axis;
+
+        QJsonArray preview;
+        for (int i = 0; i < 32; ++i) preview.append(values.at(i));
+        for (int i = values.size() - 32; i < values.size(); ++i) preview.append(values.at(i));
+        axis["values"] = preview;
+        axis["truncated"] = true;
+        axis["fullPoints"] = values.size();
+        return axis;
+    };
+
+    QJsonArray maps;
+    constexpr int kMaxMaps = 8;
+    for (const QString &name : requestedNames) {
+        for (const MapInfo &map : m_project->maps) {
+            if (map.name.compare(name, Qt::CaseInsensitive) != 0) continue;
+            if (maps.size() == kMaxMaps) break;
+
+            const QString selector = QString("@0x%1").arg(map.rawAddress, 8, 16, QChar('0'));
+            const QJsonObject input{{"name", selector}};
+            QJsonObject entry;
+            entry["selector"] = selector;
+            entry["folderPath"] = map.folderPath;
+            entry["metadata"] = parseObject(m_executor->execute("get_map_info", input));
+
+            QJsonObject axes = parseObject(m_executor->execute("get_axis_values", input));
+            if (axes.contains("xAxis")) axes["xAxis"] = compactAxis(axes["xAxis"].toObject());
+            if (axes.contains("yAxis")) axes["yAxis"] = compactAxis(axes["yAxis"].toObject());
+            entry["axes"] = axes;
+
+            const qint64 cells = qint64(map.dimensions.x) * map.dimensions.y;
+            if (cells <= 256) {
+                entry["values"] = parseObject(m_executor->execute("get_map_values", input));
+            } else {
+                entry["statistics"] = parseObject(m_executor->execute("get_map_statistics", input));
+                entry["valuesNote"] = "Grid omitted from preflight because it exceeds 256 cells.";
+            }
+            maps.append(entry);
+        }
+        if (maps.size() == kMaxMaps) break;
+    }
+
+    QJsonArray folders;
+    constexpr int kMaxFolderMaps = 64;
+    for (const QString &path : requestedFolders) {
+        QJsonArray folderMaps;
+        int totalMaps = 0;
+        for (const MapInfo &map : m_project->maps) {
+            if (map.folderPath.compare(path, Qt::CaseInsensitive) != 0) continue;
+            ++totalMaps;
+            if (folderMaps.size() == kMaxFolderMaps) continue;
+            QJsonObject entry;
+            entry["name"] = map.name;
+            entry["description"] = map.description;
+            entry["type"] = map.type;
+            entry["selector"] = QString("@0x%1").arg(map.rawAddress, 8, 16, QChar('0'));
+            entry["dimensions"] = QString("%1x%2").arg(map.dimensions.y).arg(map.dimensions.x);
+            entry["unit"] = map.scaling.unit;
+            folderMaps.append(entry);
+        }
+        QJsonObject folder;
+        folder["path"] = path;
+        folder["mapCount"] = totalMaps;
+        folder["maps"] = folderMaps;
+        if (totalMaps > kMaxFolderMaps) folder["truncated"] = true;
+        folders.append(folder);
+    }
+    if (maps.isEmpty() && folders.isEmpty()) return {};
+
+    QJsonObject evidence;
+    evidence["source"] = "host-side read-only map preflight";
+    if (!maps.isEmpty()) evidence["maps"] = maps;
+    if (!folders.isEmpty()) evidence["folders"] = folders;
+    return QString::fromUtf8(QJsonDocument(evidence).toJson(QJsonDocument::Compact));
+}
+
 void AIAssistant::buildSystemPrompt()
 {
     QString projectTitle = m_project ? m_project->fullTitle() : "No project loaded";
@@ -1938,7 +2079,11 @@ void AIAssistant::buildSystemPrompt()
         "then call the appropriate write tool (batch_modify_maps, set_map_values, zero_map, etc.) immediately. "
         "Do NOT ask permission, do NOT wait — call the tool now. "
         "The host application gates writes via a permission mode and surfaces a confirmation card if needed.\n"
-        "2. For map questions: use get_map_values, get_map_info, or describe_map_shape — never guess values.\n"
+        "2. For map questions: inspect the project with list_maps or search_maps, then use get_map_values, "
+        "get_map_info, get_axis_values, or describe_map_shape — never guess values or a map's use. "
+        "For duplicate names, list the matching maps first and use the returned address/mapId as an exact selector "
+        "(name '@0x...'). For folder or directory questions, use list_folders and get_folder_maps; never infer "
+        "folder membership from map-name searches.\n"
         "3. NEVER say 'I am ready', 'I am your AI assistant', 'how can I help', introduce yourself, "
         "ask what the user wants, or list your capabilities. This applies on every turn, including after "
         "tool results — keep working on the task in the most recent user message until it is complete.\n"
@@ -1948,13 +2093,29 @@ void AIAssistant::buildSystemPrompt()
         "5. After any modification: call append_tuning_note to log what changed and why, then summarize "
         "what was done in ≤2 sentences. Do not ask a follow-up question unless the user explicitly asked for one.\n"
         "6. Answers: ≤3 sentences unless explaining map data.\n"
-        "7. If the most recent tool result contains an error, address it directly — never restart the conversation.\n\n"
+        "7. If the most recent tool result contains an error, address it directly — never restart the conversation.\n"
+        "8. Never claim that map data or tools are unavailable unless an attempted tool call returned that error. "
+        "Do not invent A2L/XDF data, disassembler cross-references, routines, or datasets: they are not available "
+        "through this assistant. State only what tool results establish and label any general ECU knowledge as general.\n\n"
     )
     .arg(projectTitle)
     .arg(romSize)
     .arg(mapCount)
     .arg(selMap)
     .arg(romVersion);
+
+    for (auto it = m_history.crbegin(); it != m_history.crend(); ++it) {
+        if (it->role != AIMessage::User) continue;
+        const QString evidence = buildMapPreflight(it->content);
+        if (!evidence.isEmpty()) {
+            m_systemPrompt +=
+                "HOST-PREFLIGHT EVIDENCE: The host has already read these exact project maps and folders locally. "
+                "Use this evidence; do not claim map or folder inspection is unavailable. Each selector is an exact "
+                "map identity, not a display name. Code/disassembler cross-references are not included.\n"
+                + evidence + "\n\n";
+        }
+        break;
+    }
 
     // Verbose mode: instruct the AI to narrate its reasoning
     if (m_verboseMode) {
@@ -2090,10 +2251,16 @@ QString AIAssistant::classifyIntent(const QString &msg)
 
 QStringList AIAssistant::toolsForCategory(const QString &cat)
 {
-    if (cat == "explain") return {}; // No tools needed
+    // Explanations about this project still need evidence from its maps.  Sending
+    // a focused read set prevents the provider from substituting generic ECU
+    // knowledge for the actual ROM data.
+    if (cat == "explain")
+        return {"list_maps", "list_folders", "get_folder_maps", "search_maps", "confidence_search", "get_map_info",
+                "get_map_values", "get_original_values", "get_axis_values",
+                "get_map_statistics", "get_modified_maps", "get_project_info"};
 
     if (cat == "read")
-        return {"list_maps", "search_maps", "confidence_search", "get_map_info", "get_map_values",
+        return {"list_maps", "list_folders", "get_folder_maps", "search_maps", "confidence_search", "get_map_info", "get_map_values",
                 "get_original_values", "get_map_statistics", "get_modified_maps", "get_project_info",
                 "get_tuning_notes"};
 
@@ -2162,6 +2329,7 @@ AIProvider *AIAssistant::createProvider(int index)
         c->setModel(model);
         c->setBaseUrl(baseUrl.isEmpty() ? cfg.baseUrl : baseUrl);
         c->setProviderLabel(cfg.label);
+        c->setDeepSeek(cfg.name == "deepseek");
         prov = c;
     }
     return prov;
@@ -2175,7 +2343,7 @@ AIProvider *AIAssistant::createOneShotProvider(QObject *parent)
         {"claude",   "",                                    "claude-sonnet-4-6",       true},
         {"openai",   "https://api.openai.com/v1",           "gpt-4o",                  false},
         {"qwen",     "https://dashscope.aliyuncs.com/compatible-mode/v1", "qwen-plus", false},
-        {"deepseek", "https://api.deepseek.com/v1",         "deepseek-chat",           false},
+        {"deepseek", "https://api.deepseek.com/v1",         "deepseek-v4-flash",       false},
         {"gemini",   "https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.0-flash", false},
         {"groq",     "https://api.groq.com/openai/v1",      "llama-3.3-70b-versatile", false},
         {"ollama",   "http://localhost:11434/v1",           "llama3.2",                false},
@@ -2210,6 +2378,7 @@ AIProvider *AIAssistant::createOneShotProvider(QObject *parent)
         c->setApiKey(apiKey);
         c->setModel(model);
         c->setBaseUrl(baseUrl.isEmpty() ? cfg.baseUrl : baseUrl);
+        c->setDeepSeek(cfg.name == "deepseek");
         return c;
     }
 }
@@ -2232,6 +2401,7 @@ void AIAssistant::onClearChat()
     m_history.clear();
     m_streamingBubble = nullptr;
     m_accumulatedText.clear();
+    m_pendingReasoningContent.clear();
     m_pendingToolCalls.clear();
     m_hadToolCalls = false;
     m_sessionStarted = false;   // back to welcome until next user send
@@ -2415,6 +2585,7 @@ void AIAssistant::executeRecipe(const TuningRecipe &recipe)
                     m_accumulatedText += chunk;
                 }, Qt::QueuedConnection);
             },
+            [](const QString &) {}, // reasoning is not needed without tools
             [](const QString &, const QString &, const QJsonObject &) {}, // no tool calls
             [this, candidates, recipe]() {
                 QMetaObject::invokeMethod(this, [this, candidates, recipe]() {
@@ -3015,6 +3186,12 @@ void AIAssistant::doSend()
             }, Qt::QueuedConnection);
         },
 
+        [this](const QString &reasoning) {
+            QMetaObject::invokeMethod(this, [this, reasoning]() {
+                m_pendingReasoningContent = reasoning;
+            }, Qt::QueuedConnection);
+        },
+
         // onToolCall
         [this](const QString &callId, const QString &name, const QJsonObject &input) {
             QMetaObject::invokeMethod(this, [this, callId, name, input]() {
@@ -3037,9 +3214,6 @@ void AIAssistant::doSend()
                         m_streamingBubble->setMarkdownContent(m_accumulatedText);
                 }
 
-                if (!m_accumulatedText.isEmpty())
-                    m_history.append({AIMessage::Assistant, m_accumulatedText, {}, {}, {}, {}, {}});
-                m_accumulatedText.clear();
                 m_streamingBubble = nullptr;
                 showTyping(false);
 
@@ -3049,8 +3223,23 @@ void AIAssistant::doSend()
                     m_pendingToolCalls.clear();
                     m_hadToolCalls = false;
 
+                    // Preserve all tool calls from one provider response as a
+                    // single assistant turn.  DeepSeek requires every matching
+                    // tool result to follow that exact turn.
+                    AIMessage useMsg;
+                    useMsg.role = AIMessage::ToolUse;
+                    useMsg.content = m_accumulatedText;
+                    useMsg.reasoningContent = m_pendingReasoningContent;
                     for (const auto &ptc : batch) {
-                        handleToolCall(ptc.callId, ptc.name, ptc.input);
+                        useMsg.toolCalls.append({ptc.callId, ptc.name,
+                            QString::fromUtf8(QJsonDocument(ptc.input).toJson(QJsonDocument::Compact))});
+                    }
+                    m_history.append(useMsg);
+                    m_accumulatedText.clear();
+                    m_pendingReasoningContent.clear();
+
+                    for (const auto &ptc : batch) {
+                        handleToolCall(ptc.callId, ptc.name, ptc.input, false);
                         if (m_state == AssistantState::AWAITING_CONFIRMATION)
                             return;  // Confirmation accept/reject handler will resume
                     }
@@ -3061,6 +3250,10 @@ void AIAssistant::doSend()
                         if (m_state == AssistantState::WORKING) doSend();
                     });
                 } else {
+                    if (!m_accumulatedText.isEmpty())
+                        m_history.append({AIMessage::Assistant, m_accumulatedText, {}, {}, {}, {}, {}});
+                    m_accumulatedText.clear();
+                    m_pendingReasoningContent.clear();
                     // No more tool calls — done
                     transitionTo(AssistantState::IDLE);
                 }
@@ -3107,15 +3300,18 @@ void AIAssistant::doSend()
     );
 }
 
-void AIAssistant::handleToolCall(const QString &callId, const QString &name, const QJsonObject &input)
+void AIAssistant::handleToolCall(const QString &callId, const QString &name, const QJsonObject &input,
+                                 bool recordToolUse)
 {
     QString inputJson = QString::fromUtf8(QJsonDocument(input).toJson(QJsonDocument::Compact));
-    AIMessage useMsg;
-    useMsg.role          = AIMessage::ToolUse;
-    useMsg.toolCallId    = callId;
-    useMsg.toolName      = name;
-    useMsg.toolInputJson = inputJson;
-    m_history.append(useMsg);
+    if (recordToolUse) {
+        AIMessage useMsg;
+        useMsg.role          = AIMessage::ToolUse;
+        useMsg.toolCallId    = callId;
+        useMsg.toolName      = name;
+        useMsg.toolInputJson = inputJson;
+        m_history.append(useMsg);
+    }
 
     // Show friendly tool call label
     {
@@ -3338,7 +3534,7 @@ void AIAssistant::onSettingsClicked()
 
     QSettings s("CT14", "romHEX14");
     s.beginGroup(kSettingsGroup);
-    QString savedKey     = s.value(cfg.name + "/apiKey").toString();
+    QString savedKey     = QString::fromUtf8(deobfuscate(s.value(cfg.name + "/apiKey").toByteArray()));
     QString savedModel   = s.value(cfg.name + "/model", cfg.defaultModel).toString();
     QString savedBaseUrl = s.value(cfg.name + "/baseUrl", cfg.baseUrl).toString();
     s.endGroup();

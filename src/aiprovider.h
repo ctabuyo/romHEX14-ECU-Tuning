@@ -12,14 +12,22 @@
 #include <QJsonArray>
 #include <functional>
 
+struct AIToolCall {
+    QString id;
+    QString name;
+    QString argumentsJson;
+};
+
 struct AIMessage {
     enum Role { System, User, Assistant, ToolUse, ToolResult };
     Role    role    = User;
     QString content;
+    QString reasoningContent;
     // For ToolUse (assistant emitting a tool call)
     QString toolCallId;
     QString toolName;
     QString toolInputJson;   // raw JSON string
+    QVector<AIToolCall> toolCalls; // all calls emitted in one assistant turn
     // For ToolResult
     QString toolResultId;    // matches toolCallId
     QString toolResultName;
@@ -38,6 +46,7 @@ class AIProvider : public QObject {
 public:
     enum class State { Idle, Streaming, Error };
     using ChunkFn    = std::function<void(const QString &text)>;
+    using ReasoningFn = std::function<void(const QString &text)>;
     using ToolCallFn = std::function<void(const QString &callId, const QString &name, const QJsonObject &input)>;
     using DoneFn     = std::function<void()>;
     using ErrorFn    = std::function<void(const QString &msg)>;
@@ -57,6 +66,7 @@ public:
                       const QVector<AIMessage> &messages,
                       const QVector<AIToolDef> &tools,
                       ChunkFn    onChunk,
+                      ReasoningFn onReasoning,
                       ToolCallFn onToolCall,
                       DoneFn     onDone,
                       ErrorFn    onError) = 0;
@@ -79,7 +89,7 @@ public:
     void send(const QString &systemPrompt,
               const QVector<AIMessage> &messages,
               const QVector<AIToolDef> &tools,
-              ChunkFn onChunk, ToolCallFn onToolCall,
+              ChunkFn onChunk, ReasoningFn onReasoning, ToolCallFn onToolCall,
               DoneFn onDone, ErrorFn onError) override;
     void abort() override;
 
@@ -118,11 +128,12 @@ public:
     void setModel(const QString &m) override    { m_model = m; }
     void setBaseUrl(const QString &u) override  { m_baseUrl = u; }
     void setProviderLabel(const QString &l)     { m_providerLabel = l; }
+    void setDeepSeek(bool on)                   { m_isDeepSeek = on; }
 
     void send(const QString &systemPrompt,
               const QVector<AIMessage> &messages,
               const QVector<AIToolDef> &tools,
-              ChunkFn onChunk, ToolCallFn onToolCall,
+              ChunkFn onChunk, ReasoningFn onReasoning, ToolCallFn onToolCall,
               DoneFn onDone, ErrorFn onError) override;
     void abort() override;
 
@@ -131,6 +142,7 @@ private:
     QString m_model = "gpt-4o";
     QString m_baseUrl = "https://api.openai.com/v1";
     QString m_providerLabel = "OpenAI";
+    bool    m_isDeepSeek = false;
     class QNetworkAccessManager *m_nam   = nullptr;
     class QNetworkReply          *m_reply = nullptr;
     QString m_sseBuffer;
@@ -138,6 +150,7 @@ private:
     struct PendingCall { QString id; QString name; QString argsJson; int index = 0; };
     QVector<PendingCall> m_pendingCalls;
     ChunkFn    m_onChunk;
+    ReasoningFn m_onReasoning;
     ToolCallFn m_onToolCall;
     DoneFn     m_onDone;
     ErrorFn    m_onError;
@@ -146,4 +159,5 @@ private:
     void processDelta(const QJsonObject &delta);
 
     bool m_errorFired = false;
+    QString m_reasoningContent;
 };
