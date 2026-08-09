@@ -91,19 +91,15 @@ struct CompuMethod {
             }
             isFloat = format.contains('f') || format.contains('e');
         } else if (type == Type::Linear && linA != 0.0 && linA != 1.0) {
-            // No format string (e.g. OLS import) — derive precision from factor.
-            // Count decimal digits needed to represent factor * max_uint16 accurately.
+            // WinOLS automatic decimal precision heuristic:
+            // Derives precision using floor(-log10(|factor|)) capped at 3 decimal places.
             double a = std::abs(linA);
-            if      (a < 0.0001)  prec = 6;
-            else if (a < 0.001)   prec = 5;
-            else if (a < 0.01)    prec = 4;
-            else if (a < 0.1)     prec = 3;
-            else if (a < 1.0)     prec = 2;
-            else                  prec = 1;
+            int p = int(std::floor(-std::log10(a)));
+            prec = qBound(0, p, 3);
         }
         if (!isFloat && prec == 0)
             return QString::number((long long)phys);
-        return QString::number(phys, 'f', qBound(0, prec, 6));
+        return QString::number(phys, 'f', qBound(0, prec, 100));
     }
 };
 
@@ -141,8 +137,10 @@ struct AxisInfo {
 
 struct MapInfo {
     QString name;
+    QString id;            // WinOLS Technical Identifier / Map ID (e.g. "med17.9_compress")
     QString description;
     QString type;          // MAP, CURVE, VALUE, VAL_BLK
+    int markerPos = 0;     // OLS record marker file offset
     uint32_t rawAddress = 0;
     uint32_t address = 0;  // file offset (rawAddress - baseAddress)
     int length = 0;

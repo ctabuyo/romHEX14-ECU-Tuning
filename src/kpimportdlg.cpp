@@ -23,6 +23,7 @@
 #include <QColor>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QApplication>
 #include <algorithm>
 #include <cmath>
 
@@ -35,15 +36,17 @@ RomOverviewBar::RomOverviewBar(int romSize, const QVector<MapInfo> &maps,
     : QWidget(parent), m_romSize(romSize), m_maps(maps)
 {
     setMouseTracking(true);
+    setCursor(Qt::SizeAllCursor);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    setFixedHeight(32);
-    setToolTip(tr("ROM overview — click a region to scroll to that map"));
+    setFixedHeight(46);
+    setToolTip(tr("ROM overview — Drag top bar left or right to shift map pack offset over the target ROM"));
 }
 
-void RomOverviewBar::setOffset(int32_t offset)
+void RomOverviewBar::setOffsets(int32_t offset1, int32_t offset2)
 {
-    if (m_offset != offset) {
-        m_offset = offset;
+    if (m_offset1 != offset1 || m_offset2 != offset2) {
+        m_offset1 = offset1;
+        m_offset2 = offset2;
         update();
     }
 }
@@ -57,65 +60,174 @@ void RomOverviewBar::paintEvent(QPaintEvent *)
     const int h = height();
     const double romSize = (m_romSize > 0) ? (double)m_romSize : 1.0;
 
-    // Background — dark ROM area
-    p.fillRect(rect(), QColor(0x16, 0x1b, 0x22));
+    // Dual-track layout:
+    // Top track (H=18): Imported Map Pack (moves with Net Offset)
+    // Bottom track (H=18): Target Project ROM (fixed baseline 0x0 .. romSize)
+    const int trackH = (h - 6) / 2; // 20px each
+    const int topY = 2;
+    const int botY = topY + trackH + 2;
 
-    // Draw a subtle border
+    // Background
+    p.fillRect(rect(), QColor(0x0d, 0x11, 0x17));
+
+    // Top track background (Imported Map Pack - Movable)
+    p.fillRect(0, topY, w, trackH, QColor(0x16, 0x1b, 0x22));
     p.setPen(QColor(0x30, 0x36, 0x3d));
-    p.drawRect(0, 0, w - 1, h - 1);
+    p.drawRect(0, topY, w - 1, trackH - 1);
+
+    // Bottom track background (Target ROM - Fixed Baseline)
+    p.fillRect(0, botY, w, trackH, QColor(0x0d, 0x11, 0x17));
+    p.setPen(QColor(0x21, 0x26, 0x2d));
+    p.drawRect(0, botY, w - 1, trackH - 1);
+
+    // Track Labels
+    QFont labelFont = p.font();
+    labelFont.setPixelSize(8);
+    labelFont.setBold(true);
+    p.setFont(labelFont);
+
+    int32_t netOffset = m_offset1 - m_offset2;
+
+    p.setPen(QColor(0x8b, 0x94, 0x9e));
+    p.drawText(4, topY + 12, tr("IMPORTED MAP PACK (MOVABLE)"));
+
+    QString romEndStr = QString("TARGET ROM (0x0 .. 0x%1)").arg(m_romSize, 0, 16).toUpper();
+    p.drawText(4, botY + 12, romEndStr);
 
     if (m_maps.isEmpty() || m_romSize <= 0) return;
 
-    // Draw each map as a colored block
+    // Draw map blocks
     for (int i = 0; i < m_maps.size(); ++i) {
         const MapInfo &mi = m_maps[i];
-        int32_t addr = (int32_t)mi.address + m_offset;
-        if (addr < 0) continue;
 
         int len = mi.length > 0 ? mi.length : (mi.dimensions.x * mi.dimensions.y * mi.dataSize);
         if (len <= 0) len = mi.dataSize;
 
-        double x0 = ((double)addr / romSize) * w;
-        double x1 = (((double)addr + len) / romSize) * w;
-        double bw = x1 - x0;
-        if (bw < 1.5) bw = 1.5;
-
         QColor col;
         if (mi.type == QStringLiteral("MAP"))
-            col = QColor(0x23, 0x86, 0x36, 200);   // green
+            col = QColor(0x23, 0x86, 0x36, 220);   // green
         else if (mi.type == QStringLiteral("CURVE"))
-            col = QColor(0x1f, 0x6f, 0xeb, 200);   // blue
+            col = QColor(0x1f, 0x6f, 0xeb, 220);   // blue
         else
-            col = QColor(0xd2, 0x9e, 0x22, 200);   // yellow/value
+            col = QColor(0xd2, 0x9e, 0x22, 220);   // yellow/value
 
-        // Check if the map falls outside ROM bounds
-        if (addr + len > m_romSize)
-            col = QColor(0xda, 0x36, 0x33, 200);   // red = out of range
+        // 1. Bottom Track (Target ROM Baseline) — STATIONARY, NEVER MOVES
+        if (mi.address < (uint32_t)m_romSize) {
+            double rx0 = ((double)mi.address / romSize) * w;
+            double rx1 = (((double)mi.address + len) / romSize) * w;
+            double rbw = qMax(1.5, rx1 - rx0);
+            QColor botCol = col;
+            botCol.setAlpha(100);
+            p.fillRect(QRectF(rx0, botY + 1, rbw, trackH - 2), botCol);
+        }
 
-        p.fillRect(QRectF(x0, 2, bw, h - 4), col);
+        // 2. Top Track (Imported Map Pack) — MOVES / SLIDES with netOffset
+        int64_t topAddr = (int64_t)mi.address + netOffset;
+        double tx0 = ((double)topAddr / romSize) * w;
+        double tx1 = (((double)topAddr + len) / romSize) * w;
+        double tbw = qMax(1.5, tx1 - tx0);
+
+        bool outOfBounds = (topAddr < 0 || topAddr + len > m_romSize);
+        QColor topCol = outOfBounds ? QColor(0xda, 0x36, 0x33, 220) : col; // Red if out of bounds
+
+        p.fillRect(QRectF(tx0, topY + 1, tbw, trackH - 2), topCol);
     }
 }
 
 void RomOverviewBar::mousePressEvent(QMouseEvent *event)
 {
     if (m_romSize <= 0 || m_maps.isEmpty()) return;
+    if (event->button() == Qt::LeftButton) {
+        m_dragStartPos = event->pos();
+        m_dragStartNetOffset = m_offset1 - m_offset2;
+        m_isDragging = false;
+    }
+}
 
-    double clickFrac = (double)event->pos().x() / width();
-    double clickAddr = clickFrac * m_romSize;
+void RomOverviewBar::mouseMoveEvent(QMouseEvent *event)
+{
+    if (m_romSize <= 0 || m_maps.isEmpty()) return;
+    if (event->buttons() & Qt::LeftButton) {
+        int deltaX = event->pos().x() - m_dragStartPos.x();
+        if (!m_isDragging && std::abs(deltaX) > QApplication::startDragDistance()) {
+            m_isDragging = true;
+        }
+        if (m_isDragging) {
+            double romBytesPerPixel = (double)m_romSize / qMax(1, width());
+            int32_t deltaBytes = (int32_t)std::round(deltaX * romBytesPerPixel);
+            int32_t rawNetOffset = m_dragStartNetOffset + deltaBytes;
 
-    // Find closest map to click position
-    int bestIdx = -1;
-    double bestDist = 1e18;
-    for (int i = 0; i < m_maps.size(); ++i) {
-        double addr = (double)((int32_t)m_maps[i].address + m_offset);
-        double dist = std::abs(addr - clickAddr);
-        if (dist < bestDist) {
-            bestDist = dist;
-            bestIdx = i;
+            // Proximity snapping threshold (~10 pixels)
+            double snapThresholdBytes = 10.0 * romBytesPerPixel;
+
+            // Snap targets: 0, common ECU base address shifts
+            static const int32_t baseAddrs[] = {
+                0,
+                (int32_t)-0x80000000LL,
+                (int32_t)-0x80040000LL,
+                (int32_t)-0x80080000LL,
+                (int32_t)-0x80100000LL,
+                (int32_t)-0x80800000LL,
+                (int32_t)-0xA0000000LL,
+                (int32_t)-0xA0040000LL,
+                (int32_t)-0x00400000LL,
+                (int32_t)-0x00800000LL,
+            };
+
+            int32_t finalOffset = rawNetOffset;
+            double bestDist = snapThresholdBytes;
+            m_isSnapped = false;
+
+            for (int32_t base : baseAddrs) {
+                double dist = std::abs((double)rawNetOffset - (double)base);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    finalOffset = base;
+                    m_isSnapped = true;
+                }
+            }
+
+            // Also check alignment of each map's start address to 0x0
+            for (const MapInfo &mi : m_maps) {
+                int32_t alignTarget = -(int32_t)mi.address;
+                double dist = std::abs((double)rawNetOffset - (double)alignTarget);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    finalOffset = alignTarget;
+                    m_isSnapped = true;
+                }
+            }
+
+            emit offsetDragged(finalOffset);
         }
     }
-    if (bestIdx >= 0)
-        emit mapClicked(bestIdx);
+}
+
+void RomOverviewBar::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        if (!m_isDragging && m_romSize > 0 && !m_maps.isEmpty()) {
+            double clickFrac = (double)event->pos().x() / width();
+            double clickAddr = clickFrac * m_romSize;
+
+            int32_t netOffset = m_offset1 - m_offset2;
+            int bestIdx = -1;
+            double bestDist = 1e18;
+            for (int i = 0; i < m_maps.size(); ++i) {
+                double addr = (double)((int32_t)m_maps[i].address + netOffset);
+                double dist = std::abs(addr - clickAddr);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestIdx = i;
+                }
+            }
+            if (bestIdx >= 0)
+                emit mapClicked(bestIdx);
+        }
+        m_isDragging = false;
+        m_isSnapped = false;
+        update();
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -244,11 +356,21 @@ void KPImportDlg::buildUi(const KPVehicleInfo &info, const QVector<MapInfo> &map
     root->addWidget(m_overviewBar);
     root->addSpacing(4);
 
-    // Connect bar click to table scroll
+    // Connect bar click to table scroll and drag to offset update
     connect(m_overviewBar, &RomOverviewBar::mapClicked, this, [this](int idx) {
         if (m_table && idx >= 0 && idx < m_table->rowCount())
             m_table->scrollToItem(m_table->item(idx, 1),
                                   QAbstractItemView::PositionAtCenter);
+    });
+
+    connect(m_overviewBar, &RomOverviewBar::offsetDragged, this, [this](int32_t netOffset) {
+        if (netOffset >= 0) {
+            m_offset1Edit->setText(QString::number(netOffset, 16).toUpper());
+            m_offset2Edit->setText(QStringLiteral("0"));
+        } else {
+            m_offset1Edit->setText(QStringLiteral("0"));
+            m_offset2Edit->setText(QString::number(-netOffset, 16).toUpper());
+        }
     });
 
     // ── 3. Offset configuration ─────────────────────────────────────────────
@@ -290,11 +412,16 @@ void KPImportDlg::buildUi(const KPVehicleInfo &info, const QVector<MapInfo> &map
     dupeLayout->setSpacing(2);
 
     m_chkAvoidDupes = new QCheckBox(tr("Avoid duplicates"), this);
-    m_chkAvoidDupes->setChecked(true);
+    m_chkAvoidDupes->setChecked(false); // Default: unchecked
     dupeLayout->addWidget(m_chkAvoidDupes);
 
     auto *dupeSubLayout = new QHBoxLayout();
     dupeSubLayout->setContentsMargins(20, 0, 0, 0);
+    dupeSubLayout->setSpacing(6);
+
+    auto *whenComparingLabel = new QLabel(tr("when comparing:"), this);
+    dupeSubLayout->addWidget(whenComparingLabel);
+
     m_chkIgnoreAxis = new QCheckBox(tr("Ignore axis"), this);
     m_chkIgnoreTexts = new QCheckBox(tr("Ignore texts"), this);
     dupeSubLayout->addWidget(m_chkIgnoreAxis);
@@ -302,7 +429,13 @@ void KPImportDlg::buildUi(const KPVehicleInfo &info, const QVector<MapInfo> &map
     dupeSubLayout->addStretch();
     dupeLayout->addLayout(dupeSubLayout);
 
-    connect(m_chkAvoidDupes, &QCheckBox::toggled, this, [this](bool on) {
+    // Initial disabled state since m_chkAvoidDupes is unchecked by default
+    whenComparingLabel->setEnabled(false);
+    m_chkIgnoreAxis->setEnabled(false);
+    m_chkIgnoreTexts->setEnabled(false);
+
+    connect(m_chkAvoidDupes, &QCheckBox::toggled, this, [this, whenComparingLabel](bool on) {
+        whenComparingLabel->setEnabled(on);
         m_chkIgnoreAxis->setEnabled(on);
         m_chkIgnoreTexts->setEnabled(on);
     });
@@ -316,30 +449,27 @@ void KPImportDlg::buildUi(const KPVehicleInfo &info, const QVector<MapInfo> &map
     optLayout->setSpacing(2);
 
     m_chkMapValues = new QCheckBox(tr("Map values"), this);
-    m_chkMapValues->setChecked(true);
+    m_chkMapValues->setChecked(false); // Default: unchecked
     optLayout->addWidget(m_chkMapValues);
 
     m_chkMapStruct = new QCheckBox(tr("Map structure"), this);
-    m_chkMapStruct->setChecked(true);
+    m_chkMapStruct->setChecked(true); // Default: checked
     optLayout->addWidget(m_chkMapStruct);
 
-    auto *structSubLayout = new QHBoxLayout();
+    auto *structSubLayout = new QVBoxLayout();
     structSubLayout->setContentsMargins(20, 0, 0, 0);
-    m_chkStructDims = new QCheckBox(tr("Dimensions"), this);
-    m_chkStructDims->setChecked(true);
-    m_chkStructPrec = new QCheckBox(tr("Precision"), this);
-    m_chkStructPrec->setChecked(true);
-    m_chkStructSign = new QCheckBox(tr("Signed"), this);
-    structSubLayout->addWidget(m_chkStructDims);
-    structSubLayout->addWidget(m_chkStructPrec);
-    structSubLayout->addWidget(m_chkStructSign);
-    structSubLayout->addStretch();
+    structSubLayout->setSpacing(2);
+    m_chkNoHexdump = new QCheckBox(tr("Also maps for which no hexdump is available"), this);
+    m_chkNoHexdump->setChecked(false); // Default: unchecked
+    m_chkEmptyFolders = new QCheckBox(tr("Also import empty folders"), this);
+    m_chkEmptyFolders->setChecked(true); // Default: checked
+    structSubLayout->addWidget(m_chkNoHexdump);
+    structSubLayout->addWidget(m_chkEmptyFolders);
     optLayout->addLayout(structSubLayout);
 
     connect(m_chkMapStruct, &QCheckBox::toggled, this, [this](bool on) {
-        m_chkStructDims->setEnabled(on);
-        m_chkStructPrec->setEnabled(on);
-        m_chkStructSign->setEnabled(on);
+        m_chkNoHexdump->setEnabled(on);
+        m_chkEmptyFolders->setEnabled(on);
     });
 
     root->addWidget(optGroup);
@@ -368,18 +498,25 @@ void KPImportDlg::buildUi(const KPVehicleInfo &info, const QVector<MapInfo> &map
     root->addWidget(markGroup);
 
     // ── 7. Map table ─────────────────────────────────────────────────────────
-    m_table = new QTableWidget(maps.size(), 5, this);
+    m_table = new QTableWidget(maps.size(), 8, this);
     m_table->setHorizontalHeaderLabels({tr(""), tr("Name"), tr("Type"),
-                                        tr("Address"), tr("Description")});
+                                        tr("Address"), tr("Size"), tr("Unit"),
+                                        tr("Folder"), tr("Description")});
     m_table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
     m_table->setColumnWidth(0, 28);
     m_table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Interactive);
-    m_table->setColumnWidth(1, 200);
+    m_table->setColumnWidth(1, 180);
     m_table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);
-    m_table->setColumnWidth(2, 50);
+    m_table->setColumnWidth(2, 45);
     m_table->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Fixed);
-    m_table->setColumnWidth(3, 100);
-    m_table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
+    m_table->setColumnWidth(3, 90);
+    m_table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Fixed);
+    m_table->setColumnWidth(4, 70);
+    m_table->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Fixed);
+    m_table->setColumnWidth(5, 65);
+    m_table->horizontalHeader()->setSectionResizeMode(6, QHeaderView::Interactive);
+    m_table->setColumnWidth(6, 110);
+    m_table->horizontalHeader()->setSectionResizeMode(7, QHeaderView::Stretch);
     m_table->verticalHeader()->setVisible(false);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -424,11 +561,26 @@ void KPImportDlg::buildUi(const KPVehicleInfo &info, const QVector<MapInfo> &map
             return item;
         };
 
+        QString sizeText = QString("%1x%2").arg(m.dimensions.x).arg(m.dimensions.y);
+        int totalBytes = m.length > 0 ? m.length : (m.dimensions.x * m.dimensions.y * m.dataSize);
+        QString sizeToolTip = tr("%1x%2 elements (%3 bytes, %4-bit %5)")
+            .arg(m.dimensions.x)
+            .arg(m.dimensions.y)
+            .arg(totalBytes)
+            .arg(m.dataSize * 8)
+            .arg(m.dataSigned ? tr("signed") : tr("unsigned"));
+
+        auto *sizeItem = makeItem(sizeText);
+        sizeItem->setToolTip(sizeToolTip);
+
         m_table->setItem(row, 1, makeItem(m.name));
         m_table->setItem(row, 2, makeItem(typeLabel));
         m_table->setItem(row, 3, makeItem(
             QString("0x%1").arg(m.address, 6, 16, QChar('0')).toUpper()));
-        m_table->setItem(row, 4, makeItem(m.description));
+        m_table->setItem(row, 4, sizeItem);
+        m_table->setItem(row, 5, makeItem(m.scaling.unit));
+        m_table->setItem(row, 6, makeItem(m.folderPath));
+        m_table->setItem(row, 7, makeItem(m.description));
     }
 
     root->addWidget(m_table, 1);
@@ -481,10 +633,16 @@ int32_t KPImportDlg::totalOffset() const
 
 void KPImportDlg::onOffsetChanged()
 {
-    int32_t off = totalOffset();
+    bool ok1 = false, ok2 = false;
+    int32_t off1 = (int32_t)m_offset1Edit->text().trimmed().toUInt(&ok1, 16);
+    int32_t off2 = (int32_t)m_offset2Edit->text().trimmed().toUInt(&ok2, 16);
+    if (!ok1) off1 = 0;
+    if (!ok2) off2 = 0;
 
-    // Update the overview bar
-    m_overviewBar->setOffset(off);
+    int32_t off = off1 - off2;
+
+    // Update the overview bar with both offsets
+    m_overviewBar->setOffsets(off1, off2);
 
     // Re-compute match percentage
     int inRange = 0;
@@ -597,25 +755,28 @@ QVector<MapInfo> KPImportDlg::selectedMaps() const
         if (mi.yAxis.hasPtsAddress)
             mi.yAxis.ptsAddress = (uint32_t)((int64_t)mi.yAxis.ptsAddress + off);
 
+        // If "Also maps for which no hexdump is available" is UNCHECKED,
+        // filter out maps whose calculated target address falls outside ROM bounds or is negative
+        if (m_chkNoHexdump && !m_chkNoHexdump->isChecked()) {
+            int len = mi.length > 0 ? mi.length : (mi.dimensions.x * mi.dimensions.y * mi.dataSize);
+            if (len <= 0) len = mi.dataSize;
+            if ((int64_t)mi.address < 0 || (int64_t)mi.address + len > (int64_t)m_romSize) {
+                continue; // Skip out-of-bounds map when no-hexdump option is unchecked
+            }
+        }
+
         // Apply prefix
         if (!prefix.isEmpty())
             mi.name = prefix + mi.name;
 
         // Import structure options — if user unchecked "Map structure", clear
-        // dimension/precision/sign info so the caller only gets values
+        // dimension/precision info so the caller only gets values
         if (!m_chkMapStruct->isChecked()) {
             mi.dimensions = {1, 1};
             mi.dataSize = 2;
             mi.dataSigned = false;
-        } else {
-            if (!m_chkStructDims->isChecked())
-                mi.dimensions = {1, 1};
-            if (!m_chkStructPrec->isChecked()) {
-                mi.hasScaling = false;
-                mi.scaling = CompuMethod();
-            }
-            if (!m_chkStructSign->isChecked())
-                mi.dataSigned = false;
+            mi.hasScaling = false;
+            mi.scaling = CompuMethod();
         }
 
         result.append(mi);
@@ -635,4 +796,19 @@ QVector<MapInfo> KPImportDlg::selectedMaps() const
     }
 
     return result;
+}
+
+bool KPImportDlg::importMapValues() const
+{
+    return m_chkMapValues && m_chkMapValues->isChecked();
+}
+
+bool KPImportDlg::importNoHexdump() const
+{
+    return m_chkNoHexdump && m_chkNoHexdump->isChecked();
+}
+
+bool KPImportDlg::importEmptyFolders() const
+{
+    return m_chkEmptyFolders && m_chkEmptyFolders->isChecked();
 }

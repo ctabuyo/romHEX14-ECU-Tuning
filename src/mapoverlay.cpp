@@ -601,6 +601,8 @@ MapOverlay::MapOverlay(QWidget *parent)
                 textLabel->setText(*accum + QString::fromUtf8(" \xe2\x96\x8c"));
                 dlg->adjustSize();
             },
+            // onReasoning
+            [](const QString &) {},
             // onToolCall
             [](const QString &, const QString &, const QJsonObject &) {},
             // onDone
@@ -829,12 +831,24 @@ MapOverlay::MapOverlay(QWidget *parent)
         if (!chosen) return;
 
         if (chosen == actProp) {
+            MapInfo savedMap = m_map;  // snapshot for cancel
+            ByteOrder savedBO = m_byteOrder;
             MapPropertiesDialog dlg(m_map, m_byteOrder, this);
+            connect(&dlg, &MapPropertiesDialog::previewChanged,
+                    this, [this](const MapInfo &preview) {
+                previewMapUpdate(preview);
+                emit mapInfoPreview(preview);
+            });
             if (dlg.exec() == QDialog::Accepted) {
                 m_map       = dlg.result();
                 m_byteOrder = dlg.byteOrder();
                 emit mapInfoChanged(m_map, m_byteOrder);
-                buildTable();
+                previewMapUpdate(m_map);
+            } else {
+                m_map       = savedMap;
+                m_byteOrder = savedBO;
+                emit mapInfoPreview(savedMap);
+                previewMapUpdate(savedMap);
             }
         } else if (chosen == actCopy) {
             copySelectionToClipboard();
@@ -1178,6 +1192,11 @@ void MapOverlay::showMap(const QByteArray &romData, const MapInfo &map,
     m_table->setFocus();
 }
 
+bool MapOverlay::displaysMap(const MapInfo &map) const
+{
+    return m_map.name == map.name && m_map.address == map.address;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // setDisplayParams
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1269,6 +1288,22 @@ void MapOverlay::autoResize()
     int idealH = qMax(th + chrome, 320);
     resize(qMin(idealW, int(av.width()  * 0.92)),
            qMin(idealH, int(av.height() * 0.88)));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Preview updates
+// ═══════════════════════════════════════════════════════════════════════════════
+void MapOverlay::previewScalingFormat(const QString &format)
+{
+    m_map.scaling.format = format;
+    buildTable();
+}
+
+void MapOverlay::previewMapUpdate(const MapInfo &preview)
+{
+    m_map = preview;
+    setWindowTitle(tr("%1 — %2").arg(m_map.name).arg(m_map.description.isEmpty() ? m_map.type : m_map.description));
+    buildTable();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1388,10 +1423,12 @@ void MapOverlay::buildTable()
         bool have = false;
         if (!ax.fixedValues.isEmpty() && idx < ax.fixedValues.size()) {
             rv = ax.fixedValues[idx]; have = true;
-        } else if (ax.hasPtsAddress && idx < ax.ptsCount) {
+        } else if (ax.hasPtsAddress) {
             uint32_t off = ax.ptsAddress + uint32_t(idx) * ax.ptsDataSize;
-            rv = readRomValueAsDouble(raw, dlen, off, ax.ptsDataSize, axisByteOrder(ax, m_byteOrder), ax.ptsSigned);
-            have = true;
+            if (off + ax.ptsDataSize <= uint32_t(dlen)) {
+                rv = readRomValueAsDouble(raw, dlen, off, ax.ptsDataSize, axisByteOrder(ax, m_byteOrder), ax.ptsSigned);
+                have = true;
+            }
         }
         if (!have) return QString::number(idx);
         double phys = (ax.hasScaling && ax.scaling.type != CompuMethod::Type::Identical)

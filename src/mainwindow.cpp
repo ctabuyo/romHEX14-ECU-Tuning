@@ -8,7 +8,6 @@
 #include "io/MapListExporter.h"
 #include "io/TuneReport.h"
 #include "io/XdfIo.h"
-#include "io/ols/KpExporter.h"
 #include "edit/FindSimilarMapsDlg.h"
 #include "edit/MapFingerprint.h"
 #include "io/winols/SimilarFilesDlg.h"
@@ -36,11 +35,12 @@
 #endif
 #include "updatechecker.h"
 #include "olsparser.h"
-#include "kpparser.h"
 #include "kpimportdlg.h"
 #include "frfimportdlg.h"
 #include "valuesearchdlg.h"
 #include "createmapdlg.h"
+#include "mappropertiesdlg.h"
+#include "folderpropertiesdlg.h"
 #include "io/ols/OlsImporter.h"
 #include "io/ols/OlsProjectBuilder.h"
 #include "io/ols/OlsExporter.h"
@@ -81,6 +81,8 @@
 #include <QTableWidgetItem>
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QClipboard>
+#include <QStyle>
 #include <QMouseEvent>
 #include <QPointer>
 #include <QPainterPath>
@@ -118,7 +120,6 @@
 #include <QDialogButtonBox>
 #include <QComboBox>
 #include <QPainter>
-#include <QStyledItemDelegate>
 #include <QFont>
 #include <QLibraryInfo>
 #include <QSettings>
@@ -130,80 +131,9 @@
 #include <QLinearGradient>
 #include <QUrl>
 #include <functional>
+#include <numeric>
 
-// ── Project-tree delegate ─────────────────────────────────────────────────────
-// Two-column layout: fixed address column on the left | icon + text on the right
-// Group/section headers have no address data — they get a blank left column.
-static const int kTreeAddrRole = Qt::UserRole + 4;
-
-class ProjectTreeDelegate : public QStyledItemDelegate {
-    QFont m_addrFont;
-    int   m_colW = 0;   // fixed width of the address column (px)
-public:
-    explicit ProjectTreeDelegate(QObject* parent = nullptr)
-        : QStyledItemDelegate(parent)
-    {
-        m_addrFont = QFont("Consolas", 7);
-        m_addrFont.setStyleHint(QFont::Monospace);
-        m_colW = QFontMetrics(m_addrFont).horizontalAdvance("FFFFFF") + 4;
-    }
-
-    void paint(QPainter* p, const QStyleOptionViewItem& option,
-               const QModelIndex& index) const override
-    {
-        const QString addr = index.data(kTreeAddrRole).toString();
-
-        // Group / section headers — no address, use default rendering
-        if (addr.isEmpty()) {
-            QStyledItemDelegate::paint(p, option, index);
-            return;
-        }
-
-        // Map leaf: address pinned at far left, then icon + name
-        QStyleOptionViewItem opt = option;
-        initStyleOption(&opt, index);
-
-        // Derive column's left edge in viewport coords (strips indentation + scroll)
-        auto *tree = qobject_cast<const QTreeView*>(parent());
-        const int colW = tree ? tree->header()->sectionSize(index.column())
-                              : opt.rect.width();
-        const int baseX = opt.rect.left() + opt.rect.width() - colW;
-
-        // Background — full row from column left
-        QStyleOptionViewItem bgOpt = opt;
-        bgOpt.text.clear();
-        bgOpt.icon = QIcon();
-        bgOpt.rect.setLeft(baseX);
-        opt.widget->style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &bgOpt, p, opt.widget);
-
-        const QRect r   = opt.rect;
-        const bool  sel = opt.state & QStyle::State_Selected;
-
-        // ── Address pinned at far left ────────────────────────────────────────
-        p->setFont(m_addrFont);
-        p->setPen(sel ? QColor(140, 175, 230) : QColor(85, 112, 150));
-        p->drawText(QRect(baseX + 1, r.top(), m_colW, r.height()),
-                    Qt::AlignVCenter | Qt::AlignRight, addr);
-
-        // ── Icon + name start right after address column ──────────────────────
-        int x = baseX + m_colW + 3;
-
-        if (!opt.icon.isNull()) {
-            const int sz = opt.decorationSize.width();
-            opt.icon.paint(p, QRect(x, r.top() + (r.height() - sz) / 2, sz, sz));
-            x += sz + 3;
-        }
-
-        const int textEnd = baseX + colW - 2;
-        const QRect textRect(x, r.top(), textEnd - x, r.height());
-        p->setFont(opt.font);
-        QColor fg = index.data(Qt::ForegroundRole).value<QColor>();
-        if (!fg.isValid()) fg = sel ? Qt::white : QColor(201, 209, 217);
-        p->setPen(fg);
-        p->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft,
-                    opt.fontMetrics.elidedText(opt.text, Qt::ElideRight, textRect.width()));
-    }
-};
+static const int kTreeFolderRole = Qt::UserRole + 5;
 
 // ── Icon factory ──────────────────────────────────────────────────────────────
 // Creates a 22×22 icon by rendering a short symbol string in the given colour.
@@ -405,7 +335,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_mainSplitter->setStretchFactor(0, 0);
     m_mainSplitter->setStretchFactor(1, 1);
     m_mainSplitter->setStretchFactor(2, 0);
-    m_mainSplitter->setSizes({220, 1180, 0});
+    m_mainSplitter->setSizes({360, 1040, 0});
 
     connect(m_aiAssistant, &AIAssistant::projectModified, this, [this]() {
         // Don't gate refresh on activeProject(): when the AI panel has focus,
@@ -1001,7 +931,7 @@ void MainWindow::buildLeftPanel()
 {
     m_leftPanel = new QWidget();
     m_leftPanel->setMinimumWidth(260);
-    m_leftPanel->setMaximumWidth(480);
+    m_leftPanel->setMaximumWidth(1100);
     auto *lay = new QVBoxLayout(m_leftPanel);
     lay->setContentsMargins(0, 0, 0, 0);
     lay->setSpacing(0);
@@ -1438,10 +1368,12 @@ void MainWindow::buildLeftPanel()
     connect(m_chipCurve,    &QPushButton::clicked, this, [this, onChip]{ onChip(m_chipCurve,    PanelFilter::TypeCurve); });
     connect(m_chipMap,      &QPushButton::clicked, this, [this, onChip]{ onChip(m_chipMap,      PanelFilter::TypeMap); });
 
-    // ── Tree — single column, full-width names, type shown as icon ────────
+    // ── Tree — configurable table columns, with the hierarchy in Name ─────
     m_projectTree = new QTreeWidget();
-    m_projectTree->setColumnCount(1);
-    m_projectTree->setHeaderHidden(true);
+    m_projectTree->setColumnCount(5);
+    m_projectTree->setHeaderLabels({tr("Name"), tr("Address"), tr("ID"),
+                                    tr("Type"), tr("Size")});
+    m_projectTree->setHeaderHidden(false);
     // Sprint E — multi-select for bulk edit (Ctrl+click / Shift+click).
     m_projectTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_projectTree->setRootIsDecorated(true);
@@ -1450,14 +1382,57 @@ void MainWindow::buildLeftPanel()
     m_projectTree->setUniformRowHeights(true);
     m_projectTree->setIndentation(14);
     m_projectTree->setIconSize(QSize(14, 14));
-    m_projectTree->setTextElideMode(Qt::ElideNone);
+    m_projectTree->setTextElideMode(Qt::ElideRight);
     m_projectTree->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_projectTree->header()->setSectionResizeMode(0, QHeaderView::Fixed);
-    m_projectTree->header()->setStretchLastSection(false);
-    m_projectTree->header()->setDefaultSectionSize(600);
-    m_projectTree->setItemDelegate(new ProjectTreeDelegate(m_projectTree));
+    m_projectTree->setAllColumnsShowFocus(true);
+    auto *treeHeader = m_projectTree->header();
+    treeHeader->setSectionsMovable(true);
+    treeHeader->setStretchLastSection(false);
+    treeHeader->setSectionResizeMode(QHeaderView::Interactive);
+    treeHeader->resizeSection(0, 260);
+    treeHeader->resizeSection(1, 96);
+    treeHeader->resizeSection(2, 260);
+    treeHeader->resizeSection(3, 72);
+    treeHeader->resizeSection(4, 72);
+
+    const QString treeHeaderStateKey = QStringLiteral("projectTree/headerStateV3");
+    const QByteArray savedHeaderState = rx14::appSettings()
+                                            .value(treeHeaderStateKey)
+                                            .toByteArray();
+    if (!savedHeaderState.isEmpty())
+        treeHeader->restoreState(savedHeaderState);
+
+    auto saveTreeHeaderState = [treeHeader, treeHeaderStateKey]() {
+        rx14::appSettings().setValue(treeHeaderStateKey, treeHeader->saveState());
+    };
+    connect(treeHeader, &QHeaderView::sectionResized, this,
+            [saveTreeHeaderState](int, int, int) { saveTreeHeaderState(); });
+    connect(treeHeader, &QHeaderView::sectionMoved, this,
+            [saveTreeHeaderState](int, int, int) { saveTreeHeaderState(); });
+    treeHeader->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(treeHeader, &QHeaderView::customContextMenuRequested, this,
+            [this, treeHeader, treeHeaderStateKey, saveTreeHeaderState](const QPoint &pos) {
+        QMenu menu(treeHeader);
+        for (int column = 0; column < m_projectTree->columnCount(); ++column) {
+            auto *action = menu.addAction(
+                m_projectTree->headerItem()->text(column));
+            action->setCheckable(true);
+            action->setChecked(!m_projectTree->isColumnHidden(column));
+            if (column == 0) {
+                action->setEnabled(false); // hierarchy must remain visible
+                continue;
+            }
+            connect(action, &QAction::toggled, &menu,
+                    [this, column, treeHeaderStateKey, saveTreeHeaderState](bool visible) {
+                m_projectTree->setColumnHidden(column, !visible);
+                saveTreeHeaderState();
+            });
+        }
+        menu.exec(treeHeader->mapToGlobal(pos));
+    });
     m_projectTree->setStyleSheet(
         "QTreeWidget { background:" + AppConfig::instance().colors.uiBg.name() + "; color:" + AppConfig::instance().colors.uiText.name() + "; border:none; }"
+        "QHeaderView::section { background:" + AppConfig::instance().colors.uiPanel.name() + "; color:" + AppConfig::instance().colors.uiTextDim.name() + "; border:0; border-right:1px solid " + AppConfig::instance().colors.uiBorder.name() + "; border-bottom:1px solid " + AppConfig::instance().colors.uiBorder.name() + "; padding:4px 6px; font-weight:600; }"
         "QTreeWidget::item { padding:3px 6px; min-height:24px; }"
         "QTreeWidget::item:selected { background:#1f3a6e; color:#ffffff; }"
         "QTreeWidget::item:hover:!selected { background:" + AppConfig::instance().colors.uiPanel.name() + "; }"
@@ -1473,6 +1448,19 @@ void MainWindow::buildLeftPanel()
         "QScrollBar::groove:horizontal { background:" + AppConfig::instance().colors.uiBg.name() + "; }"
         "QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background:" + AppConfig::instance().colors.uiBg.name() + "; }"
         "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width:0; }");
+
+    // Folder navigation nodes use the platform's open/closed folder icons.
+    // Map leaves retain their colored type icon instead.
+    connect(m_projectTree, &QTreeWidget::itemExpanded, this,
+            [](QTreeWidgetItem *item) {
+        if (item->data(0, kTreeFolderRole).toBool())
+            item->setIcon(0, QApplication::style()->standardIcon(QStyle::SP_DirOpenIcon));
+    });
+    connect(m_projectTree, &QTreeWidget::itemCollapsed, this,
+            [](QTreeWidgetItem *item) {
+        if (item->data(0, kTreeFolderRole).toBool())
+            item->setIcon(0, QApplication::style()->standardIcon(QStyle::SP_DirClosedIcon));
+    });
 
     // ── Recent Maps strip (above the tree) ────────────────────────────────
     m_recentMapsStrip = new QWidget();
@@ -1514,14 +1502,14 @@ void MainWindow::buildLeftPanel()
     connect(m_filterChangedBtn, &QPushButton::toggled,
             this, &MainWindow::applyTreeFilter);
 
-    // Single-click on a map leaf → show in overlay
+    // Single-click on a map leaf → select its byte range in the hex viewer.
     connect(m_projectTree, &QTreeWidget::itemClicked,
             this,          &MainWindow::onTreeItemClicked);
 
     // Double-click handling
     connect(m_projectTree, &QTreeWidget::itemDoubleClicked,
             this, [this](QTreeWidgetItem *item, int col) {
-        if (col != 0) return;
+        Q_UNUSED(col);
 
         // Project root → collapse/expand only if its window is currently visible
         auto projRootVar = item->data(0, Qt::UserRole);
@@ -1541,38 +1529,112 @@ void MainWindow::buildLeftPanel()
             return;
         }
 
-        // Map leaf → toggle star
+        // Map leaf → open a new editable map window. Single-click has already
+        // selected the corresponding byte range in the hex viewer.
         if (!mapVar.isValid()) return;
         auto map = mapVar.value<MapInfo>();
         auto *proj = static_cast<Project*>(item->data(0, Qt::UserRole + 1).value<void*>());
         if (!proj) return;
-        if (proj->starredMaps.contains(map.name))
-            proj->starredMaps.remove(map.name);
-        else
-            proj->starredMaps.insert(map.name);
-        refreshProjectTree();
+        openProject(proj);
+        if (auto *pv = activeView()) pv->showMap(map);
+        onMapActivated(map, proj);
+        openMapViewer(proj, map);
     });
 
     // Right-click context menu: expand/collapse groups + map comments
     m_projectTree->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_projectTree, &QTreeWidget::customContextMenuRequested,
             this, [this](const QPoint &pos) {
-        QMenu menu(m_projectTree);
         QTreeWidgetItem *item = m_projectTree->itemAt(pos);
+        if (item && (item->flags() & Qt::ItemIsSelectable) && !item->isSelected()) {
+            m_projectTree->clearSelection();
+            item->setSelected(true);
+            m_projectTree->setCurrentItem(item);
+        }
 
-        // ── Map comment actions (only for map leaf items) ──────────────
+        QMenu menu(m_projectTree);
+        struct SelectedMapEntry { Project *project; MapInfo map; };
+        QVector<SelectedMapEntry> selectedMapEntries;
+        for (auto *selected : m_projectTree->selectedItems()) {
+            const auto mapVar = selected->data(0, Qt::UserRole + 2);
+            auto *project = static_cast<Project *>(
+                selected->data(0, Qt::UserRole + 1).value<void *>());
+            if (mapVar.isValid() && project)
+                selectedMapEntries.append({project, mapVar.value<MapInfo>()});
+        }
+        const int selectedCount = selectedMapEntries.size();
+
+        // ── Map actions (only for map leaf items) ───────────────────────
+        QAction *actOpenMap       = nullptr;
+        QAction *actViewInHex     = nullptr;
+        QAction *actSearchForName = nullptr;
+        QAction *actCopyMapNames  = nullptr;
+        QAction *actCloseSelectedMapViews = nullptr;
+        QAction *actCloseMapViews = nullptr;
+        QAction *actStarMap       = nullptr;
+        QAction *actDuplicateMap  = nullptr;
+        QAction *actSelectAllMaps = nullptr;
+        QAction *actClearMapSelection = nullptr;
+        QAction *actSelectStarredMaps = nullptr;
+        QAction *actNewFolder     = nullptr;
+        QAction *actMoveToFolder  = nullptr;
         QAction *actEditComment   = nullptr;
         QAction *actClearComment  = nullptr;
+        QAction *actMapProperties = nullptr;
+        QAction *actDeleteMap     = nullptr;
+        Project *menuMapProject   = nullptr;
+        MapInfo menuMap;
         if (item) {
             auto mapVar = item->data(0, Qt::UserRole + 2);
             if (mapVar.isValid()) {
-                auto map = mapVar.value<MapInfo>();
-                actEditComment  = menu.addAction(
-                    map.userNotes.isEmpty()
-                    ? tr("Add Comment…")
-                    : tr("Edit Comment…"));
-                if (!map.userNotes.isEmpty())
-                    actClearComment = menu.addAction(tr("Clear Comment"));
+                menuMap = mapVar.value<MapInfo>();
+                menuMapProject = static_cast<Project *>(
+                    item->data(0, Qt::UserRole + 1).value<void *>());
+
+                actOpenMap       = menu.addAction(tr("Open"));
+                actViewInHex     = menu.addAction(tr("View in hexdump"));
+                actSearchForName = menu.addAction(tr("Search for name"));
+                actCopyMapNames  = menu.addAction(tr("Copy name"));
+                if (selectedCount > 1)
+                    actCloseSelectedMapViews = menu.addAction(
+                        tr("Close selected map windows"));
+                actCloseMapViews = menu.addAction(tr("Close all map windows"));
+                menu.addSeparator();
+                const bool allStarred = !selectedMapEntries.isEmpty()
+                    && std::all_of(selectedMapEntries.cbegin(), selectedMapEntries.cend(),
+                        [](const SelectedMapEntry &entry) {
+                            return isProjectMapStarred(*entry.project, entry.map);
+                        });
+                actStarMap = menu.addAction(allStarred
+                    ? (selectedCount > 1 ? tr("Unstar %1 maps").arg(selectedCount)
+                                         : tr("Unstar map"))
+                    : (selectedCount > 1 ? tr("Star %1 maps").arg(selectedCount)
+                                         : tr("Star map")));
+                actDuplicateMap  = menu.addAction(selectedCount > 1
+                    ? tr("Duplicate %1 maps").arg(selectedCount)
+                    : tr("Duplicate"));
+                auto *selectMenu = menu.addMenu(tr("Select…"));
+                actSelectAllMaps = selectMenu->addAction(tr("All maps"));
+                actSelectStarredMaps = selectMenu->addAction(tr("Starred maps"));
+                actClearMapSelection = selectMenu->addAction(tr("Clear selection"));
+                menu.addSeparator();
+                actNewFolder    = menu.addAction(tr("New folder with selected maps…"));
+                actNewFolder->setEnabled(selectedCount == 1);
+                actMoveToFolder = menu.addAction(tr("Move to folder…"));
+                menu.addSeparator();
+
+                if (selectedCount == 1) {
+                    actEditComment  = menu.addAction(
+                        menuMap.userNotes.isEmpty()
+                        ? tr("Add Comment…")
+                        : tr("Edit Comment…"));
+                    if (!menuMap.userNotes.isEmpty())
+                        actClearComment = menu.addAction(tr("Clear Comment"));
+                    actMapProperties = menu.addAction(tr("Properties…"));
+                }
+                actDeleteMap = menu.addAction(selectedCount > 1
+                    ? tr("Delete %1 maps…").arg(selectedMapEntries.size())
+                    : tr("Delete Map…"));
                 menu.addSeparator();
             }
         }
@@ -1620,13 +1682,14 @@ void MainWindow::buildLeftPanel()
             }
         }
 
-        // Per-group expand/collapse for clicked group node
+        // Per-group expand/collapse & properties for clicked group node
         QAction *actExpandThis   = nullptr;
         QAction *actCollapseThis = nullptr;
+        QAction *actFolderProps  = nullptr;
         QAction *actTranslateGroup = nullptr;
-        if (item && item->childCount() > 0 && item->parent()
-            && !(item->flags() & Qt::ItemIsSelectable)) {
+        if (item && item->childCount() > 0 && item->parent()) {
             menu.addSeparator();
+            actFolderProps  = menu.addAction(tr("Folder Properties…"));
             actExpandThis   = menu.addAction(tr("Expand \"%1\"").arg(item->text(0).section("  ", 0, 0)));
             actCollapseThis = menu.addAction(tr("Collapse \"%1\"").arg(item->text(0).section("  ", 0, 0)));
 
@@ -1671,12 +1734,341 @@ void MainWindow::buildLeftPanel()
         QAction *chosen = menu.exec(m_projectTree->mapToGlobal(pos));
         if (!chosen) return;
 
+        if (actFolderProps && chosen == actFolderProps && item) {
+            QString folderPath = item->text(0).section("  ", 0, 0).trimmed();
+            QTreeWidgetItem *pNode = item->parent();
+            QString parentPath;
+            if (pNode && pNode->parent()) {
+                parentPath = pNode->text(0).section("  ", 0, 0).trimmed();
+            }
+
+            Project *proj = menuMapProject;
+            if (!proj && pNode) {
+                proj = static_cast<Project *>(pNode->data(0, Qt::UserRole + 1).value<void *>());
+            }
+            if (!proj) proj = activeProject();
+            if (!proj) return;
+
+            int mapCount = 0;
+            for (const auto &m : proj->maps) {
+                if (m.folderPath == folderPath || m.folderPath.startsWith(folderPath + "/")) {
+                    mapCount++;
+                }
+            }
+
+            QStringList availableFolders;
+            for (const auto &m : proj->maps) {
+                if (!m.folderPath.isEmpty() && !availableFolders.contains(m.folderPath)) {
+                    availableFolders.append(m.folderPath);
+                }
+            }
+            std::sort(availableFolders.begin(), availableFolders.end());
+
+            FolderPropertiesDialog::FolderInfo info;
+            info.name = folderPath.contains('/') ? folderPath.section('/', -1) : folderPath;
+            info.parentPath = parentPath;
+            info.fullPath = folderPath;
+            info.description = QString();
+            info.mapCount = mapCount;
+
+            FolderPropertiesDialog dlg(info, availableFolders, this);
+            if (dlg.exec() == QDialog::Accepted) {
+                FolderPropertiesDialog::FolderInfo res = dlg.result();
+                if (res.fullPath != folderPath && !res.fullPath.isEmpty()) {
+                    for (auto &m : proj->maps) {
+                        if (m.folderPath == folderPath) {
+                            m.folderPath = res.fullPath;
+                        } else if (m.folderPath.startsWith(folderPath + "/")) {
+                            m.folderPath.replace(0, folderPath.length(), res.fullPath);
+                        }
+                    }
+                    proj->modified = true;
+                    emit proj->dataChanged();
+                    refreshProjectTree();
+                }
+            }
+            return;
+        }
+
         if (actBulkEdit && chosen == actBulkEdit) {
             runBulkEdit(bulkSelection);
             return;
         }
         if (actFindSimilar && chosen == actFindSimilar) {
             runFindSimilar(findSimilarRef);
+            return;
+        }
+
+        if (actSearchForName && chosen == actSearchForName) {
+            m_filterEdit->setText(menuMap.name);
+            m_filterEdit->setFocus();
+            applyTreeFilter();
+            return;
+        }
+
+        if (actCopyMapNames && chosen == actCopyMapNames) {
+            QStringList names;
+            names.reserve(selectedMapEntries.size());
+            for (const auto &entry : selectedMapEntries)
+                names.append(entry.map.name);
+            QApplication::clipboard()->setText(names.join(QLatin1Char('\n')));
+            statusBar()->showMessage(
+                tr("Copied %1 map name(s)").arg(names.size()), 2500);
+            return;
+        }
+
+        if (actOpenMap && chosen == actOpenMap && menuMapProject) {
+            for (const auto &entry : selectedMapEntries) {
+                openProject(entry.project);
+                if (auto *pv = activeView()) pv->showMap(entry.map);
+                onMapActivated(entry.map, entry.project);
+                openMapViewer(entry.project, entry.map);
+            }
+            return;
+        }
+
+        if (actViewInHex && chosen == actViewInHex && menuMapProject) {
+            openProject(menuMapProject);
+            if (auto *pv = activeView()) pv->showMap(menuMap);
+            onMapActivated(menuMap, menuMapProject);
+            return;
+        }
+
+        if (actCloseMapViews && chosen == actCloseMapViews && menuMapProject) {
+            QSet<Project *> projects;
+            for (const auto &entry : selectedMapEntries) projects.insert(entry.project);
+            for (auto ov : m_overlays)
+                if (ov && projects.contains(ov->targetProject())) ov->close();
+            m_overlays.removeAll(QPointer<MapOverlay>());
+            return;
+        }
+
+        if (actCloseSelectedMapViews && chosen == actCloseSelectedMapViews) {
+            for (const auto &entry : selectedMapEntries) {
+                for (auto ov : m_overlays) {
+                    if (ov && ov->targetProject() == entry.project
+                        && ov->displaysMap(entry.map)) ov->close();
+                }
+            }
+            m_overlays.removeAll(QPointer<MapOverlay>());
+            return;
+        }
+
+        if (actStarMap && chosen == actStarMap && menuMapProject) {
+            const bool shouldStar = !std::all_of(
+                selectedMapEntries.cbegin(), selectedMapEntries.cend(),
+                [](const SelectedMapEntry &entry) {
+                    return isProjectMapStarred(*entry.project, entry.map);
+                });
+            QSet<Project *> changedProjects;
+            for (const auto &entry : selectedMapEntries) {
+                setProjectMapStarred(*entry.project, entry.map, shouldStar);
+                entry.project->modified = true;
+                changedProjects.insert(entry.project);
+            }
+            for (Project *project : changedProjects)
+                emit project->dataChanged();
+            refreshProjectTree();
+            return;
+        }
+
+        if (actDuplicateMap && chosen == actDuplicateMap && menuMapProject) {
+            QSet<Project *> changedProjects;
+            for (const auto &entry : selectedMapEntries) {
+                MapInfo duplicate = entry.map;
+                const QString baseName = entry.map.name.isEmpty() ? tr("Map") : entry.map.name;
+                duplicate.name = baseName + tr(" copy");
+                for (int suffix = 2; ; ++suffix) {
+                    const bool exists = std::any_of(entry.project->maps.cbegin(),
+                        entry.project->maps.cend(), [&duplicate](const MapInfo &candidate) {
+                            return candidate.name == duplicate.name;
+                        });
+                    if (!exists) break;
+                    duplicate.name = baseName + tr(" copy %1").arg(suffix);
+                }
+                entry.project->maps.append(duplicate);
+                entry.project->modified = true;
+                changedProjects.insert(entry.project);
+            }
+            for (Project *project : changedProjects)
+                emit project->dataChanged();
+            refreshProjectTree();
+            return;
+        }
+
+        if (actSelectAllMaps && chosen == actSelectAllMaps && menuMapProject) {
+            m_projectTree->clearSelection();
+            std::function<void(QTreeWidgetItem *)> selectMaps =
+                [&](QTreeWidgetItem *node) {
+                const auto mapVar = node->data(0, Qt::UserRole + 2);
+                const auto *project = static_cast<Project *>(
+                    node->data(0, Qt::UserRole + 1).value<void *>());
+                if (mapVar.isValid() && project == menuMapProject)
+                    node->setSelected(true);
+                for (int i = 0; i < node->childCount(); ++i)
+                    selectMaps(node->child(i));
+            };
+            for (int i = 0; i < m_projectTree->topLevelItemCount(); ++i)
+                selectMaps(m_projectTree->topLevelItem(i));
+            return;
+        }
+
+        if (actSelectStarredMaps && chosen == actSelectStarredMaps && menuMapProject) {
+            m_projectTree->clearSelection();
+            std::function<void(QTreeWidgetItem *)> selectStarred =
+                [&](QTreeWidgetItem *node) {
+                const auto mapVar = node->data(0, Qt::UserRole + 2);
+                auto *project = static_cast<Project *>(
+                    node->data(0, Qt::UserRole + 1).value<void *>());
+                if (mapVar.isValid() && project == menuMapProject
+                    && isProjectMapStarred(*project, mapVar.value<MapInfo>()))
+                    node->setSelected(true);
+                for (int i = 0; i < node->childCount(); ++i)
+                    selectStarred(node->child(i));
+            };
+            for (int i = 0; i < m_projectTree->topLevelItemCount(); ++i)
+                selectStarred(m_projectTree->topLevelItem(i));
+            return;
+        }
+
+        if (actClearMapSelection && chosen == actClearMapSelection) {
+            m_projectTree->clearSelection();
+            return;
+        }
+
+        if ((actNewFolder && chosen == actNewFolder)
+            || (actMoveToFolder && chosen == actMoveToFolder)) {
+            if (!menuMapProject) return;
+            QVector<MapInfo> mapsToMove;
+            for (auto *selected : m_projectTree->selectedItems()) {
+                const auto mapVar = selected->data(0, Qt::UserRole + 2);
+                const auto *project = static_cast<Project *>(
+                    selected->data(0, Qt::UserRole + 1).value<void *>());
+                if (mapVar.isValid() && project == menuMapProject)
+                    mapsToMove.append(mapVar.value<MapInfo>());
+            }
+            if (mapsToMove.isEmpty()) mapsToMove.append(menuMap);
+
+            QString folder;
+            if (chosen == actNewFolder) {
+                const QString suggestion = menuMap.folderPath.isEmpty()
+                    ? tr("New folder") : menuMap.folderPath + QStringLiteral("/") + tr("New folder");
+                bool ok = false;
+                folder = QInputDialog::getText(this, tr("New Folder"),
+                    tr("Folder path:"), QLineEdit::Normal, suggestion, &ok);
+                if (!ok) return;
+            } else {
+                QStringList folders;
+                for (const auto &candidate : menuMapProject->maps) {
+                    if (!candidate.folderPath.isEmpty() && !folders.contains(candidate.folderPath))
+                        folders.append(candidate.folderPath);
+                }
+                std::sort(folders.begin(), folders.end());
+                folders.prepend(tr("(Project root)"));
+                bool ok = false;
+                folder = QInputDialog::getItem(this, tr("Move to Folder"),
+                    tr("Folder path:"), folders, 0, true, &ok);
+                if (!ok) return;
+                if (folder == tr("(Project root)")) folder.clear();
+            }
+
+            folder = folder.trimmed();
+            folder.replace(QLatin1Char('\\'), QLatin1Char('/'));
+            while (folder.contains(QStringLiteral("//")))
+                folder.replace(QStringLiteral("//"), QStringLiteral("/"));
+            while (folder.startsWith(QLatin1Char('/'))) folder.removeFirst();
+            while (folder.endsWith(QLatin1Char('/'))) folder.chop(1);
+            if (chosen == actNewFolder && folder.isEmpty()) return;
+
+            for (const auto &source : mapsToMove) {
+                const auto it = std::find(menuMapProject->maps.begin(),
+                    menuMapProject->maps.end(), source);
+                if (it != menuMapProject->maps.end()) it->folderPath = folder;
+            }
+            menuMapProject->modified = true;
+            emit menuMapProject->dataChanged();
+            refreshProjectTree();
+            return;
+        }
+
+        if (actMapProperties && chosen == actMapProperties && item) {
+            const auto map = item->data(0, Qt::UserRole + 2).value<MapInfo>();
+            auto *proj = static_cast<Project *>(
+                item->data(0, Qt::UserRole + 1).value<void *>());
+            if (!proj) return;
+
+            MapInfo savedMap = map;
+            MapPropertiesDialog dlg(map, proj->byteOrder, this);
+
+            // Live preview: update overlay display & project tree as properties change
+            MapOverlay *targetOv = nullptr;
+            for (auto ov : m_overlays) {
+                if (ov && ov->displaysMap(map)) {
+                    targetOv = ov;
+                    break;
+                }
+            }
+
+            connect(&dlg, &MapPropertiesDialog::previewChanged,
+                    this, [this, proj, map, targetOv](const MapInfo &preview) {
+                if (targetOv) targetOv->previewMapUpdate(preview);
+                const auto it = std::find(proj->maps.begin(), proj->maps.end(), map);
+                if (it != proj->maps.end()) {
+                    *it = preview;
+                    refreshProjectTreeNow();
+                }
+            });
+
+            if (dlg.exec() != QDialog::Accepted) {
+                // Restore original snapshot on cancel
+                const auto it = std::find(proj->maps.begin(), proj->maps.end(), map);
+                if (it != proj->maps.end()) {
+                    *it = savedMap;
+                    refreshProjectTreeNow();
+                }
+                if (targetOv) targetOv->previewMapUpdate(savedMap);
+                return;
+            }
+
+            const auto it = std::find(proj->maps.begin(), proj->maps.end(), map);
+            if (it == proj->maps.end()) return;
+            MapInfo updated = dlg.result();
+            updated.cellBigEndian = dlg.byteOrder() == ByteOrder::BigEndian;
+            *it = updated;
+            proj->modified = true;
+            emit proj->dataChanged();
+            refreshProjectTreeNow();
+            if (targetOv) targetOv->previewMapUpdate(updated);
+            return;
+        }
+
+        if (actDeleteMap && chosen == actDeleteMap && menuMapProject) {
+            const int count = selectedMapEntries.size();
+            if (QMessageBox::question(
+                    this, tr("Delete Map"),
+                    count > 1
+                    ? tr("Delete %1 selected map definitions?").arg(count)
+                    : tr("Delete the map definition \"%1\"?").arg(menuMap.name),
+                    QMessageBox::Yes | QMessageBox::Cancel,
+                    QMessageBox::Cancel) != QMessageBox::Yes)
+                return;
+
+            QSet<Project *> changedProjects;
+            for (const auto &entry : selectedMapEntries) {
+                for (auto ov : m_overlays)
+                    if (ov && ov->targetProject() == entry.project
+                        && ov->displaysMap(entry.map)) ov->close();
+                const auto it = std::find(entry.project->maps.begin(),
+                    entry.project->maps.end(), entry.map);
+                if (it == entry.project->maps.end()) continue;
+                entry.project->maps.erase(it);
+                entry.project->modified = true;
+                changedProjects.insert(entry.project);
+            }
+            m_overlays.removeAll(QPointer<MapOverlay>());
+            for (Project *project : changedProjects)
+                emit project->dataChanged();
+            refreshProjectTree();
             return;
         }
 
@@ -2082,6 +2474,7 @@ void MainWindow::buildActions()
     connect(m_actPreferences, &QAction::triggered, this, [this]() {
         ConfigDialog dlg(this);
         dlg.exec();
+        refreshProjectTree();
         for (auto *sub : m_mdi->subWindowList())
             sub->widget()->update();
     });
@@ -2638,8 +3031,6 @@ void MainWindow::retranslateUi()
                              this, [this]() { exportMapListJson(); });
     m_menuProject->addAction(tr("Export XD&F (TunerPro)…"),
                              this, [this]() { actExportXdf(); });
-    m_menuProject->addAction(tr("Export &KP map pack…"),
-                             this, [this]() { actExportKp(); });
     m_menuProject->addAction(tr("Export &Tuning Report…"),
                              this, [this]() { exportTuningReport(); });
     m_menuProject->addSeparator();
@@ -2966,7 +3357,8 @@ void MainWindow::retranslateUi()
     if (m_filterEdit)
         m_filterEdit->setPlaceholderText(tr("Filter maps…"));
     if (m_projectTree)
-        m_projectTree->setHeaderLabels({tr("Addr"), tr("Name"), tr("Type")});
+        m_projectTree->setHeaderLabels({tr("Name"), tr("Address"), tr("ID"),
+                                        tr("Type"), tr("Size")});
 
     // ── AI Translate button ───────────────────────────────────────────
     if (m_btnTranslateAll)
@@ -4252,6 +4644,8 @@ void MainWindow::actImportKP(const QString &droppedPath)
     if (reviewDlg.exec() != QDialog::Accepted)
         return;                              // user cancelled — nothing added
     const QVector<MapInfo> chosenMaps = reviewDlg.selectedMaps();
+    const bool importValues = reviewDlg.importMapValues()
+        && !result.carriedData.isEmpty();
     if (chosenMaps.isEmpty()) {
         statusBar()->showMessage(tr("Import KP: no maps selected."), 4000);
         return;
@@ -4264,123 +4658,102 @@ void MainWindow::actImportKP(const QString &droppedPath)
     for (const auto &m : proj->maps)
         existing.insert({m.name, m.address});
 
-    int added = 0, skipped = 0;
-    QStringList addedNames;
-    addedNames.reserve(chosenMaps.size());
+    int added = 0, skipped = 0, valueRanges = 0;
+    bool existingMetadataUpdated = false;
+    auto transferRange = [&](uint32_t destination, uint32_t source, int length) {
+        if (length <= 0
+            || uint64_t(destination) + uint64_t(length) > uint64_t(proj->currentData.size())
+            || uint64_t(source) + uint64_t(length) > uint64_t(result.carriedData.size()))
+            return false;
+        std::memcpy(proj->currentData.data() + destination,
+                    result.carriedData.constData() + source, size_t(length));
+        ++valueRanges;
+        return true;
+    };
+    // Keep every parser-provided field intact here.  In particular, KP folder
+    // paths and axis point addresses are consumed by the project tree and map
+    // overlay respectively; deriving replacement groups or map records loses
+    // that schema-750 metadata.
     for (const auto &m : chosenMaps) {
-        if (existing.contains({m.name, m.address})) { ++skipped; continue; }
+        const bool duplicate = existing.contains({m.name, m.address});
+        if (importValues) {
+            transferRange(m.address,
+                          m.getSideProp(QStringLiteral("kpValueOffset")).toUInt(),
+                          m.getSideProp(QStringLiteral("kpValueLength")).toInt());
+            if (m.xAxis.hasPtsAddress)
+                transferRange(m.xAxis.ptsAddress,
+                              m.getSideProp(QStringLiteral("kpXAxisOffset")).toUInt(),
+                              m.getSideProp(QStringLiteral("kpXAxisLength")).toInt());
+            if (m.yAxis.hasPtsAddress)
+                transferRange(m.yAxis.ptsAddress,
+                              m.getSideProp(QStringLiteral("kpYAxisOffset")).toUInt(),
+                              m.getSideProp(QStringLiteral("kpYAxisLength")).toInt());
+        }
+        // Duplicate avoidance concerns the map definition, not its selected
+        // carried bytes. This lets a user re-import the same pack to apply its
+        // values to an already-present map without creating a second tree row.
+        if (duplicate) {
+            for (auto &existingMap : proj->maps) {
+                if (existingMap.name == m.name && existingMap.address == m.address) {
+                    if (existingMap.columnMajor != m.columnMajor) {
+                        existingMap.columnMajor = m.columnMajor;
+                        existingMetadataUpdated = true;
+                    }
+                    if (existingMap.dataSigned != m.dataSigned) {
+                        existingMap.dataSigned = m.dataSigned;
+                        existingMetadataUpdated = true;
+                    }
+                    if (existingMap.xAxis.ptsSigned != m.xAxis.ptsSigned) {
+                        existingMap.xAxis.ptsSigned = m.xAxis.ptsSigned;
+                        existingMetadataUpdated = true;
+                    }
+                    if (existingMap.yAxis.ptsSigned != m.yAxis.ptsSigned) {
+                        existingMap.yAxis.ptsSigned = m.yAxis.ptsSigned;
+                        existingMetadataUpdated = true;
+                    }
+                    if (!m.scaling.format.isEmpty()
+                        && existingMap.scaling.format != m.scaling.format) {
+                        existingMap.scaling.format = m.scaling.format;
+                        existingMetadataUpdated = true;
+                    }
+                    if (!m.xAxis.scaling.format.isEmpty()
+                        && existingMap.xAxis.scaling.format != m.xAxis.scaling.format) {
+                        existingMap.xAxis.scaling.format = m.xAxis.scaling.format;
+                        existingMetadataUpdated = true;
+                    }
+                    if (!m.yAxis.scaling.format.isEmpty()
+                        && existingMap.yAxis.scaling.format != m.yAxis.scaling.format) {
+                        existingMap.yAxis.scaling.format = m.yAxis.scaling.format;
+                        existingMetadataUpdated = true;
+                    }
+                    break;
+                }
+            }
+            ++skipped;
+            continue;
+        }
         proj->maps.append(m);
         existing.insert({m.name, m.address});
-        addedNames.append(m.name);
         ++added;
     }
 
-    if (added == 0) {
+    if (added == 0 && valueRanges == 0 && !existingMetadataUpdated) {
         QMessageBox::information(this, tr("Import KP"),
             tr("All %1 selected maps were already present in the project.")
                 .arg(chosenMaps.size()));
         return;
     }
 
-    // ── Folder grouping for KP-imported maps ─────────────────────────────
-    //
-    // The .kp wire format does not carry per-map folder info, so we derive
-    // groups heuristically by name prefix.  Scope is the newly-imported KP
-    // maps only — existing proj->groups (from a prior A2L/OLS import) are
-    // preserved and we append new buckets to them rather than replacing
-    // the whole list.  Issue #23.
-    if (!addedNames.isEmpty()) {
-        QHash<QString, QStringList>        bucketsCanonical;   // key → names
-        QHash<QString, QHash<QString,int>> bucketDisplays;     // key → (display→count)
-
-        auto firstToken = [](const QString &s) -> QString {
-            for (int i = 0; i < s.size(); ++i) {
-                if (!s[i].isLetter())
-                    return s.left(i);
-            }
-            return s;
-        };
-
-        for (const QString &name : addedNames) {
-            const QString first = firstToken(name).trimmed();
-            const QString key = first.isEmpty() ? QStringLiteral("__other__")
-                                                : first.toLower();
-            bucketsCanonical[key].append(name);
-            if (!first.isEmpty())
-                ++bucketDisplays[key][first];
-        }
-
-        // Skip group names that already exist in proj->groups so a second KP
-        // import doesn't shadow / duplicate buckets the user already has.
-        QSet<QString> existingGroupNames;
-        for (const auto &g : proj->groups)
-            existingGroupNames.insert(g.name.toLower());
-
-        QStringList singletons;
-        QVector<A2LGroup> newGroups;
-        for (auto it = bucketsCanonical.constBegin();
-             it != bucketsCanonical.constEnd(); ++it) {
-            const QString &key = it.key();
-            const QStringList &names = it.value();
-            if (key == QStringLiteral("__other__") || names.size() < 2) {
-                singletons += names;
-                continue;
-            }
-            const auto &displays = bucketDisplays[key];
-            QString best = key;
-            int bestCount = 0;
-            for (auto dit = displays.constBegin(); dit != displays.constEnd(); ++dit) {
-                if (dit.value() > bestCount) {
-                    bestCount = dit.value();
-                    best = dit.key();
-                }
-            }
-            if (existingGroupNames.contains(best.toLower())) {
-                singletons += names;
-                continue;
-            }
-            A2LGroup g;
-            g.name = best;
-            g.characteristics = names;
-            newGroups.append(std::move(g));
-        }
-        std::sort(newGroups.begin(), newGroups.end(),
-                  [](const A2LGroup &a, const A2LGroup &b) {
-                      return a.name.toLower() < b.name.toLower();
-                  });
-        if (!singletons.isEmpty()) {
-            std::sort(singletons.begin(), singletons.end(),
-                      [](const QString &a, const QString &b) {
-                          return a.toLower() < b.toLower();
-                      });
-            // Append singletons to existing "Other" if one is already there,
-            // otherwise create a fresh "Other" bucket.
-            A2LGroup *otherGroup = nullptr;
-            for (auto &g : proj->groups) {
-                if (g.name.compare(tr("Other"), Qt::CaseInsensitive) == 0) {
-                    otherGroup = &g;
-                    break;
-                }
-            }
-            if (otherGroup) {
-                otherGroup->characteristics += singletons;
-            } else {
-                A2LGroup other;
-                other.name = tr("Other");
-                other.characteristics = singletons;
-                newGroups.append(std::move(other));
-            }
-        }
-        proj->groups += newGroups;
-    }
-
     proj->modified = true;
     emit proj->dataChanged();   // tree refresh + autosave
 
-    QString msg = tr("Imported %1 maps from %2")
-                      .arg(added).arg(QFileInfo(path).fileName());
+    QString msg = added > 0
+        ? tr("Imported %1 maps from %2").arg(added).arg(QFileInfo(path).fileName())
+        : tr("Updated existing maps from %1").arg(QFileInfo(path).fileName());
     if (skipped > 0)
         msg += tr(" (%1 already present, skipped)").arg(skipped);
+    if (valueRanges > 0)
+        msg += tr("; %1 data range(s) applied").arg(valueRanges);
     statusBar()->showMessage(msg, 6000);
 }
 
@@ -4755,7 +5128,8 @@ void MainWindow::buildWelcomePage()
         QStringLiteral("\u2699"), tr("Preferences"), [this]() {
             ConfigDialog dlg(this);
             dlg.exec();
-            for (auto *sub : m_mdi->subWindowList())
+        refreshProjectTree();
+        for (auto *sub : m_mdi->subWindowList())
                 sub->widget()->update();
         });
     topLay->addWidget(prefsBtn);
@@ -4978,7 +5352,7 @@ void MainWindow::buildWelcomePage()
     tiles.push_back({QStringLiteral("\U0001F50D"), tr("Find"),
                      [this]() { actShowCommandPalette(); }});
     tiles.push_back({QStringLiteral("\u2699"),     tr("Preferences"),
-                     [this]() { ConfigDialog dlg(this); dlg.exec(); }});
+                     [this]() { ConfigDialog dlg(this); dlg.exec(); refreshProjectTree(); }});
     tiles.push_back({QStringLiteral("\U0001F4DA"), tr("Documentation"),
                      []() {
                          QString lang = rx14::appSettings()
@@ -5687,6 +6061,8 @@ void MainWindow::refreshProjectTreeNow()
     static const QIcon iconCurve = makeIcon("\u223F", QColor("#bc8cff"), 10);
     static const QIcon iconValue = makeIcon("\u25CF", QColor("#3fb950"), 9);
     static const QIcon iconBlk   = makeIcon("\u25AA", QColor("#6e7681"), 9);
+    const QIcon iconFolderClosed = QApplication::style()->standardIcon(QStyle::SP_DirClosedIcon);
+    const QIcon iconFolderOpen   = QApplication::style()->standardIcon(QStyle::SP_DirOpenIcon);
 
     // Render "My maps (N)" tree for any Project under the given tree item.
     // Shared by top-level projects AND sub-projects (multi-Version .ols
@@ -5705,7 +6081,7 @@ void MainWindow::refreshProjectTreeNow()
             // and the filter-modified button silently fail on big OLS-imported
             // ROMs (the original ~5000-map gate hid this).
             const bool changed = mapHasChanges(p, m);
-            const bool starred = p->starredMaps.contains(m.name);
+            const bool starred = isProjectMapStarred(*p, m);
             auto *mi = new QTreeWidgetItem(parentItem);
             if      (m.type == "MAP")     mi->setIcon(0, iconMap);
             else if (m.type == "CURVE")   mi->setIcon(0, iconCurve);
@@ -5713,27 +6089,43 @@ void MainWindow::refreshProjectTreeNow()
             else                          mi->setIcon(0, iconValue);
             const TranslationResult *tx = m_translations.contains(m.name)
                                           ? &m_translations[m.name] : nullptr;
-            mi->setData(0, kTreeAddrRole,
-                        QString("%1").arg(m.address, 6, 16, QChar('0')).toUpper());
-            const QString baseName = tx
-                ? ("[" + m.name + "]  " + tx->translation)
-                : (!m.description.isEmpty() && m.description != m.name)
-                    ? (m.name + "  " + m.description)
-                    : m.name;
-            QString displayName = baseName;
+            // Prefer the normalized technical ID when available. Until the parser
+            // enhancement is merged, imported KP maps expose the named ID as kpIdName.
+            // Keep the legacy identifier and map name as compatibility fallbacks.
+            QString mapIdentifier = m.getSideProp(QStringLiteral("kpTechnicalId")).toString();
+            if (mapIdentifier.isEmpty())
+                mapIdentifier = m.getSideProp(QStringLiteral("kpIdName")).toString();
+            if (mapIdentifier.isEmpty())
+                mapIdentifier = m.getSideProp(QStringLiteral("kpMapIdentifier")).toString();
+            if (mapIdentifier.isEmpty())
+                mapIdentifier = m.name;
+            QString displayName = m.name;
             if (changed)                displayName.prepend("\u25cf ");
             if (!m.userNotes.isEmpty()) displayName.prepend("\u270e ");
             if (starred)                displayName.prepend("\u2605 ");
             mi->setText(0, displayName);
+            mi->setText(1, QStringLiteral("0x%1")
+                .arg(m.address, 8, 16, QChar('0')).toUpper());
+            mi->setText(2, mapIdentifier);
+            mi->setText(3, m.type);
+            mi->setText(4, QStringLiteral("%1x%2")
+                .arg(m.dimensions.x).arg(m.dimensions.y));
             mi->setFont(0, leafFont);
+            mi->setFont(1, monoFont);
+            mi->setTextAlignment(4, Qt::AlignRight | Qt::AlignVCenter);
+            QColor mapColor;
             if (starred)
-                mi->setForeground(0, changed ? QColor("#ff7b72") : QColor("#d4a017"));
+                mapColor = changed ? QColor("#ff7b72") : QColor("#d4a017");
             else if (changed)
-                mi->setForeground(0, QColor("#ff7b72"));
+                mapColor = QColor("#ff7b72");
             else if (!m.userNotes.isEmpty())
-                mi->setForeground(0, QColor("#d29a22"));
+                mapColor = QColor("#d29a22");
             else if (!tx)
-                mi->setForeground(0, QColor("" + AppConfig::instance().colors.uiTextDim.name() + ""));
+                mapColor = QColor(AppConfig::instance().colors.uiTextDim);
+            if (mapColor.isValid()) {
+                for (int column = 0; column < mi->columnCount(); ++column)
+                    mi->setForeground(column, mapColor);
+            }
             if (!isLargeProject) {
                 QString tip = m.name;
                 if (tx)  tip += "\n" + tx->translation;
@@ -5749,11 +6141,23 @@ void MainWindow::refreshProjectTreeNow()
             mi->setData(0, Qt::UserRole + 2, QVariant::fromValue(m));
         };
 
+        const bool hasFolderPaths = std::any_of(
+            p->maps.cbegin(), p->maps.cend(),
+            [](const MapInfo &m) { return !m.folderPath.isEmpty(); });
+        const int unfiledMapCount = std::count_if(
+            p->maps.cbegin(), p->maps.cend(),
+            [](const MapInfo &m) { return m.folderPath.isEmpty(); });
+
+        // My maps is always present at the project root. Imported folder
+        // paths are its siblings; only maps without a folder live inside it.
         auto *myMaps = new QTreeWidgetItem(under);
-        myMaps->setText(0, tr("My maps  (%1)").arg(p->maps.size()));
+        const int mapCount = hasFolderPaths ? unfiledMapCount : p->maps.size();
+        myMaps->setText(0, tr("My maps  (%1)").arg(mapCount));
+        myMaps->setData(0, kTreeFolderRole, true);
         myMaps->setFont(0, boldFont);
         myMaps->setForeground(0, QColor("" + AppConfig::instance().colors.uiText.name() + ""));
         myMaps->setExpanded(!isLargeProject);
+        myMaps->setIcon(0, myMaps->isExpanded() ? iconFolderOpen : iconFolderClosed);
         myMaps->setFlags(myMaps->flags() & ~Qt::ItemIsSelectable);
 
         // ── Auto-detected maps (overlay layer while no A2L is imported) ──
@@ -5765,29 +6169,92 @@ void MainWindow::refreshProjectTreeNow()
             auto *autoGroup = new QTreeWidgetItem(under);
             autoGroup->setText(0, tr("Auto-detected  (%1)")
                                       .arg(p->autoDetectedMaps.size()));
+            autoGroup->setData(0, kTreeFolderRole, true);
             autoGroup->setFont(0, boldFont);
             autoGroup->setForeground(0, QColor("#d29922"));   // amber
             autoGroup->setExpanded(!isLargeProject);
+            autoGroup->setIcon(0, autoGroup->isExpanded() ? iconFolderOpen : iconFolderClosed);
             autoGroup->setFlags(autoGroup->flags() & ~Qt::ItemIsSelectable);
             for (const auto &m : p->autoDetectedMaps) addLeaf(autoGroup, m);
         }
 
-        if (p->groups.isEmpty()) {
+        if (hasFolderPaths) {
+            // KP schema-750 stores the actual folder path on every
+            // map.  It takes precedence over Project::groups, which may be
+            // legacy A2L data or the former name-prefix heuristic.  Render it
+            // directly so nesting and identically named maps are preserved.
+            QHash<QString, QTreeWidgetItem *> folderNodes;
+            std::function<QTreeWidgetItem *(const QString &)> folderFor =
+                [&](const QString &path) -> QTreeWidgetItem * {
+                if (path.isEmpty()) return myMaps;
+                if (auto it = folderNodes.constFind(path); it != folderNodes.cend())
+                    return it.value();
+                const int slash = path.lastIndexOf(QLatin1Char('/'));
+                const QString parentPath = slash < 0 ? QString() : path.left(slash);
+                const QString name = slash < 0 ? path : path.mid(slash + 1);
+                auto *node = new QTreeWidgetItem(
+                    parentPath.isEmpty() ? under : folderFor(parentPath));
+                node->setText(0, name);
+                node->setData(0, kTreeFolderRole, true);
+                node->setToolTip(0, tr("Folder — use the arrow to expand or collapse"));
+                node->setFont(0, boldFont);
+                node->setExpanded(forceExpandAll || !isLargeProject);
+                node->setIcon(0, node->isExpanded() ? iconFolderOpen : iconFolderClosed);
+                node->setFlags(node->flags() & ~Qt::ItemIsSelectable);
+                folderNodes.insert(path, node);
+                return node;
+            };
+
+            QVector<int> order(p->maps.size());
+            std::iota(order.begin(), order.end(), 0);
+            std::sort(order.begin(), order.end(), [p](int a, int b) {
+                const MapInfo &ma = p->maps[a], &mb = p->maps[b];
+                return ma.folderPath == mb.folderPath
+                    ? ma.address < mb.address : ma.folderPath < mb.folderPath;
+            });
+            for (int i : order)
+                addLeaf(folderFor(p->maps[i].folderPath), p->maps[i]);
+
+            // A folder count represents every map below it, not merely its
+            // direct children, making nested folders useful at a glance.
+            std::function<int(QTreeWidgetItem *)> countMaps =
+                [&](QTreeWidgetItem *node) -> int {
+                int count = 0;
+                for (int child = 0; child < node->childCount(); ++child) {
+                    QTreeWidgetItem *item = node->child(child);
+                    if (item->data(0, Qt::UserRole + 2).isValid()) ++count;
+                    else count += countMaps(item);
+                }
+                return count;
+            };
+            for (auto it = folderNodes.cbegin(); it != folderNodes.cend(); ++it) {
+                QTreeWidgetItem *node = it.value();
+                node->setText(0, QStringLiteral("%1  (%2)")
+                    .arg(node->text(0)).arg(countMaps(node)));
+            }
+        } else if (p->groups.isEmpty()) {
             for (const auto &m : p->maps) addLeaf(myMaps, m);
         } else {
-            QHash<QString, int> lookup;
+            QMultiHash<QString, int> lookup;
             lookup.reserve(p->maps.size());
             for (int mi = 0; mi < p->maps.size(); mi++)
-                lookup[p->maps[mi].name] = mi;
+                lookup.insert(p->maps[mi].name, mi);
             for (const auto &g : p->groups) {
                 auto *gi = new QTreeWidgetItem(myMaps);
                 gi->setText(0, g.name + QString("  (%1)").arg(g.characteristics.size()));
+                gi->setData(0, kTreeFolderRole, true);
                 gi->setFont(0, boldFont);
                 gi->setExpanded(forceExpandAll || expandedGroups.contains(g.name));
+                gi->setIcon(0, gi->isExpanded() ? iconFolderOpen : iconFolderClosed);
                 gi->setFlags(gi->flags() & ~Qt::ItemIsSelectable);
+                QSet<int> rendered;
                 for (const auto &cn : g.characteristics) {
-                    auto it = lookup.find(cn);
-                    if (it != lookup.end()) addLeaf(gi, p->maps[it.value()]);
+                    auto range = lookup.equal_range(cn);
+                    for (auto it = range.first; it != range.second; ++it)
+                        if (!rendered.contains(it.value())) {
+                            rendered.insert(it.value());
+                            addLeaf(gi, p->maps[it.value()]);
+                        }
                 }
             }
         }
@@ -6021,7 +6488,10 @@ void MainWindow::applyTreeFilter()
         // Fuzzy text matching: substring, separator-stripped, or subsequence
         bool textMatch = true;
         if (!txt.isEmpty()) {
-            QString itemText = it->text(0).toLower();
+            QString itemText;
+            for (int column = 0; column < m_projectTree->columnCount(); ++column)
+                itemText += QLatin1Char(' ') + it->text(column);
+            itemText = itemText.toLower();
             QString queryLow = txt.toLower();
             if (itemText.contains(queryLow)) {
                 textMatch = true;
@@ -6049,7 +6519,7 @@ void MainWindow::applyTreeFilter()
         auto mapVar = it->data(0, Qt::UserRole + 2);
         auto m = mapVar.value<MapInfo>();
         auto *proj = static_cast<Project*>(it->data(0, Qt::UserRole + 1).value<void*>());
-        const bool starred  = proj && proj->starredMaps.contains(m.name);
+        const bool starred  = proj && isProjectMapStarred(*proj, m);
         const bool isRecent = m_recentMaps.contains({proj, m.name});
         bool modeMatch = true;
         switch (m_panelFilter) {
@@ -6280,9 +6750,8 @@ void MainWindow::actGoHome()
 
     // All prompts answered — close everything.
     // 1. Close + remove all overlays
-    for (auto it = m_overlays.begin(); it != m_overlays.end(); ++it) {
-        { auto ov = it.value(); if (ov) ov->close(); }
-    }
+    for (auto ov : m_overlays)
+        if (ov) ov->close();
     m_overlays.clear();
 
     // 2. Close all MDI subwindows
@@ -6338,17 +6807,11 @@ void MainWindow::actCloseProject()
             return p.first == proj;
         });
 
-        // Close and remove all map overlays belonging to this project
-        QList<OverlayKey> toRemove;
-        for (auto it = m_overlays.begin(); it != m_overlays.end(); ++it) {
-            if (it.key().first == proj)
-                toRemove.append(it.key());
-        }
-        for (const auto &k : toRemove) {
-            if (auto ov = m_overlays.value(k))
-                ov->close();
-            m_overlays.remove(k);
-        }
+        // Map overlays are parented by MainWindow and can target this project;
+        // close all of them before the project is destroyed.
+        for (auto ov : m_overlays)
+            if (ov && ov->targetProject() == proj) ov->close();
+        m_overlays.removeAll(QPointer<MapOverlay>());
     }
     if (proj) {
         if (m_savepoints && m_savepoints->project() == proj)
@@ -6616,7 +7079,7 @@ void MainWindow::actPrevMap()
     --m_currentMapIdx;
     const auto &m = proj->maps[m_currentMapIdx];
     if (auto *v = activeView()) v->showMap(m);
-    showMapOverlay(proj->currentData, m, proj->byteOrder, proj);
+    onMapActivated(m, proj);
 }
 
 void MainWindow::actNextMap()
@@ -6627,7 +7090,7 @@ void MainWindow::actNextMap()
     if (m_currentMapIdx >= proj->maps.size()) m_currentMapIdx = 0;
     const auto &m = proj->maps[m_currentMapIdx];
     if (auto *v = activeView()) v->showMap(m);
-    showMapOverlay(proj->currentData, m, proj->byteOrder, proj);
+    onMapActivated(m, proj);
 }
 
 // ── 2D view scroll sync ────────────────────────────────────────────────────────
@@ -7020,66 +7483,92 @@ void MainWindow::showMapOverlay(const QByteArray &romData, const MapInfo &map,
         return;
     }
 
-    // QPointer becomes null automatically when the overlay is deleted (WA_DeleteOnClose).
-    OverlayKey key(project, map.name);
-    QPointer<MapOverlay> ov = m_overlays.value(key);
-    if (!ov) {
-        ov = new MapOverlay(this);
-        m_overlays.insert(key, ov);
+    // Each activation gets its own tool window. This deliberately does not
+    // reuse a map-name keyed dialog: tuners often need several maps visible
+    // at once, including two views of the same map.
+    auto *ov = new MapOverlay(this);
+    m_overlays.append(ov);
+    connect(ov, &QObject::destroyed, this, [this]() {
+        m_overlays.removeAll(QPointer<MapOverlay>());
+    });
 
-        // Wire ROM patch write-back
-        if (project) {
-            QPointer<Project> projPtr(project);
+    // Wire ROM patch write-back.
+    if (project) {
+        QPointer<Project> projPtr(project);
 
-            // romPatchReady fires once PER CELL — patch silently, no tree rebuild
-            connect(ov, &MapOverlay::romPatchReady,
-                    this, [projPtr](uint32_t offset, QByteArray bytes) {
-                if (!projPtr) return;
-                if ((int)(offset + bytes.size()) > projPtr->currentData.size()) return;
-                auto *dst = reinterpret_cast<uint8_t*>(projPtr->currentData.data());
-                std::memcpy(dst + offset, bytes.constData(), bytes.size());
-                projPtr->modified = true;
-                // NOTE: do NOT emit dataChanged here — editBatchDone does it once
-            });
+        // romPatchReady fires once PER CELL — patch silently, no tree rebuild
+        connect(ov, &MapOverlay::romPatchReady,
+                this, [projPtr](uint32_t offset, QByteArray bytes) {
+            if (!projPtr) return;
+            if ((int)(offset + bytes.size()) > projPtr->currentData.size()) return;
+            auto *dst = reinterpret_cast<uint8_t*>(projPtr->currentData.data());
+            std::memcpy(dst + offset, bytes.constData(), bytes.size());
+            projPtr->modified = true;
+            // NOTE: do NOT emit dataChanged here — editBatchDone does it once
+        });
 
-            // editBatchDone fires ONCE per user action (applyDelta / undo / redo)
-            connect(ov, &MapOverlay::editBatchDone,
-                    this, [projPtr, this]() {
-                if (!projPtr) return;
-                emit projPtr->dataChanged();   // triggers exactly one refreshProjectTree
-            });
+        // editBatchDone fires ONCE per user action (applyDelta / undo / redo)
+        connect(ov, &MapOverlay::editBatchDone,
+                this, [projPtr, this]() {
+            if (!projPtr) return;
+            emit projPtr->dataChanged();   // triggers exactly one refreshProjectTree
+        });
 
-            // addressCorrected — user manually confirmed the correct address
-            connect(ov, &MapOverlay::addressCorrected,
-                    this, [projPtr, this](const QString &mapName, uint32_t newAddress) {
-                if (!projPtr) return;
-                // Update the map in the project and persist the confidence override
-                for (auto &m : projPtr->maps) {
-                    if (m.name == mapName) {
-                        m.address         = newAddress;
-                        m.linkConfidence  = 95;
-                        projPtr->modified = true;
-                        break;
-                    }
-                }
-                refreshProjectTree();
-            });
-
-            // Share this project's view editor so overlay edits land on the
-            // same undo stack as the hex / waveform / 3D views, and route the
-            // overlay's embedded 3D "Edit map" menu through the shared path.
-            WaveformEditor *sharedEd = nullptr;
-            for (auto *sub : m_mdi->subWindowList()) {
-                auto *pv = qobject_cast<ProjectView *>(sub->widget());
-                if (pv && pv->project() == project && pv->waveformWidget()) {
-                    sharedEd = pv->waveformWidget()->editor();
+        // addressCorrected — user manually confirmed the correct address
+        connect(ov, &MapOverlay::addressCorrected,
+                this, [projPtr, this](const QString &mapName, uint32_t newAddress) {
+            if (!projPtr) return;
+            // Update the map in the project and persist the confidence override
+            for (auto &m : projPtr->maps) {
+                if (m.name == mapName) {
+                    m.address         = newAddress;
+                    m.linkConfidence  = 95;
+                    projPtr->modified = true;
                     break;
                 }
             }
-            ov->setSharedEditor(sharedEd, project);
-            connect(ov, &MapOverlay::editOpRequested,
-                    this, &MainWindow::onEditOpRequestedFromView);
+            refreshProjectTree();
+        });
+
+        // Share this project's view editor so overlay edits land on the
+        // same undo stack as the hex / waveform / 3D views, and route the
+        // overlay's embedded 3D "Edit map" menu through the shared path.
+        WaveformEditor *sharedEd = nullptr;
+        for (auto *sub : m_mdi->subWindowList()) {
+            auto *pv = qobject_cast<ProjectView *>(sub->widget());
+            if (pv && pv->project() == project && pv->waveformWidget()) {
+                sharedEd = pv->waveformWidget()->editor();
+                break;
+            }
         }
+        ov->setSharedEditor(sharedEd, project);
+        connect(ov, &MapOverlay::editOpRequested,
+                this, &MainWindow::onEditOpRequestedFromView);
+        // Propagate map property changes back to the project
+        auto applyMapUpdate = [projPtr, this](const MapInfo &updated, bool isFinal) {
+            if (!projPtr) return;
+            for (auto &m : projPtr->maps) {
+                if ((m.address > 0 && m.address == updated.address)
+                    || (!m.id.isEmpty() && !updated.id.isEmpty() && m.id == updated.id)
+                    || m.name == updated.name) {
+                    m = updated;
+                    if (isFinal) {
+                        projPtr->modified = true;
+                        emit projPtr->dataChanged();
+                    }
+                    refreshProjectTreeNow();
+                    break;
+                }
+            }
+        };
+        connect(ov, &MapOverlay::mapInfoPreview,
+                this, [applyMapUpdate](const MapInfo &preview) {
+            applyMapUpdate(preview, false);
+        });
+        connect(ov, &MapOverlay::mapInfoChanged,
+                this, [applyMapUpdate](const MapInfo &updated, ByteOrder) {
+            applyMapUpdate(updated, true);
+        });
     }
     // Apply AI translation to map description if available
     MapInfo displayMap = map;
@@ -7148,23 +7637,25 @@ void MainWindow::onMapActivated(const MapInfo &map, Project *project)
             .arg(map.address + map.mapDataOffset, 0, 16).toUpper()
             .arg(map.dimensions.x).arg(map.dimensions.y));
 
-    // Open map overlay — bounds-check first to prevent crash
-    if (project) {
-        int len = map.length > 0 ? map.length
-                  : map.dimensions.x * map.dimensions.y * map.dataSize;
-        if (len <= 0) len = map.dataSize;
-        int endOffset = (int)(map.address + map.mapDataOffset + len);
-        if (endOffset <= project->currentData.size() && (int)map.address >= 0) {
-            showMapOverlay(project->currentData, map, project->byteOrder, project);
-        } else {
-            statusBar()->showMessage(
-                tr("Map \"%1\" address 0x%2 is outside ROM bounds — skipped")
-                    .arg(map.name).arg(map.address, 0, 16).toUpper(), 5000);
-        }
-    }
-
     // Feed selected map context to AI assistant
     if (m_aiAssistant) m_aiAssistant->setSelectedMap(map);
+}
+
+void MainWindow::openMapViewer(Project *project, const MapInfo &map)
+{
+    if (!project) return;
+    const int len = map.length > 0 ? map.length
+              : map.dimensions.x * map.dimensions.y * map.dataSize;
+    const int dataLen = qMax(map.dataSize, len);
+    const int endOffset = static_cast<int>(map.address + map.mapDataOffset) + dataLen;
+    if (map.address > static_cast<uint32_t>(INT_MAX)
+        || endOffset > project->currentData.size()) {
+        statusBar()->showMessage(
+            tr("Map \"%1\" address 0x%2 is outside ROM bounds — skipped")
+                .arg(map.name).arg(map.address, 0, 16).toUpper(), 5000);
+        return;
+    }
+    showMapOverlay(project->currentData, map, project->byteOrder, project);
 }
 
 // Rebuild the "Recent Maps" chip strip above the project tree from
@@ -7570,39 +8061,26 @@ void MainWindow::onTreeItemClicked(QTreeWidgetItem *item, int)
         return;
     }
 
-    // Only act on map leaves (have UserRole+2 data)
-    if (!mapVar.isValid()) return;
+    // Folder/group nodes deliberately have no map payload.  Toggle them when
+    // the user clicks anywhere on the row, including the folder icon; relying
+    // only on QTreeWidget's small disclosure arrow is too easy to miss.
+    if (!mapVar.isValid()) {
+        if (item->childCount() > 0)
+            item->setExpanded(!item->isExpanded());
+        return;
+    }
 
     auto map   = mapVar.value<MapInfo>();
     auto *proj = static_cast<Project *>(
                      item->data(0, Qt::UserRole + 1).value<void *>());
     if (!proj) return;
 
-    // Activate the corresponding MDI sub-window. pv->showMap() emits
-    // ProjectView::mapActivated, which is connected to MainWindow::onMapActivated
-    // (wired in openProject). That single emission opens the overlay.
-    //
-    // BUG (sidebar map click → overlay flashes open and closes): we used to
-    // ALSO call onMapActivated() directly here, so the slot ran twice. The
-    // second invocation re-entered showMapOverlay → MapOverlay::showMap on
-    // the freshly-shown overlay; that re-trigger interfered with focus/show
-    // sequencing and the overlay would dismiss instantly. Now we only call
-    // onMapActivated directly when there is NO matching MDI sub-window
-    // (e.g. project not yet opened) — the signal path covers the normal
-    // case exactly once.
-    bool dispatchedViaSignal = false;
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (pv && pv->project() == proj) {
-            m_mdi->setActiveSubWindow(sub);
-            pv->showMap(map);   // emits mapActivated → onMapActivated runs once
-            dispatchedViaSignal = true;
-            break;
-        }
-    }
-
+    // Selecting a sidebar map only navigates and highlights the corresponding
+    // hex range. Opening the editable map window is a double-click action.
+    openProject(proj);
+    if (auto *pv = activeView()) pv->showMap(map);
     m_currentMapIdx = proj->maps.indexOf(map);
-    if (!dispatchedViaSignal) onMapActivated(map, proj);
+    onMapActivated(map, proj);
 }
 
 // ── Misc ───────────────────────────────────────────────────────────────────────
@@ -7829,15 +8307,10 @@ void MainWindow::finalizeClosedProject(Project *p)
     m_recentMaps.removeIf([p](const QPair<Project *, QString> &e) {
         return e.first == p;
     });
-    // Close overlays belonging to this project
-    QList<OverlayKey> toRemove;
-    for (auto it = m_overlays.begin(); it != m_overlays.end(); ++it) {
-        if (it.key().first == p) toRemove.append(it.key());
-    }
-    for (const auto &k : toRemove) {
-        { auto ov = m_overlays.value(k); if (ov) ov->close(); }
-        m_overlays.remove(k);
-    }
+    // Close every independent map window backed by this project.
+    for (auto ov : m_overlays)
+        if (ov && ov->targetProject() == p) ov->close();
+    m_overlays.removeAll(QPointer<MapOverlay>());
     // If this is a parent, also close any still-open linked-ROM children
     if (!p->isLinkedRom) {
         QVector<Project *> children;
@@ -9022,7 +9495,8 @@ void MainWindow::actShowCommandPalette()
                     } else if (id == QStringLiteral("theme")) {
                         ConfigDialog dlg(this);
                         dlg.exec();
-                        for (auto *sub : m_mdi->subWindowList())
+        refreshProjectTree();
+        for (auto *sub : m_mdi->subWindowList())
                             sub->widget()->update();
                     }
                     break;
@@ -9504,35 +9978,6 @@ void MainWindow::actExportXdf()
     out.write(xml);
     out.close();
     statusBar()->showMessage(tr("Exported %1 maps to %2").arg(p->maps.size()).arg(path), 6000);
-}
-
-void MainWindow::actExportKp()
-{
-    auto *p = activeProject();
-    if (!p || p->maps.isEmpty()) {
-        QMessageBox::information(this, tr("Export KP"),
-            tr("Open a project with at least one map first."));
-        return;
-    }
-    const QString suggested = QDir::homePath() + "/" + p->displayName() + ".kp";
-    const QString path = QFileDialog::getSaveFileName(this,
-        tr("Export KP map pack"), suggested, tr("KP map pack (*.kp)"));
-    if (path.isEmpty()) return;
-
-    const uint32_t romSize = static_cast<uint32_t>(qMax(0, p->currentData.size()));
-    auto res = ols::KpExporter::exportToBytes(p->maps, romSize);
-    if (!res.error.isEmpty()) {
-        QMessageBox::warning(this, tr("Export KP"), res.error);
-        return;
-    }
-    QFile out(path);
-    if (!out.open(QIODevice::WriteOnly)) {
-        QMessageBox::warning(this, tr("Export KP"), tr("Could not write %1").arg(path));
-        return;
-    }
-    out.write(res.data);
-    out.close();
-    statusBar()->showMessage(tr("Exported %1 maps to %2").arg(res.mapCount).arg(path), 6000);
 }
 
 void MainWindow::onJumpMarker(bool forward)
