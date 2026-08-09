@@ -20,6 +20,7 @@
 #include <QMetaObject>
 #include <QApplication>
 #include <QMainWindow>
+#include <climits>
 #include <cstring>
 
 ProjectView::ProjectView(QWidget *parent)
@@ -175,6 +176,7 @@ ProjectView::ProjectView(QWidget *parent)
 
     connect(m_waveWidget, &WaveformWidget::mapClicked,
             this, [this](const MapInfo &map) {
+        showMap(map);
         emit mapActivated(map, m_project);
     });
 
@@ -298,6 +300,11 @@ void ProjectView::loadProject(Project *project)
         if (m_project) {
             m_hexWidget->refreshData(m_project->currentData);
             m_titleLabel->setText(m_project->fullTitle());
+            QVector<MapRegion> regions;
+            regions.reserve(m_project->maps.size());
+            for (const auto &map : m_project->maps)
+                regions.append({map.address, map.length, map.name});
+            m_hexWidget->setMapRegions(regions);
             // Re-push both map lists so an async auto-scan result or an A2L
             // import triggers a repaint without the caller having to touch
             // the waveform directly.
@@ -317,20 +324,22 @@ void ProjectView::loadProject(Project *project)
 void ProjectView::showMap(const MapInfo &map)
 {
     m_selectedMap = map;
-    m_hexWidget->goToAddress(map.address);
     m_waveWidget->setCurrentMap(map);
 
-    // Reload waveform data first (showROM resets scroll), then navigate
-    if (m_viewStack->currentIndex() == 1 && m_project)
-        m_waveWidget->showROM(m_project->currentData, m_hexWidget->getOriginalData());
-    m_waveWidget->goToAddress(map.address);
+    // A map-list click behaves like WinOLS: select the map's data in the
+    // hexdump, without opening an editor window.  Inline axes precede the
+    // actual cell grid, so select only the editable map cells.
+    const qint64 cellCount = qMax(1, map.dimensions.x) * qMax(1, map.dimensions.y);
+    const qint64 byteCount = cellCount * qMax(1, map.dataSize);
+    const uint32_t dataOffset = map.address + map.mapDataOffset;
+    m_hexWidget->selectRange(dataOffset,
+                              static_cast<int>(qMin<qint64>(byteCount, INT_MAX)));
+    switchView(0);
 
-    if (m_viewStack->currentIndex() == 2 && m_project) {
-        m_map3d->setOriginalData(m_project->originalData);
-        m_map3d->showMap(m_project->currentData, map);
-    }
-
-    emit mapActivated(map, m_project);
+    const uint32_t displayAddress = map.rawAddress ? map.rawAddress
+        : (m_project ? m_project->baseAddress + dataOffset : dataOffset);
+    m_addressInput->setText(
+        QString("0x%1").arg(displayAddress, 8, 16, QChar('0')).toUpper());
 }
 
 void ProjectView::goToAddress(uint32_t addr)

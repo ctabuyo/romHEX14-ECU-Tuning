@@ -613,7 +613,7 @@ void ConfigDialog::buildAIPage()
         {"claude",   tr("Claude (Anthropic)"),   "",                                                          "claude-sonnet-4-6",         true,  0},
         {"openai",   tr("OpenAI (GPT-4o)"),      "https://api.openai.com/v1",                                 "gpt-4o",                    false, 1},
         {"qwen",     tr("Qwen (Alibaba)"),       "https://dashscope.aliyuncs.com/compatible-mode/v1",         "qwen-plus",                 false, 2},
-        {"deepseek", tr("DeepSeek"),             "https://api.deepseek.com/v1",                               "deepseek-chat",             false, 2},
+        {"deepseek", tr("DeepSeek"),             "https://api.deepseek.com/v1",                               "deepseek-v4-flash",         false, 2},
         {"gemini",   tr("Gemini (Google)"),      "https://generativelanguage.googleapis.com/v1beta/openai/",  "gemini-2.0-flash",          false, 2},
         {"groq",     tr("Groq"),                 "https://api.groq.com/openai/v1",                            "llama-3.3-70b-versatile",   false, 2},
         {"ollama",   tr("Ollama (local)"),       "http://localhost:11434/v1",                                 "llama3.2",                  false, 2},

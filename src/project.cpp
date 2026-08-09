@@ -189,8 +189,9 @@ static void cborWriteAxisInfoFull(QCborStreamWriter &w, const AxisInfo &ax)
 
 static void cborWriteMapInfo(QCborStreamWriter &w, const MapInfo &m)
 {
-    w.startMap(19);
+    w.startMap(20);
     w.append(QLatin1String("name"));        w.append(m.name);
+    w.append(QLatin1String("id"));          w.append(m.id);
     w.append(QLatin1String("desc"));        w.append(m.description);
     w.append(QLatin1String("type"));        w.append(m.type);
     w.append(QLatin1String("rawAddr"));     w.append(static_cast<qint64>(m.rawAddress));
@@ -734,6 +735,7 @@ static MapInfo decodeMapInfo(const QCborMap &m)
 {
     MapInfo mi;
     mi.name           = m[QLatin1String("name")].toString();
+    mi.id             = m[QLatin1String("id")].toString();
     mi.description    = m[QLatin1String("desc")].toString();
     mi.type           = m[QLatin1String("type")].toString();
     mi.rawAddress     = static_cast<uint32_t>(m[QLatin1String("rawAddr")].toInteger());
@@ -1141,6 +1143,7 @@ static QJsonObject saveMapInfo(const MapInfo &m)
 {
     QJsonObject o;
     o["name"]       = m.name;
+    o["id"]         = m.id;
     o["desc"]       = m.description;
     o["type"]       = m.type;
     o["addr"]       = QString("0x%1").arg(m.address, 0, 16);
@@ -1169,6 +1172,7 @@ static MapInfo loadMapInfo(const QJsonObject &o)
 {
     MapInfo m;
     m.name           = o["name"].toString();
+    m.id             = o["id"].toString();
     m.description    = o["desc"].toString();
     m.type           = o["type"].toString();
     m.address        = o["addr"].toString().toUInt(nullptr, 0);

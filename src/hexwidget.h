@@ -73,6 +73,9 @@ public:
     QByteArray getOriginalData() const;
     QByteArray exportBinary() const;
     void goToAddress(uint32_t offset);
+    /// Select a byte range and scroll it into view.  Used when a map is
+    /// selected from the project tree so its data is visible in the hex view.
+    void selectRange(uint32_t offset, int length);
     void setMapRegions(const QVector<MapRegion> &regions);
     int modificationCount() const { return m_modifications.size(); }
 

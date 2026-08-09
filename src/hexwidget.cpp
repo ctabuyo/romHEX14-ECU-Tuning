@@ -243,6 +243,19 @@ void HexWidget::goToAddress(uint32_t offset)
     viewport()->update();
 }
 
+void HexWidget::selectRange(uint32_t offset, int length)
+{
+    if (m_data.isEmpty() || length <= 0 || (int)offset >= m_data.size()) return;
+
+    const int start = static_cast<int>(offset);
+    const int end = qMin(start + length - 1, m_data.size() - 1);
+    m_selectedOffset = start;
+    m_selectionStart = start;
+    m_selectionEnd = end;
+    verticalScrollBar()->setValue(start / m_bytesPerRow);
+    viewport()->update();
+}
+
 void HexWidget::setMapRegions(const QVector<MapRegion> &regions)
 {
     m_mapRegions = regions;
