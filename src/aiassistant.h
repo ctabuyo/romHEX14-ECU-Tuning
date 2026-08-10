@@ -103,10 +103,13 @@ private:
     QAction        *m_actSettings   = nullptr;
     QAction        *m_actClear      = nullptr;
     QLabel         *m_statusLabel   = nullptr;
+    QLabel         *m_headerTitleLbl = nullptr;
+    QLabel         *m_welcomeTitleLbl = nullptr;
 
     // Last assistant bubble for streaming (markdown)
     BubbleWidget   *m_streamingBubble = nullptr;
 
+    void updateHeaderProviderInfo();
     void showTyping(bool on);
     void checkWelcome();
     void abortWithError(const QString &msg);

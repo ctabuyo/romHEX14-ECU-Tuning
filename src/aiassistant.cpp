@@ -623,7 +623,7 @@ public:
         vl->addWidget(orb, 0, Qt::AlignHCenter);
 
         // Title
-        auto *title = new QLabel(tr("Claude for RX14"));
+        auto *title = new QLabel(tr("AI Assistant for RX14"));
         title->setStyleSheet(
             "color:#e6edf3; font-size:18pt; font-weight:bold; background:transparent;");
         title->setAlignment(Qt::AlignCenter);
@@ -1150,10 +1150,10 @@ AIAssistant::AIAssistant(QWidget *parent) : QWidget(parent)
     m_orbWidget = new ClaudeOrb(26, m_header);
     headerLay->addWidget(m_orbWidget);
 
-    auto *titleLbl = new QLabel(tr("Claude"), m_header);
-    titleLbl->setStyleSheet(
+    m_headerTitleLbl = new QLabel(tr("AI Assistant"), m_header);
+    m_headerTitleLbl->setStyleSheet(
         "color:#e6edf3; font-weight:bold; font-size:11pt; background:transparent;");
-    headerLay->addWidget(titleLbl);
+    headerLay->addWidget(m_headerTitleLbl);
     headerLay->addStretch();
 
     // Hidden combos remain for legacy code that reads m_providerCombo /
@@ -1897,14 +1897,7 @@ void AIAssistant::retranslateUi()
     if (AppConfig::PermissionMode m = AppConfig::instance().aiPermissionMode; m_permissionBtn)
         applyPermissionMode(m);
     refreshSetupBanner();
-
-    // Update header labels
-    for (auto *lbl : m_header->findChildren<QLabel*>()) {
-        if (lbl->font().bold() && lbl->font().pointSize() >= 10)
-            lbl->setText(tr("Claude for RX14"));
-        else if (lbl->styleSheet().contains("7pt"))
-            lbl->setText(tr("ECU calibration assistant"));
-    }
+    updateHeaderProviderInfo();
 
     // Rebuild welcome widget so all tr() strings are re-resolved
     if (m_welcomeWidget && m_stack) {
@@ -1927,6 +1920,36 @@ void AIAssistant::retranslateUi()
     }
 
     buildSystemPrompt();
+}
+
+void AIAssistant::updateHeaderProviderInfo()
+{
+    QSettings s("CT14", "romHEX14");
+    s.beginGroup("AI");
+    int pIdx = s.value("provider", 0).toInt();
+    s.endGroup();
+
+    if (pIdx < 0 || pIdx >= m_providerConfigs.size()) pIdx = 0;
+    QString label = m_providerConfigs[pIdx].label;
+    int paren = label.indexOf('(');
+    if (paren > 0) label = label.left(paren).trimmed();
+
+    if (m_headerTitleLbl) {
+        m_headerTitleLbl->setText(label);
+    }
+    if (m_welcomeTitleLbl) {
+        m_welcomeTitleLbl->setText(tr("%1 for RX14").arg(label));
+    }
+
+    if (m_sessionStarted && m_chatLayout && m_currentProvider != pIdx) {
+        auto *banner = new QLabel(tr("✦ Switched AI Provider to %1").arg(label));
+        banner->setAlignment(Qt::AlignCenter);
+        banner->setStyleSheet("color:#8b949e; font-size:8.5pt; font-style:italic; margin:8px 0;");
+        m_chatLayout->addWidget(banner);
+        scrollToBottom();
+    }
+
+    m_currentProvider = pIdx;
 }
 
 // ── System prompt ─────────────────────────────────────────────────────────────

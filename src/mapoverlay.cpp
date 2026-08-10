@@ -482,12 +482,7 @@ MapOverlay::MapOverlay(QWidget *parent)
                 tr("Configure an AI provider in the AI assistant settings first."));
             return;
         }
-        auto *claude = qobject_cast<ClaudeProvider*>(prov);
-        if (!claude) {
-            prov->deleteLater();
-            QMessageBox::information(this, "AI", tr("AI map explain requires Claude API."));
-            return;
-        }
+        auto *aiProv = prov;
 
         m_btnAIExplain->setEnabled(false);
         m_btnAIExplain->setText(QString::fromUtf8("\xe2\x9c\xa6")); // ✦
@@ -577,8 +572,9 @@ MapOverlay::MapOverlay(QWidget *parent)
         dlg->show();
 
         // ── Use streaming provider (handles auth correctly) ─────────────
-        // Override model to Haiku for speed
-        claude->setModel("claude-haiku-4-5-20251001");
+        if (aiProv->providerName().contains("Claude")) {
+            aiProv->setModel("claude-haiku-4-5-20251001");
+        }
 
         auto state = std::make_shared<bool>(false); // done flag
 
@@ -590,7 +586,7 @@ MapOverlay::MapOverlay(QWidget *parent)
 
         auto accum = std::make_shared<QString>();
 
-        claude->send(QString(), msgs, {},
+        aiProv->send(QString(), msgs, {},
             // onChunk
             [accum, textLabel, animTimer, statusLabel, dlg, this](const QString &text) {
                 if (accum->isEmpty()) {
@@ -606,7 +602,7 @@ MapOverlay::MapOverlay(QWidget *parent)
             // onToolCall
             [](const QString &, const QString &, const QJsonObject &) {},
             // onDone
-            [this, state, accum, textLabel, statusLabel, animTimer, claude, dlg]() {
+            [this, state, accum, textLabel, statusLabel, animTimer, aiProv, dlg]() {
                 if (*state) return;
                 *state = true;
                 animTimer->stop();
@@ -617,10 +613,10 @@ MapOverlay::MapOverlay(QWidget *parent)
                 if (!result.isEmpty()) m_aiCache[m_map.name] = result;
                 m_btnAIExplain->setEnabled(true);
                 m_btnAIExplain->setText("AI");
-                claude->deleteLater();
+                aiProv->deleteLater();
             },
             // onError
-            [this, state, accum, textLabel, statusLabel, animTimer, claude, dlg](const QString &err) {
+            [this, state, accum, textLabel, statusLabel, animTimer, aiProv, dlg](const QString &err) {
                 if (*state) return;
                 *state = true;
                 animTimer->stop();
@@ -632,15 +628,15 @@ MapOverlay::MapOverlay(QWidget *parent)
                 dlg->adjustSize();
                 m_btnAIExplain->setEnabled(true);
                 m_btnAIExplain->setText("AI");
-                claude->deleteLater();
+                aiProv->deleteLater();
             });
 
-        connect(dlg, &QDialog::finished, this, [this, state, animTimer, claude]() {
+        connect(dlg, &QDialog::finished, this, [this, state, animTimer, aiProv]() {
             if (!*state) {
                 *state = true;
                 animTimer->stop();
-                claude->abort();
-                claude->deleteLater();
+                aiProv->abort();
+                aiProv->deleteLater();
             }
             m_btnAIExplain->setEnabled(true);
             m_btnAIExplain->setText("AI");
