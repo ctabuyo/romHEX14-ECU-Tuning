@@ -63,7 +63,7 @@ private:
 
     // ── data ──────────────────────────────────────────────────────────────────
     MapInfo   m_result;
-    ByteOrder m_byteOrder;
+    ByteOrder m_byteOrder = ByteOrder::LittleEndian;
 
     // Map tab
     QLineEdit        *m_nameEdit       = nullptr;

@@ -456,8 +456,8 @@ void OLSParser::parseMapRecords(const QByteArray &data)
         return conv.dv;
     };
 
-    struct FoundStr { int pos; QString text; };
-    struct FoundDbl { int pos; double value; };
+    struct FoundStr { int pos = 0; QString text; };
+    struct FoundDbl { int pos = 0; double value = 0.0; };
 
     for (int i = 0; i < m_maps.size(); i++) {
         auto &mp = m_maps[i];

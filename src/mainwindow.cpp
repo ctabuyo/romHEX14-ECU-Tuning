@@ -1553,7 +1553,7 @@ void MainWindow::buildLeftPanel()
         }
 
         QMenu menu(m_projectTree);
-        struct SelectedMapEntry { Project *project; MapInfo map; };
+        struct SelectedMapEntry { Project *project = nullptr; MapInfo map; };
         QVector<SelectedMapEntry> selectedMapEntries;
         for (auto *selected : m_projectTree->selectedItems()) {
             const auto mapVar = selected->data(0, Qt::UserRole + 2);
