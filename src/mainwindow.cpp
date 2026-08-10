@@ -2475,6 +2475,9 @@ void MainWindow::buildActions()
         ConfigDialog dlg(this);
         dlg.exec();
         refreshProjectTree();
+        if (m_aiAssistant) {
+            m_aiAssistant->loadSettings();
+        }
         for (auto *sub : m_mdi->subWindowList())
             sub->widget()->update();
     });

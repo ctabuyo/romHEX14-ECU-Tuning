@@ -8,6 +8,9 @@
 #include "uiwidgets.h"
 #include "configdialog.h"
 #include "appconstants.h"
+#include <QDesktopServices>
+#include <QToolButton>
+#include <QUrl>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QGridLayout>
@@ -609,16 +612,16 @@ void ConfigDialog::buildAIPage()
 {
     // Provider registry — same order and defaults as AIAssistant
     m_aiProviders = {
-        //  name        label                         baseUrl                                                     defaultModel                isClaude  tier
-        {"claude",   tr("Claude (Anthropic)"),   "",                                                          "claude-sonnet-4-6",         true,  0},
-        {"openai",   tr("OpenAI (GPT-4o)"),      "https://api.openai.com/v1",                                 "gpt-4o",                    false, 1},
-        {"qwen",     tr("Qwen (Alibaba)"),       "https://dashscope.aliyuncs.com/compatible-mode/v1",         "qwen-plus",                 false, 2},
-        {"deepseek", tr("DeepSeek"),             "https://api.deepseek.com/v1",                               "deepseek-v4-flash",         false, 2},
-        {"gemini",   tr("Gemini (Google)"),      "https://generativelanguage.googleapis.com/v1beta/openai/",  "gemini-2.0-flash",          false, 2},
-        {"groq",     tr("Groq"),                 "https://api.groq.com/openai/v1",                            "llama-3.3-70b-versatile",   false, 2},
-        {"ollama",   tr("Ollama (local)"),       "http://localhost:11434/v1",                                 "llama3.2",                  false, 2},
-        {"lmstudio", tr("LM Studio (local)"),   "http://localhost:1234/v1",                                  "local-model",               false, 2},
-        {"custom",   tr("Custom OpenAI-compat"), "",                                                          "",                          false, 2},
+        //  name        label                         baseUrl                                                     defaultModel                presetModels                                                                                              docsUrl                                                     isClaude  tier
+        {"claude",   tr("Claude (Anthropic)"),   "",                                                          "claude-sonnet-4-6",       {"claude-sonnet-5", "claude-opus-5", "claude-fable-5", "claude-haiku-4.5", "claude-sonnet-4-6"}, "https://docs.anthropic.com/en/docs/models-overview", true,  0},
+        {"openai",   tr("OpenAI"),               "https://api.openai.com/v1",                                 "gpt-4o",                  {"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-4o", "gpt-4o-mini", "o3-mini", "o1"}, "https://platform.openai.com/docs/models", false, 1},
+        {"qwen",     tr("Qwen (Alibaba)"),       "https://dashscope.aliyuncs.com/compatible-mode/v1",         "qwen-plus",               {"qwen2.5-coder-32b-instruct", "qwen-max", "qwen-plus", "qwen-turbo"}, "https://help.aliyun.com/zh/dashscope", false, 2},
+        {"deepseek", tr("DeepSeek"),             "https://api.deepseek.com/v1",                               "deepseek-v4-flash",       {"deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat", "deepseek-reasoner"}, "https://api-docs.deepseek.com/", false, 1},
+        {"gemini",   tr("Gemini (Google)"),      "https://generativelanguage.googleapis.com/v1beta/openai/",  "gemini-2.0-flash",        {"gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro", "gemini-2.0-flash"}, "https://ai.google.dev/gemini-api/docs/models/gemini", false, 2},
+        {"groq",     tr("Groq"),                 "https://api.groq.com/openai/v1",                            "llama-3.3-70b-versatile", {"llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "llama-3.1-8b-instant"}, "https://console.groq.com/docs/models", false, 2},
+        {"ollama",   tr("Ollama (local)"),       "http://localhost:11434/v1",                                "llama3.2",                {"llama3.3", "llama3.2", "deepseek-r1", "qwen2.5-coder"}, "https://docs.ollama.com/api/openai-compatibility", false, 2},
+        {"lmstudio", tr("LM Studio (local)"),   "http://localhost:1234/v1",                                  "local-model",             {"local-model"}, "https://lmstudio.ai/docs", false, 2},
+        {"custom",   tr("Custom OpenAI-compat"), "",                                                          "",                        {}, "", false, 2},
     };
 
     auto *page = new QWidget;
@@ -672,10 +675,39 @@ void ConfigDialog::buildAIPage()
         "QLineEdit:focus { border-color:" + AppConfig::instance().colors.uiAccent.lighter(140).name() + "; }");
     form->addRow(tr("API Key:"), m_aiKeyEdit);
 
-    // Model
-    m_aiModelEdit = new QLineEdit;
-    m_aiModelEdit->setStyleSheet(m_aiKeyEdit->styleSheet());
-    form->addRow(tr("Model:"), m_aiModelEdit);
+    // Model (Editable ComboBox + API Docs Link Button)
+    auto *modelRow = new QHBoxLayout;
+    modelRow->setContentsMargins(0, 0, 0, 0);
+    modelRow->setSpacing(6);
+
+    m_aiModelCombo = new QComboBox;
+    m_aiModelCombo->setEditable(true);
+    m_aiModelCombo->setStyleSheet(
+        "QComboBox { background:" + AppConfig::instance().colors.buttonBg.name() + "; color:" + AppConfig::instance().colors.uiText.name() + "; border:1px solid " + AppConfig::instance().colors.uiBorder.name() + "; "
+        "            border-radius:4px; padding:4px 8px; font-size:9pt; }"
+        "QComboBox:hover { border-color:" + AppConfig::instance().colors.uiAccent.lighter(140).name() + "; }"
+        "QComboBox QAbstractItemView { background:" + AppConfig::instance().colors.buttonBg.name() + "; color:" + AppConfig::instance().colors.uiText.name() + "; "
+        "  selection-background-color:" + AppConfig::instance().colors.uiAccent.name() + "; border:1px solid " + AppConfig::instance().colors.uiBorder.name() + "; }");
+    modelRow->addWidget(m_aiModelCombo, 1);
+
+    m_aiDocsBtn = new QToolButton;
+    m_aiDocsBtn->setText(tr("🔗 API Docs"));
+    m_aiDocsBtn->setToolTip(tr("Open official model documentation in web browser"));
+    m_aiDocsBtn->setStyleSheet(
+        "QToolButton { background:transparent; color:" + AppConfig::instance().colors.uiAccent.name() + "; border:none; font-size:8.5pt; font-weight:bold; padding:2px 6px; }"
+        "QToolButton:hover { text-decoration:underline; cursor:pointer; }");
+    connect(m_aiDocsBtn, &QToolButton::clicked, this, [this]() {
+        int idx = m_aiProviderCombo->currentIndex();
+        if (idx >= 0 && idx < m_aiProviders.size()) {
+            const QString &docsUrl = m_aiProviders[idx].docsUrl;
+            if (!docsUrl.isEmpty()) {
+                QDesktopServices::openUrl(QUrl(docsUrl));
+            }
+        }
+    });
+    modelRow->addWidget(m_aiDocsBtn);
+
+    form->addRow(tr("Model:"), modelRow);
 
     // Base URL
     m_aiUrlEdit = new QLineEdit;
@@ -731,8 +763,24 @@ void ConfigDialog::loadAIProviderFields(int index)
     s.endGroup();
 
     m_aiKeyEdit->setText(key);
-    m_aiModelEdit->setText(model.isEmpty() ? p.defaultModel : model);
-    m_aiModelEdit->setPlaceholderText(p.defaultModel);
+
+    // Populate model combo with presets + current active model
+    m_aiModelCombo->blockSignals(true);
+    m_aiModelCombo->clear();
+    for (const QString &m : p.presetModels) {
+        m_aiModelCombo->addItem(m);
+    }
+    QString activeModel = model.isEmpty() ? p.defaultModel : model;
+    if (!activeModel.isEmpty() && m_aiModelCombo->findText(activeModel) < 0) {
+        m_aiModelCombo->addItem(activeModel);
+    }
+    m_aiModelCombo->setCurrentText(activeModel);
+    m_aiModelCombo->blockSignals(false);
+
+    if (m_aiDocsBtn) {
+        m_aiDocsBtn->setVisible(!p.docsUrl.isEmpty());
+    }
+
     m_aiUrlEdit->setText(baseUrl.isEmpty() ? p.baseUrl : baseUrl);
     m_aiUrlEdit->setPlaceholderText(p.isClaude ? "https://api.anthropic.com" : p.baseUrl);
     m_aiUrlEdit->setEnabled(!p.isClaude);
@@ -760,7 +808,7 @@ void ConfigDialog::saveAISettings()
     s.beginGroup("AIAssistant");
     s.setValue("provider", idx);
     s.setValue(p.name + "/apiKey",  QString::fromLatin1(obfuscate(m_aiKeyEdit->text().trimmed().toUtf8())));
-    s.setValue(p.name + "/model",   m_aiModelEdit->text().trimmed());
+    s.setValue(p.name + "/model",   m_aiModelCombo->currentText().trimmed());
     s.setValue(p.name + "/baseUrl", m_aiUrlEdit->text().trimmed());
     s.endGroup();
 }

@@ -62,12 +62,13 @@ private:
     QVector<QPair<QPushButton*, QColor*>> m_swatches;
 
     // AI settings widgets
-    QComboBox *m_aiProviderCombo = nullptr;
-    QLineEdit *m_aiKeyEdit      = nullptr;
-    QLineEdit *m_aiModelEdit    = nullptr;
-    QLineEdit *m_aiUrlEdit      = nullptr;
-    QCheckBox *m_showLongNamesCheck = nullptr;
-    QLabel    *m_supportLabel       = nullptr;
+    QComboBox   *m_aiProviderCombo   = nullptr;
+    QLineEdit   *m_aiKeyEdit         = nullptr;
+    QComboBox   *m_aiModelCombo      = nullptr;
+    class QToolButton *m_aiDocsBtn   = nullptr;
+    QLineEdit   *m_aiUrlEdit         = nullptr;
+    QCheckBox   *m_showLongNamesCheck = nullptr;
+    QLabel      *m_supportLabel      = nullptr;
 
     // 2D waveform style widgets
     QComboBox            *m_waveShapeCombo = nullptr;
@@ -77,12 +78,14 @@ private:
 
     // AI provider registry (mirrors AIAssistant)
     struct AIProviderEntry {
-        QString name;
-        QString label;
-        QString baseUrl;
-        QString defaultModel;
-        bool    isClaude = false;
-        int     tier     = 2;  // 0 = green/best  1 = amber/good  2 = red/limited
+        QString     name;
+        QString     label;
+        QString     baseUrl;
+        QString     defaultModel;
+        QStringList presetModels;
+        QString     docsUrl;
+        bool        isClaude = false;
+        int         tier     = 2;  // 0 = green/best  1 = amber/good  2 = red/limited
     };
     QVector<AIProviderEntry> m_aiProviders;
 };

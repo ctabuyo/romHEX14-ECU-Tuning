@@ -1113,15 +1113,15 @@ AIAssistant::AIAssistant(QWidget *parent) : QWidget(parent)
     // Last field is the compatibility tier: 0 green (native, best), 1 amber
     // (OpenAI reference, good), 2 red (third-party / local, limited).
     m_providerConfigs = {
-        {"claude",    "Claude (Anthropic)",    "",                                                         "claude-sonnet-4-6",         true,  0},
-        {"openai",    "OpenAI (GPT-4o)",       "https://api.openai.com/v1",                                "gpt-4o",                    false, 1},
-        {"qwen",      "Qwen (Alibaba)",        "https://dashscope.aliyuncs.com/compatible-mode/v1",        "qwen-plus",                 false, 2},
-        {"deepseek",  "DeepSeek",              "https://api.deepseek.com/v1",                              "deepseek-v4-flash",         false, 2},
-        {"gemini",    "Gemini (Google)",       "https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.0-flash",          false, 2},
-        {"groq",      "Groq",                  "https://api.groq.com/openai/v1",                           "llama-3.3-70b-versatile",   false, 2},
-        {"ollama",    "Ollama (local)",        "http://localhost:11434/v1",                                "llama3.2",                  false, 2},
-        {"lmstudio",  "LM Studio (local)",     "http://localhost:1234/v1",                                 "local-model",               false, 2},
-        {"custom",    "Custom OpenAI-compat",  "",                                                         "",                          false, 2},
+        {"claude",    "Claude (Anthropic)",    "",                                                         "claude-sonnet-4-6",       {"claude-sonnet-5", "claude-opus-5", "claude-fable-5", "claude-haiku-4.5", "claude-sonnet-4-6"}, "https://docs.anthropic.com/en/docs/models-overview", true,  0},
+        {"openai",    "OpenAI",                "https://api.openai.com/v1",                                "gpt-4o",                  {"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-4o", "gpt-4o-mini", "o3-mini", "o1"}, "https://platform.openai.com/docs/models", false, 1},
+        {"qwen",      "Qwen (Alibaba)",        "https://dashscope.aliyuncs.com/compatible-mode/v1",        "qwen-plus",               {"qwen2.5-coder-32b-instruct", "qwen-max", "qwen-plus", "qwen-turbo"}, "https://help.aliyun.com/zh/dashscope", false, 2},
+        {"deepseek",  "DeepSeek",              "https://api.deepseek.com/v1",                              "deepseek-v4-flash",       {"deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat", "deepseek-reasoner"}, "https://api-docs.deepseek.com/", false, 1},
+        {"gemini",    "Gemini (Google)",       "https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.0-flash",        {"gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.1-pro", "gemini-2.0-flash"}, "https://ai.google.dev/gemini-api/docs/models/gemini", false, 2},
+        {"groq",      "Groq",                  "https://api.groq.com/openai/v1",                           "llama-3.3-70b-versatile", {"llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "llama-3.1-8b-instant"}, "https://console.groq.com/docs/models", false, 2},
+        {"ollama",    "Ollama (local)",        "http://localhost:11434/v1",                                "llama3.2",                {"llama3.3", "llama3.2", "deepseek-r1", "qwen2.5-coder"}, "https://docs.ollama.com/api/openai-compatibility", false, 2},
+        {"lmstudio",  "LM Studio (local)",     "http://localhost:1234/v1",                                 "local-model",             {"local-model"}, "https://lmstudio.ai/docs", false, 2},
+        {"custom",    "Custom OpenAI-compat",  "",                                                         "",                        {}, "", false, 2},
     };
 
     setStyleSheet("AIAssistant { background:#0d1117; }");
@@ -1925,7 +1925,7 @@ void AIAssistant::retranslateUi()
 void AIAssistant::updateHeaderProviderInfo()
 {
     QSettings s("CT14", "romHEX14");
-    s.beginGroup("AI");
+    s.beginGroup(kSettingsGroup);
     int pIdx = s.value("provider", 0).toInt();
     s.endGroup();
 
@@ -1935,7 +1935,7 @@ void AIAssistant::updateHeaderProviderInfo()
     if (paren > 0) label = label.left(paren).trimmed();
 
     if (m_headerTitleLbl) {
-        m_headerTitleLbl->setText(label);
+        m_headerTitleLbl->setText(tr("%1 for RX14").arg(label));
     }
     if (m_welcomeTitleLbl) {
         m_welcomeTitleLbl->setText(tr("%1 for RX14").arg(label));
@@ -3512,6 +3512,13 @@ void AIAssistant::loadSettings()
     s.endGroup();
 
     providerIdx = qBound(0, providerIdx, m_providerConfigs.size() - 1);
+    if (m_currentProvider != providerIdx || m_provider) {
+        if (m_provider) {
+            m_provider->abort();
+            m_provider->deleteLater();
+            m_provider.clear();
+        }
+    }
     m_currentProvider = providerIdx;
 
     m_providerCombo->blockSignals(true);
@@ -3520,6 +3527,7 @@ void AIAssistant::loadSettings()
 
     if (verbose) setVerboseMode(true);
     refreshSetupBanner();
+    updateHeaderProviderInfo();
 }
 
 void AIAssistant::refreshSetupBanner()
@@ -3727,5 +3735,6 @@ void AIAssistant::onSettingsClicked()
 
     if (m_provider) { m_provider->abort(); m_provider->deleteLater(); m_provider.clear(); }
     saveSettings();
-    loadSettings();  // re-runs refreshSetupBanner() with new provider state
+    loadSettings();  // re-runs refreshSetupBanner() and updateHeaderProviderInfo() with new provider state
+    updateHeaderProviderInfo();
 }

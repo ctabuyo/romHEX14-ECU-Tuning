@@ -39,6 +39,7 @@ public:
     void setAllProjects(const QVector<Project*> &projects); // all open projects (for finding linked ROM)
     void setSelectedMap(const MapInfo &map);  // called when user selects a map
     void retranslateUi();
+    void loadSettings();
 
     /// Create a one-shot AI provider from saved settings (caller takes ownership)
     static AIProvider *createOneShotProvider(QObject *parent = nullptr);
@@ -63,7 +64,6 @@ private:
     void doSend();                             // one async round-trip; continues via timer if tool calls pending
     void handleToolCall(const QString &callId, const QString &name, const QJsonObject &input,
                         bool recordToolUse = true);
-    void loadSettings();
     void saveSettings();
     AIProvider *createProvider(int index);
     void transitionTo(AssistantState newState);
@@ -205,8 +205,10 @@ private:
         QString name;           // settings key
         QString label;          // display label
         QString baseUrl;        // default base URL (empty for Claude)
-        QString defaultModel;
-        bool    isClaude = false;
+        QString     defaultModel;
+        QStringList presetModels;
+        QString     docsUrl;
+        bool        isClaude = false;
         // Compatibility tier rendered as a coloured dot in the settings combo:
         //   0 = green  — native API, full tool-calling and streaming
         //   1 = amber  — OpenAI-compatible, tool-calling available
