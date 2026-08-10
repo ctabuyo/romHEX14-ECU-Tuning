@@ -22,10 +22,14 @@ class ConfigDialog : public QDialog {
 public:
     explicit ConfigDialog(QWidget *parent = nullptr);
 
+signals:
+    void settingsApplied();
+
 public slots:
     /// Cancel / Esc / window close — reverts the live preview to the last
     /// applied (or on-disk) state before closing.
     void reject() override;
+    void markDirty();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -44,6 +48,7 @@ private:
     void revertPreview();
     // Repaint all color swatch buttons from the working copy.
     void refreshSwatches();
+    void setDirty(bool dirty);
 
     QWidget *makeColorRow(const QString &label, QColor &colorRef);
 
@@ -69,6 +74,13 @@ private:
     QLineEdit   *m_aiUrlEdit         = nullptr;
     QCheckBox   *m_showLongNamesCheck = nullptr;
     QLabel      *m_supportLabel      = nullptr;
+
+    // Button controls & status
+    QPushButton *m_btnApply        = nullptr;
+    QPushButton *m_btnCancel       = nullptr;
+    QLabel      *m_applyStatusLbl  = nullptr;
+    bool         m_isDirty         = false;
+
 
     // 2D waveform style widgets
     QComboBox            *m_waveShapeCombo = nullptr;

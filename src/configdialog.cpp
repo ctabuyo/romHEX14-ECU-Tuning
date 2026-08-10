@@ -9,6 +9,7 @@
 #include "configdialog.h"
 #include "appconstants.h"
 #include <QDesktopServices>
+#include <QTimer>
 #include <QToolButton>
 #include <QUrl>
 #include <QHBoxLayout>
@@ -93,16 +94,19 @@ ConfigDialog::ConfigDialog(QWidget *parent)
     buildAIPage();
 
     auto *btnReset  = new QPushButton(tr("Reset Defaults"));
-    auto *btnCancel = new QPushButton(tr("Cancel"));
-    auto *btnApply  = new QPushButton(tr("Apply"));
-    btnApply->setStyleSheet(
+    m_btnCancel      = new QPushButton(tr("Close"));
+    m_btnApply       = new QPushButton(tr("Apply"));
+    m_btnApply->setEnabled(false);
+    m_btnApply->setStyleSheet(
         "QPushButton { background:" + AppConfig::instance().colors.uiAccent.name() + "; color:#fff; border:none;"
         "  border-radius:4px; padding:4px 16px; }"
-        "QPushButton:hover { background:" + AppConfig::instance().colors.uiAccent.lighter(120).name() + "; }");
+        "QPushButton:disabled { background:#30363d; color:#8b949e; }"
+        "QPushButton:hover:!disabled { background:" + AppConfig::instance().colors.uiAccent.lighter(120).name() + "; }");
+
+    m_applyStatusLbl = new QLabel;
+    m_applyStatusLbl->setStyleSheet("font-size:8.5pt;");
 
     connect(btnReset, &QPushButton::clicked, this, [this]() {
-        // Reset the working state and preview it live; Apply persists,
-        // Cancel reverts — same contract as every other control.
         AppConfig::applyDefaults(m_working);
         const WaveStyle defStyle;
         if (m_waveShapeCombo) {
@@ -115,9 +119,10 @@ ConfigDialog::ConfigDialog(QWidget *parent)
         }
         refreshSwatches();
         previewNow();
+        markDirty();
     });
-    connect(btnCancel, &QPushButton::clicked, this, &ConfigDialog::reject);
-    connect(btnApply,  &QPushButton::clicked, this, [this]() {
+    connect(m_btnCancel, &QPushButton::clicked, this, &ConfigDialog::reject);
+    connect(m_btnApply,  &QPushButton::clicked, this, [this]() {
         previewNow();                       // AppConfig now holds the working state
         AppConfig::instance().save();
         saveAISettings();
@@ -125,15 +130,25 @@ ConfigDialog::ConfigDialog(QWidget *parent)
         m_original      = m_working;
         m_origStyle     = AppConfig::instance().waveStyle;
         m_origLongNames = AppConfig::instance().showLongMapNames;
+
+        emit settingsApplied();
+        setDirty(false);
+
+        if (m_applyStatusLbl) {
+            m_applyStatusLbl->setText(tr("<span style='color:#3fb950; font-weight:bold;'>\xe2\x9c\x93 Settings applied</span>"));
+            QTimer::singleShot(2500, m_applyStatusLbl, &QLabel::clear);
+        }
     });
 
     auto *btnRow = new QHBoxLayout;
     btnRow->setContentsMargins(8, 8, 8, 8);
     btnRow->addWidget(btnReset);
     btnRow->addStretch();
-    btnRow->addWidget(btnCancel);
+    btnRow->addWidget(m_applyStatusLbl);
     btnRow->addSpacing(8);
-    btnRow->addWidget(btnApply);
+    btnRow->addWidget(m_btnCancel);
+    btnRow->addSpacing(8);
+    btnRow->addWidget(m_btnApply);
 
     auto *sep = new QFrame;
     sep->setFrameShape(QFrame::HLine);
@@ -745,9 +760,15 @@ void ConfigDialog::buildAIPage()
     m_aiProviderCombo->setCurrentIndex(savedIdx);
     loadAIProviderFields(savedIdx);
 
-    // When provider changes, reload fields from saved settings
+    // When provider changes, reload fields from saved settings and mark dirty
     connect(m_aiProviderCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &ConfigDialog::loadAIProviderFields);
+            this, [this](int idx) {
+                loadAIProviderFields(idx);
+                markDirty();
+            });
+    connect(m_aiKeyEdit, &QLineEdit::textChanged, this, &ConfigDialog::markDirty);
+    connect(m_aiModelCombo, &QComboBox::currentTextChanged, this, &ConfigDialog::markDirty);
+    connect(m_aiUrlEdit, &QLineEdit::textChanged, this, &ConfigDialog::markDirty);
 }
 
 void ConfigDialog::loadAIProviderFields(int index)
@@ -811,4 +832,23 @@ void ConfigDialog::saveAISettings()
     s.setValue(p.name + "/model",   m_aiModelCombo->currentText().trimmed());
     s.setValue(p.name + "/baseUrl", m_aiUrlEdit->text().trimmed());
     s.endGroup();
+}
+
+void ConfigDialog::markDirty()
+{
+    setDirty(true);
+}
+
+void ConfigDialog::setDirty(bool dirty)
+{
+    m_isDirty = dirty;
+    if (m_btnApply) {
+        m_btnApply->setEnabled(dirty);
+    }
+    if (m_btnCancel) {
+        m_btnCancel->setText(dirty ? tr("Cancel") : tr("Close"));
+    }
+    if (dirty && m_applyStatusLbl) {
+        m_applyStatusLbl->clear();
+    }
 }

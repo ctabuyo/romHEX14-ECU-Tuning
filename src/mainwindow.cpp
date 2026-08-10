@@ -2473,6 +2473,14 @@ void MainWindow::buildActions()
     m_actPreferences->setMenuRole(QAction::NoRole);
     connect(m_actPreferences, &QAction::triggered, this, [this]() {
         ConfigDialog dlg(this);
+        connect(&dlg, &ConfigDialog::settingsApplied, this, [this]() {
+            refreshProjectTree();
+            if (m_aiAssistant) {
+                m_aiAssistant->loadSettings();
+            }
+            for (auto *sub : m_mdi->subWindowList())
+                sub->widget()->update();
+        });
         dlg.exec();
         refreshProjectTree();
         if (m_aiAssistant) {
