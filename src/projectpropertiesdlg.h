@@ -49,7 +49,7 @@ private:
     QString scanSwNumber() const;
     QString computeChecksum() const;
 
-    Project *m_project;
+    Project *m_project = nullptr;
 
     // Client
     QLineEdit *m_clientName    = nullptr;

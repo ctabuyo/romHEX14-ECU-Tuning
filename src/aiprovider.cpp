@@ -124,18 +124,25 @@ static QJsonArray messagesToOpenAI(const QString &systemPrompt, const QVector<AI
         }
         case AIMessage::ToolUse: {
             // assistant message with tool_calls array
-            QJsonObject func;
-            func["name"]      = msg.toolName;
-            func["arguments"] = msg.toolInputJson;
-            QJsonObject tc;
-            tc["id"]       = msg.toolCallId;
-            tc["type"]     = "function";
-            tc["function"] = func;
             QJsonArray tcs;
-            tcs.append(tc);
+            QVector<AIToolCall> calls = msg.toolCalls;
+            if (calls.isEmpty())
+                calls.append({msg.toolCallId, msg.toolName, msg.toolInputJson});
+            for (const AIToolCall &call : calls) {
+                QJsonObject func;
+                func["name"]      = call.name;
+                func["arguments"] = call.argumentsJson;
+                QJsonObject tc;
+                tc["id"]       = call.id;
+                tc["type"]     = "function";
+                tc["function"] = func;
+                tcs.append(tc);
+            }
             QJsonObject m;
             m["role"]       = "assistant";
-            m["content"]    = QJsonValue::Null;
+            m["content"]    = msg.content;
+            if (!msg.reasoningContent.isEmpty())
+                m["reasoning_content"] = msg.reasoningContent;
             m["tool_calls"] = tcs;
             arr.append(m);
             break;
@@ -190,7 +197,7 @@ void ClaudeProvider::abort()
 void ClaudeProvider::send(const QString &systemPrompt,
                           const QVector<AIMessage> &messages,
                           const QVector<AIToolDef> &tools,
-                          ChunkFn onChunk, ToolCallFn onToolCall,
+                          ChunkFn onChunk, ReasoningFn onReasoning, ToolCallFn onToolCall,
                           DoneFn onDone, ErrorFn onError)
 {
     if (m_reply) {
@@ -200,6 +207,7 @@ void ClaudeProvider::send(const QString &systemPrompt,
     }
 
     m_onChunk     = onChunk;
+    Q_UNUSED(onReasoning);
     m_onToolCall  = onToolCall;
     m_onDone      = onDone;
     m_onError     = onError;
@@ -382,7 +390,7 @@ void OpenAICompatProvider::abort()
 void OpenAICompatProvider::send(const QString &systemPrompt,
                                 const QVector<AIMessage> &messages,
                                 const QVector<AIToolDef> &tools,
-                                ChunkFn onChunk, ToolCallFn onToolCall,
+                                ChunkFn onChunk, ReasoningFn onReasoning, ToolCallFn onToolCall,
                                 DoneFn onDone, ErrorFn onError)
 {
     if (m_reply) {
@@ -391,12 +399,14 @@ void OpenAICompatProvider::send(const QString &systemPrompt,
     }
 
     m_onChunk    = onChunk;
+    m_onReasoning = onReasoning;
     m_onToolCall = onToolCall;
     m_onDone     = onDone;
     m_onError    = onError;
     m_sseBuffer.clear();
     m_pendingCalls.clear();
     m_errorFired = false;
+    m_reasoningContent.clear();
 
     QJsonObject body;
     body["model"]  = m_model;
@@ -404,6 +414,9 @@ void OpenAICompatProvider::send(const QString &systemPrompt,
     body["messages"] = messagesToOpenAI(systemPrompt, messages);
     if (!tools.isEmpty())
         body["tools"] = toolsToOpenAI(tools);
+    // DeepSeek thinking traces are retained and replayed with tool-call turns.
+    if (m_isDeepSeek)
+        body["thinking"] = QJsonObject{{"type", "enabled"}};
 
     QString url = m_baseUrl;
     if (!url.endsWith('/')) url += '/';
@@ -474,6 +487,8 @@ void OpenAICompatProvider::onReadyRead()
         if (!line.startsWith("data:")) continue;
         QString dataStr = line.mid(5).trimmed();
         if (dataStr == "[DONE]") {
+            if (m_onReasoning && !m_reasoningContent.isEmpty())
+                m_onReasoning(m_reasoningContent);
             // Fire all pending tool calls
             for (const PendingCall &pc : m_pendingCalls) {
                 if (m_onToolCall) {
@@ -514,6 +529,8 @@ void OpenAICompatProvider::onReadyRead()
         processDelta(delta);
 
         if (finishReason == "tool_calls") {
+            if (m_onReasoning && !m_reasoningContent.isEmpty())
+                m_onReasoning(m_reasoningContent);
             for (const PendingCall &pc : m_pendingCalls) {
                 if (m_onToolCall) {
                     QJsonParseError pe;
@@ -530,6 +547,8 @@ void OpenAICompatProvider::onReadyRead()
 
 void OpenAICompatProvider::processDelta(const QJsonObject &delta)
 {
+    if (delta.contains("reasoning_content") && !delta["reasoning_content"].isNull())
+        m_reasoningContent += delta["reasoning_content"].toString();
     // Text content
     if (delta.contains("content") && !delta["content"].isNull()) {
         QString text = delta["content"].toString();

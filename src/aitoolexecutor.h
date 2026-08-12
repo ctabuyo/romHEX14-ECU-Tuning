@@ -24,7 +24,7 @@ public:
     // Execute a tool call. Returns JSON result string.
     // For write operations, shows a confirmation dialog first.
     // Returns {"error":"cancelled"} if user rejects.
-    QString execute(const QString &toolName, const QJsonObject &input);
+    QString execute(const QString &toolName, QJsonObject input);
 
     // Returns the tool definitions to send to the AI
     static QVector<AIToolDef> toolDefinitions();
@@ -53,6 +53,8 @@ private:
 
     // Read tools
     QString toolListMaps();
+    QString toolListFolders();
+    QString toolGetFolderMaps(const QJsonObject &input);
     QString toolGetProjectInfo();
     QString toolGetMapValues(const QJsonObject &input);
     QString toolGetOriginalValues(const QJsonObject &input);

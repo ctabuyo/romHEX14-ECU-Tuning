@@ -39,6 +39,7 @@ public:
     void setAllProjects(const QVector<Project*> &projects); // all open projects (for finding linked ROM)
     void setSelectedMap(const MapInfo &map);  // called when user selects a map
     void retranslateUi();
+    void loadSettings();
 
     /// Create a one-shot AI provider from saved settings (caller takes ownership)
     static AIProvider *createOneShotProvider(QObject *parent = nullptr);
@@ -61,14 +62,15 @@ private:
     void startAssistantBubble();
     void buildSystemPrompt();
     void doSend();                             // one async round-trip; continues via timer if tool calls pending
-    void handleToolCall(const QString &callId, const QString &name, const QJsonObject &input);
-    void loadSettings();
+    void handleToolCall(const QString &callId, const QString &name, const QJsonObject &input,
+                        bool recordToolUse = true);
     void saveSettings();
     AIProvider *createProvider(int index);
     void transitionTo(AssistantState newState);
     void manageContext();
     QString classifyIntent(const QString &userMessage);
     QStringList toolsForCategory(const QString &category);
+    QString buildMapPreflight(const QString &userMessage);
 
     // UI
     QWidget        *m_header        = nullptr;
@@ -101,10 +103,13 @@ private:
     QAction        *m_actSettings   = nullptr;
     QAction        *m_actClear      = nullptr;
     QLabel         *m_statusLabel   = nullptr;
+    QLabel         *m_headerTitleLbl = nullptr;
+    QLabel         *m_welcomeTitleLbl = nullptr;
 
     // Last assistant bubble for streaming (markdown)
     BubbleWidget   *m_streamingBubble = nullptr;
 
+    void updateHeaderProviderInfo();
     void showTyping(bool on);
     void checkWelcome();
     void abortWithError(const QString &msg);
@@ -122,6 +127,7 @@ private:
     bool                m_hasSelectedMap = false;
     QString             m_systemPrompt;
     QVector<AIMessage>  m_history;
+    QString             m_pendingReasoningContent;
 
     // Pending tool calls (accumulated per round-trip)
     struct PendingToolCall {
@@ -199,8 +205,10 @@ private:
         QString name;           // settings key
         QString label;          // display label
         QString baseUrl;        // default base URL (empty for Claude)
-        QString defaultModel;
-        bool    isClaude = false;
+        QString     defaultModel;
+        QStringList presetModels;
+        QString     docsUrl;
+        bool        isClaude = false;
         // Compatibility tier rendered as a coloured dot in the settings combo:
         //   0 = green  — native API, full tool-calling and streaming
         //   1 = amber  — OpenAI-compatible, tool-calling available

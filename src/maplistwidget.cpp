@@ -163,6 +163,19 @@ MapListWidget::MapListWidget(QWidget *parent)
     m_tree->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_tree, &QTreeWidget::customContextMenuRequested,
             this, [this](const QPoint &pos) {
+                QTreeWidgetItem *item = m_tree->itemAt(pos);
+                if (item && !item->data(0, Qt::UserRole).isValid()) {
+                    QString folderPath = item->data(0, Qt::UserRole + 1).toString();
+                    if (!folderPath.isEmpty()) {
+                        QMenu menu(m_tree);
+                        menu.addAction(tr("Folder Properties…"), [this, folderPath]() {
+                            emit folderPropertiesRequested(folderPath);
+                        });
+                        menu.exec(m_tree->viewport()->mapToGlobal(pos));
+                        return;
+                    }
+                }
+
                 const QVector<MapInfo> sel = selectedMaps();
                 if (sel.isEmpty()) return;
                 QMenu menu(m_tree);
@@ -312,7 +325,7 @@ void MapListWidget::populateTree()
                             : new QTreeWidgetItem(m_tree);
         node->setText(0, leafName);
         node->setFirstColumnSpanned(true);
-        node->setFlags(node->flags() & ~Qt::ItemIsSelectable);
+        node->setData(0, Qt::UserRole + 1, path);
         QFont bold = node->font(0);
         bold.setBold(true);
         node->setFont(0, bold);

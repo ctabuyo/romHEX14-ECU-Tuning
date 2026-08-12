@@ -52,6 +52,15 @@ static inline bool isMarker(const char *d, int pos) {
     return (unsigned char)d[pos] == 0x0A && d[pos+1] == 0 && d[pos+2] == 0 && d[pos+3] == 0;
 }
 
+static bool isText(const char *p, int len) {
+    if (len <= 0) return false;
+    for (int i = 0; i < len; ++i) {
+        unsigned char c = static_cast<unsigned char>(p[i]);
+        if (c < 32 || c > 126) return false;
+    }
+    return true;
+}
+
 static inline bool isValidNameChar(char c) {
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
            (c >= '0' && c <= '9') || c == '_' || c == '.' || c == '[' || c == ']' || c == '-';
@@ -219,6 +228,7 @@ void OLSParser::parseMapRecords(const QByteArray &data)
     // ── Phase 1: Parse all map records ──────────────────────────────────────
     QSet<QString> seen;
     QVector<int> markerPositions;
+    QVector<int> allMarkerPositions;
 
     for (int pos = 0x100; pos < fileSize - 20; pos++) {
         if (!isMarker(d, pos)) continue;
@@ -239,16 +249,43 @@ void OLSParser::parseMapRecords(const QByteArray &data)
         if (!valid || raw.size() < 3) continue;
         if (!((raw[0] >= 'A' && raw[0] <= 'Z') || (raw[0] >= 'a' && raw[0] <= 'z'))) continue;
 
+        allMarkerPositions.append(pos);
+
         QString name = QString::fromLatin1(raw);
         if (seen.contains(name)) continue;
         seen.insert(name);
 
         int nameEnd = pos + 12 + nameLen;
 
+        QString displayName;
+        for (int p = pos - 8; p >= pos - 100; --p) {
+            if (p < 0) continue;
+            uint32_t l = u32(d, p);
+            if (l >= 3 && l <= 200 && p + 4 + (int)l <= pos) {
+                QByteArray preBytes = data.mid(p + 4, (int)l);
+                bool txt = isText(preBytes.constData(), preBytes.size());
+                if (pos == 0x805b) {
+                    qDebug() << "  p=0x" + QString::number(p, 16) << "l=" << l << "txt=" << txt << "str:" << preBytes;
+                }
+                if (txt) {
+                    displayName = QString::fromLatin1(preBytes);
+                    break;
+                }
+            }
+        }
+
         MapInfo m;
-        m.name = name;
+        if (!displayName.isEmpty()) {
+            m.name = displayName;
+            m.id   = name;
+            seen.insert(displayName);
+        } else {
+            m.name = name;
+            m.id   = name;
+        }
+        m.markerPos = pos;
         m.linkConfidence = 100;
-        m.columnMajor = true;
+        m.columnMajor = false;
 
         // ── Type & DataSize from pre-marker fields ──
         uint32_t recType = 0, recDS = 0;
@@ -419,31 +456,26 @@ void OLSParser::parseMapRecords(const QByteArray &data)
         return conv.dv;
     };
 
-    struct FoundStr { int pos; QString text; };
-    struct FoundDbl { int pos; double value; };
+    struct FoundStr { int pos = 0; QString text; };
+    struct FoundDbl { int pos = 0; double value = 0.0; };
 
     for (int i = 0; i < m_maps.size(); i++) {
         auto &mp = m_maps[i];
-        int mPos = markerPositions[i];
+        int mPos = mp.markerPos > 0 ? mp.markerPos : markerPositions[i];
         int nameEnd_i = mPos + 12 + mp.name.size() + 1;
 
-        int prevBound = (i > 0) ? markerPositions[i - 1] + 20 : 0;
-        int scanFrom  = qMax(prevBound, mPos - 600);
-        int nextBound = (i + 1 < markerPositions.size()) ? markerPositions[i + 1] : nameEnd_i + 800;
-        int scanTo    = qMin(nextBound, nameEnd_i + 800);
+        int scanTo = qMin(fileSize - 4, nameEnd_i + 0x140);
 
         // Collect strings and doubles from pre-marker + post-name regions
         QVector<FoundStr> strings;
         QVector<FoundDbl> doubles;
 
         auto collectStrings = [&](int from, int to) {
-            for (int sp = from; sp < to - 4; ) {
+            for (int sp = from; sp < to - 4; sp++) {
                 auto [text, consumed] = tryReadString(sp);
                 if (!text.isEmpty() && consumed > 0) {
                     strings.append({sp, text});
-                    sp += consumed;
-                    while (sp < to && d[sp] == '\0') sp++;
-                } else { sp++; }
+                }
             }
         };
 
@@ -461,9 +493,7 @@ void OLSParser::parseMapRecords(const QByteArray &data)
 
         // ONLY collect from the POST-name region.
         // Pre-marker data bleeds in from adjacent records and causes wrong scaling.
-        collectStrings(nameEnd_i + 0x40, scanTo);
-        collectDoubles(nameEnd_i + 0x40, scanTo);
-
+        collectStrings(nameEnd_i + 0x20, scanTo);
         // Classify strings
         QString description;
         QVector<FoundStr> unitStrings;
@@ -471,12 +501,15 @@ void OLSParser::parseMapRecords(const QByteArray &data)
 
         for (const auto &fs : strings) {
             const auto &t = fs.text;
-            if (t.contains(' ') && t.size() > 5) {
+            if (t == mp.name || t == mp.id) continue;
+            if (seen.contains(t)) continue; // skip other maps' names/IDs
+            if (t.contains(' ') && t.size() > 18) {
+                // Long descriptive sentence (e.g. "this is a description for compressor efficiency map")
+                if (description.isEmpty() || t.size() > description.size())
+                    description = t;
+            } else if (t.contains(' ') && t.size() > 5) {
                 if (description.isEmpty()) description = t;
             } else if (t.size() >= 1 && t.size() <= 15 && !t.contains(' ') && !t.contains('_')) {
-                // Exclude map names (they get picked up as "unit" because they're short)
-                if (t == mp.name) continue;
-                if (seen.contains(t)) continue; // it's another map's name
                 unitStrings.append(fs);
             } else if (t.size() > 2 && t.size() <= 60 && !t.contains(' ')) {
                 labelStrings.append(fs);

@@ -9,8 +9,17 @@
 #include <QVector>
 #include <QByteArray>
 #include <QWidget>
+#include <cstdint>
 #include "romdata.h"
-#include "kpparser.h"
+
+// Presentation-only project information shown by the KP review dialog. This
+// intentionally does not depend on the retired heuristic KP parser.
+struct KPVehicleInfo {
+    QString manufacturer, model, variant, year, power;
+    QString ecuBrand, partNumber, swVersion;
+    uint32_t romWordCount = 0;
+    uint32_t romByteSize = 0;
+};
 
 class QTableWidget;
 class QPushButton;
@@ -27,21 +36,29 @@ class RomOverviewBar : public QWidget {
 public:
     explicit RomOverviewBar(int romSize, const QVector<MapInfo> &maps,
                             QWidget *parent = nullptr);
-    void setOffset(int32_t offset);
+    void setOffsets(int32_t offset1, int32_t offset2);
 
 signals:
     void mapClicked(int mapIndex);
+    void offsetDragged(int32_t netOffset);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
-    QSize sizeHint() const override { return QSize(600, 32); }
-    QSize minimumSizeHint() const override { return QSize(200, 24); }
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    QSize sizeHint() const override { return QSize(600, 46); }
+    QSize minimumSizeHint() const override { return QSize(200, 36); }
 
 private:
     int m_romSize = 0;
-    int32_t m_offset = 0;
+    int32_t m_offset1 = 0;
+    int32_t m_offset2 = 0;
     QVector<MapInfo> m_maps;
+    QPoint m_dragStartPos;
+    int32_t m_dragStartNetOffset = 0;
+    bool m_isDragging = false;
+    bool m_isSnapped = false;
 };
 
 // ── KP Import Dialog ─────────────────────────────────────────────────────────
@@ -55,6 +72,9 @@ public:
                          const QByteArray &romData,
                          QWidget *parent = nullptr);
     QVector<MapInfo> selectedMaps() const;
+    bool importMapValues() const;
+    bool importNoHexdump() const;
+    bool importEmptyFolders() const;
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -83,9 +103,8 @@ private:
 
     QCheckBox          *m_chkMapValues   = nullptr;
     QCheckBox          *m_chkMapStruct   = nullptr;
-    QCheckBox          *m_chkStructDims  = nullptr;
-    QCheckBox          *m_chkStructPrec  = nullptr;
-    QCheckBox          *m_chkStructSign  = nullptr;
+    QCheckBox          *m_chkNoHexdump   = nullptr;
+    QCheckBox          *m_chkEmptyFolders= nullptr;
 
     QLineEdit          *m_iconMapEdit    = nullptr;
     QLineEdit          *m_prefixEdit     = nullptr;

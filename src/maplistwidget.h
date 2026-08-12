@@ -35,6 +35,8 @@ signals:
     /// 2+ rows selected and chooses "Bulk edit…". MainWindow listens
     /// and pops the bulk edit dialog.
     void bulkEditRequested(const QVector<MapInfo> &maps);
+    /// Fired when user right-clicks a folder node and chooses "Folder Properties…"
+    void folderPropertiesRequested(const QString &folderPath);
 
 private slots:
     void onItemClicked(QTreeWidgetItem *item, int column);

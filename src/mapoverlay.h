@@ -45,6 +45,11 @@ public:
 
     void setDisplayParams(int cellSize, ByteOrder byteOrder, bool heightColors);
     void retranslateUi();
+    bool displaysMap(const MapInfo &map) const;
+    Project *targetProject() const { return m_syncProject; }
+
+    Q_SLOT void previewScalingFormat(const QString &format);
+    void previewMapUpdate(const MapInfo &preview);
 
     // Share the owning ProjectView's editor so this dialog's edits land on
     // the SAME undo stack as the hex / waveform / 3D views (and vice-versa).
@@ -56,6 +61,7 @@ signals:
     void editBatchDone();
     void addressCorrected(const QString &mapName, uint32_t newAddress);
     void mapInfoChanged(const MapInfo &updated, ByteOrder byteOrder);
+    void mapInfoPreview(const MapInfo &preview);
     // Re-emitted from the embedded 3D view's "Edit map" submenu so the host
     // routes it through the shared edit dispatcher (MainWindow::EditOp code).
     void editOpRequested(int opCode);
@@ -113,6 +119,8 @@ private:
     QByteArray m_data;
     QByteArray m_originalData;
     MapInfo    m_map;
+    MapDimensions m_previewOrigDimensions = {0, 0};
+    int        m_previewOrigDataSize = 0;
     int        m_cellSize        = 2;
     ByteOrder  m_byteOrder       = ByteOrder::BigEndian;
     bool       m_showingOriginal = false;

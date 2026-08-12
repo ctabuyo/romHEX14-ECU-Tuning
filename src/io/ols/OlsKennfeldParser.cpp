@@ -199,7 +199,10 @@ static CfrResult readCFolderRef(const QByteArray &data, qsizetype offset,
     if (o + 4 > data.size()) return result;
     uint32_t count = OlsKennfeldParser::peekU32(data, o);
     o += 4;
-    if (count > 0x1000) return result;
+    if (count > 0x1000) {
+        result.endOffset = inner.endOffset;
+        return result;
+    }
     if (schema >= 345 && count > 0) {
         for (uint32_t i = 0; i < count; ++i) {
             auto entry = OlsKennfeldParser::readCString(data, o, 8192, schema);
@@ -492,8 +495,11 @@ MapInfo OlsKennfeldParser::parseOne(const QByteArray &data,
 
     QString name;
     if (schema >= 80) {
-        if (c.remain() < 8) return mi;
-        c.u32();
+        if (c.remain() >= 12 && peekU32(data, c.off) == 0x0A000000) {
+            c.skip(8);
+        } else {
+            c.u32();
+        }
         auto n = c.cstr();
         if (!n.valid() || !isIdent(n.text)) return mi;
         name = n.text;
@@ -600,6 +606,7 @@ MapInfo OlsKennfeldParser::parseOne(const QByteArray &data,
     if (schema >= 329) skip(4);
     if (schema >= 346) skip(8);
     if (schema >= 395) skip(4);
+    QString postComment;
     if (tailOk && schema >= 476) {
         skip(4);
         if (tailOk && c.off + 4 <= data.size()) {
@@ -610,7 +617,15 @@ MapInfo OlsKennfeldParser::parseOne(const QByteArray &data,
         if (tailOk && c.off + 4 <= data.size()) {
             uint32_t strCount = peekU32(data, c.off); c.off += 4;
             if (strCount <= 0x10000) {
-                for (uint32_t i = 0; i < strCount && tailOk; ++i) cstr();
+                for (uint32_t i = 0; i < strCount && tailOk; ++i) {
+                    auto s = c.cstr();
+                    if (s.valid() && !s.text.isEmpty()) {
+                        if (s.text != name && s.text != comment.name) {
+                            if (postComment.isEmpty() || s.text.size() > postComment.size())
+                                postComment = s.text;
+                        }
+                    }
+                }
             } else tailOk = false;
         } else tailOk = false;
     }
@@ -632,8 +647,14 @@ MapInfo OlsKennfeldParser::parseOne(const QByteArray &data,
         }
     }
 
-    mi.name = name;
-    mi.description = comment.name;
+    if (!comment.name.isEmpty()) {
+        mi.name = comment.name;
+        mi.id   = name;
+    } else {
+        mi.name = name;
+        mi.id   = name;
+    }
+    mi.description = postComment;
     mi.rawAddress = romAddress;
     mi.address = romAddress;
     mi.olsUniversalBase = universalBase;
@@ -676,7 +697,7 @@ MapInfo OlsKennfeldParser::parseOne(const QByteArray &data,
                         || (offset < 0);
     }
     mi.linkConfidence = 100;
-    mi.columnMajor = true;
+    mi.columnMajor = false;
 
     if (xSize <= 1 && ySize <= 1)
         mi.type = QStringLiteral("VALUE");
@@ -717,8 +738,18 @@ QVector<MapInfo> OlsKennfeldParser::parseAll(const QByteArray &data,
 {
     Q_UNUSED(warnings);
     QVector<MapInfo> maps;
-    qsizetype off = regionStart;
+    if (schema >= 500) {
+        static const int candidateSchemas[] = { 350, 300, 200, 100, 80, 1, 0 };
+        for (int s : candidateSchemas) {
+            MapInfo test = parseOne(data, regionStart, regionEnd, s);
+            if (!test.name.isEmpty()) {
+                schema = s;
+                break;
+            }
+        }
+    }
 
+    qsizetype off = regionStart;
     while (off < regionEnd - 8) {
         MapInfo mi = parseOne(data, off, regionEnd, schema);
         if (!mi.name.isEmpty()) {
@@ -754,7 +785,7 @@ QPair<qsizetype, qsizetype> OlsKennfeldParser::findMapRegion(
     char needle[4];
     qToLittleEndian<uint32_t>(0x98638811, reinterpret_cast<uchar *>(needle));
     qsizetype j = data.indexOf(QByteArray::fromRawData(needle, 4));
-    if (j > 0)
+    if (j > 0x1000)
         end = j;
 
     qsizetype start = 0x180;

@@ -569,7 +569,7 @@ void Map3DSimWidget::drawSurface(QPainter &p)
 {
     double range = m_maxVal - m_minVal;
 
-    struct Face { QPolygonF poly; QColor color; double depth; };
+    struct Face { QPolygonF poly; QColor color; double depth = 0.0; };
     QVector<Face> faces;
     faces.reserve((m_rows - 1) * (m_cols - 1));
 

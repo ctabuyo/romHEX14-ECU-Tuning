@@ -359,7 +359,7 @@ QStringList VehicleDatabase::extractSwNumbers(const QByteArray &rom) const
     // Each candidate has a score (higher = more likely a real part number).
     struct Candidate {
         QString text;
-        int     score;
+        int     score = 0;
     };
     QVector<Candidate> candidates;
 
