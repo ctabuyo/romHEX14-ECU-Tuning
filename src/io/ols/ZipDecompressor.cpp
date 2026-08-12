@@ -34,9 +34,21 @@ QByteArray ZipDecompressor::decompress(const QByteArray &compressed,
         return {};
     }
 
+    // Bound decompression output to defend against zip/deflate bombs: a crafted
+    // entry can declare a multi-GB uncompressed size, or expand a tiny payload
+    // without limit, and exhaust memory. KP `intern` streams are ROM projects,
+    // well under this ceiling.
+    constexpr qsizetype kMaxDecompressed = 512 * 1024 * 1024; // 512 MiB
+    if (expectedSize > kMaxDecompressed) {
+        inflateEnd(&strm);
+        if (err) *err = QStringLiteral("declared decompressed size %1 exceeds cap %2")
+                            .arg(expectedSize).arg(kMaxDecompressed);
+        return {};
+    }
     qsizetype outSize = (expectedSize > 0) ? expectedSize
                                             : compressed.size() * 4;
     if (outSize < 1024) outSize = 1024;
+    if (outSize > kMaxDecompressed) outSize = kMaxDecompressed;
     QByteArray output;
     output.resize(outSize);
 
@@ -55,6 +67,12 @@ QByteArray ZipDecompressor::decompress(const QByteArray &compressed,
         if (ret == Z_OK && strm.avail_out == 0) {
             qsizetype used = output.size() - strm.avail_out;
             qsizetype newSize = output.size() * 2;
+            if (newSize > kMaxDecompressed) {
+                inflateEnd(&strm);
+                if (err) *err = QStringLiteral("decompressed output exceeds cap %1")
+                                    .arg(kMaxDecompressed);
+                return {};
+            }
             output.resize(newSize);
             strm.next_out = reinterpret_cast<Bytef *>(output.data() + used);
             strm.avail_out = static_cast<uInt>(newSize - used);

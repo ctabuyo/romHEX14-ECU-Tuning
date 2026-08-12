@@ -11637,7 +11637,7 @@ A 系列：%1 · B 系列：%2</translation>
     </message>
     <message>
         <location filename="../src/io/ols/KpImporter.cpp" line="2645"/>
-        <source>Unsupported KP schema %1: current WinOLS accepts schemas 6 through 834</source>
+        <source>Unsupported KP schema %1: the OLS format accepts schemas 6 through 834</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

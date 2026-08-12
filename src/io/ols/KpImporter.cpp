@@ -2643,7 +2643,7 @@ KpImportResult KpImporter::importFromBytes(const QByteArray &fileData,
     default:
         if (result.formatVersion < 6 || result.formatVersion > 834) {
             result.error = KpImporter::tr(
-                "Unsupported KP schema %1: current WinOLS accepts schemas 6 through 834")
+                "Unsupported KP schema %1: the OLS format accepts schemas 6 through 834")
                 .arg(result.formatVersion);
             return result;
         }
