@@ -202,6 +202,7 @@ private slots:
     /// requires an active project for the query side).
     void actBuildSimilarityIndex();
     void onTreeItemClicked(QTreeWidgetItem *item, int col);
+    void activateTreeMapItem(QTreeWidgetItem *item);
     void refreshRecentMapsStrip();
 
     // Toolbar display-format toggles
@@ -268,6 +269,7 @@ private:
     QWidget     *m_leftPanel       = nullptr;
     QLabel      *m_leftPanelTitle  = nullptr;
     QTreeWidget *m_projectTree     = nullptr;
+    QHash<QString, QTreeWidgetItem *> m_mapTreeItems;
     QWidget     *m_recentMapsStrip = nullptr;
     QHBoxLayout *m_recentMapsRow   = nullptr;
     QLabel      *m_recentMapsEmpty = nullptr;

@@ -12,6 +12,7 @@
 #include <QSet>
 #include <QVector>
 #include <QTimer>
+#include <QElapsedTimer>
 #include "romdata.h"
 
 class HexWidget;
@@ -71,6 +72,9 @@ public:
     void setBaseAddress(uint32_t baseAddress);
     void setDisplayParams(int cellSize, ByteOrder bo,
                           int displayFmt = 0, bool isSigned = false);
+    /// Changes the global byte-stream layout only; map dimensions remain
+    /// importer-owned metadata.
+    void setBytesPerRow(int bytes);
     void setFontSize(int pt);
     QByteArray getData() const;
     QByteArray getOriginalData() const;
@@ -80,10 +84,10 @@ public:
     /// selected from the project tree so its data is visible in the hex view.
     void selectRange(uint32_t offset, int length);
     void setMapRegions(const QVector<MapRegion> &regions);
-    void setActiveMapAddress(uint32_t address);
     void setActiveMap(const MapInfo &map);
-    void triggerMapBlinkAnimation();
-    uint32_t activeMapAddress() const { return m_activeMapAddress; }
+    void retranslateUi();
+    bool hasActiveMap() const { return m_hasActiveMap; }
+    uint32_t activeMapAddress() const { return m_activeMapInfo.cellDataStart(); }
     const MapInfo &activeMapInfo() const { return m_activeMapInfo; }
     int modificationCount() const { return m_modifications.size(); }
 
@@ -153,6 +157,7 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void leaveEvent(QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
@@ -164,12 +169,26 @@ private:
     void renderRow(QPainter &p, int row, int y);
     int mapRegionForOffset(uint32_t offset) const;
     QRect byteRect(int col, int y) const;
+    int groupCount() const;
+    int separatorGroup() const;
+    int hexContentRight() const;
+    QRect columnResizeHandleRect() const;
+    bool isColumnResizeHandle(const QPoint &pos) const;
+    int normalizedBytesPerRow(int bytes) const;
     void clearSelection();
     void pushUndo(int offset, const QByteArray &before, const QByteArray &after);
     void updateModifications(int offset, int length);
 
-    void drawMapOverlayBox(QPainter &p);
-    void drawHoveredMapOverlay(QPainter &p);
+    bool drawMapContour(QPainter &p, uint32_t start, int length,
+                        const QPen &pen, int inset);
+    void drawMapBanner(QPainter &p, uint32_t start, int startRow,
+                       const QString &title, const QColor &fill,
+                       const QColor &border);
+    QString mapDimensionText(const MapInfo &map) const;
+    QString mapTitleText(const MapInfo &map, uint32_t start) const;
+    void setSelectedOffset(int offset);
+    void triggerSelectionPulse();
+    qreal selectionPulseStrength() const;
 
     QByteArray m_data;
     QByteArray m_originalData;
@@ -177,12 +196,11 @@ private:
     Project       *m_project = nullptr;  // non-owning shared ROM document
     QByteArray m_comparisonData;
     QVector<MapRegion> m_mapRegions;
-    uint32_t           m_activeMapAddress = 0;
     MapInfo            m_activeMapInfo;
+    bool               m_hasActiveMap = false;
     int                m_hoveredMapIndex = -1;
-    QTimer             m_blinkTimer;
-    int                m_blinkTicksRemaining = 0;
-    bool               m_blinkHighlightState = false;
+    QTimer             m_selectionPulseTimer;
+    QElapsedTimer      m_selectionPulseElapsed;
 
     int m_bytesPerRow = 16;
     int m_rowHeight = 22;
@@ -191,6 +209,10 @@ private:
     int m_byteWidth = 26;
     int m_separatorWidth = 10;
     int m_asciiCharWidth = 9;
+    bool m_resizingColumns = false;
+    int m_resizeStartX = 0;
+    int m_resizeStartBytesPerRow = 16;
+    int m_resizeStartTopOffset = 0;
 
     SidebarMode m_sidebarMode = SidebarMode::Bars;
     int       m_groupSize   = 1;

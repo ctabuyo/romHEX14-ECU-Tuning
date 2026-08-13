@@ -126,6 +126,7 @@
 #include <QLocale>
 #include <QDateTime>
 #include <QScrollArea>
+#include <QSignalBlocker>
 #include <QGraphicsDropShadowEffect>
 #include <QRadialGradient>
 #include <QLinearGradient>
@@ -134,6 +135,14 @@
 #include <numeric>
 
 static const int kTreeFolderRole = Qt::UserRole + 5;
+
+static QString mapTreeKey(const Project *project, const MapInfo &map)
+{
+    return QStringLiteral("%1:%2:%3")
+        .arg(reinterpret_cast<quintptr>(project), 0, 16)
+        .arg(map.cellDataStart(), 0, 16)
+        .arg(map.id.isEmpty() ? map.name : map.id);
+}
 
 // ── Icon factory ──────────────────────────────────────────────────────────────
 // Creates a 22×22 icon by rendering a short symbol string in the given colour.
@@ -1505,6 +1514,13 @@ void MainWindow::buildLeftPanel()
     // Single-click on a map leaf → select its byte range in the hex viewer.
     connect(m_projectTree, &QTreeWidget::itemClicked,
             this,          &MainWindow::onTreeItemClicked);
+    // Arrow-key navigation changes the current item but does not emit
+    // itemClicked.  Keep keyboard and mouse map navigation identical.
+    connect(m_projectTree, &QTreeWidget::currentItemChanged,
+            this, [this](QTreeWidgetItem *current, QTreeWidgetItem *) {
+        if (current && current->data(0, Qt::UserRole + 2).isValid())
+            activateTreeMapItem(current);
+    });
 
     // Double-click handling
     connect(m_projectTree, &QTreeWidget::itemDoubleClicked,
@@ -6141,8 +6157,12 @@ void MainWindow::refreshProjectTreeNow()
     if (auto *cur = m_projectTree->currentItem())
         currentPath = pathOf(cur);
 
+    // Rebuilding restores the current item.  Suppress currentItemChanged so
+    // that restoration cannot be mistaken for a user map-navigation event.
+    const QSignalBlocker treeSignalBlocker(m_projectTree);
     m_projectTree->setUpdatesEnabled(false);
     m_projectTree->clear();
+    m_mapTreeItems.clear();
 
     const int headerSize = m_treeFontSize;
     const int leafSize   = m_treeFontSize;
@@ -6236,6 +6256,7 @@ void MainWindow::refreshProjectTreeNow()
             mi->setData(0, Qt::UserRole + 1,
                         QVariant::fromValue(static_cast<void *>(p)));
             mi->setData(0, Qt::UserRole + 2, QVariant::fromValue(m));
+            m_mapTreeItems.insert(mapTreeKey(p, m), mi);
         };
 
         const bool hasFolderPaths = std::any_of(
@@ -7716,29 +7737,16 @@ void MainWindow::onMapActivated(const MapInfo &map, Project *project)
     // Feed selected map context to AI assistant
     if (m_aiAssistant) m_aiAssistant->setSelectedMap(map);
 
-    // Sync selection in m_projectTree (left panel map tree)
+    // Sync the tree directly through the cache built with its leaves; this
+    // avoids an O(all map nodes) search after every hex/tree activation.
     if (m_projectTree && project) {
-        QTreeWidgetItemIterator it(m_projectTree);
-        while (*it) {
-            QTreeWidgetItem *item = *it;
-            auto mapVar = item->data(0, Qt::UserRole + 2);
-            auto *proj = static_cast<Project*>(item->data(0, Qt::UserRole + 1).value<void*>());
-            if (mapVar.isValid() && proj == project) {
-                auto m = mapVar.value<MapInfo>();
-                if (m.address == map.address) {
-                    m_projectTree->blockSignals(true);
-                    QTreeWidgetItem *pNode = item->parent();
-                    while (pNode) {
-                        pNode->setExpanded(true);
-                        pNode = pNode->parent();
-                    }
-                    m_projectTree->setCurrentItem(item);
-                    m_projectTree->scrollToItem(item);
-                    m_projectTree->blockSignals(false);
-                    break;
-                }
-            }
-            ++it;
+        if (auto *item = m_mapTreeItems.value(mapTreeKey(project, map))) {
+            QSignalBlocker blocker(m_projectTree);
+            for (QTreeWidgetItem *parent = item->parent(); parent;
+                 parent = parent->parent())
+                parent->setExpanded(true);
+            m_projectTree->setCurrentItem(item);
+            m_projectTree->scrollToItem(item);
         }
     }
 }
@@ -8172,17 +8180,24 @@ void MainWindow::onTreeItemClicked(QTreeWidgetItem *item, int)
         return;
     }
 
-    auto map   = mapVar.value<MapInfo>();
-    auto *proj = static_cast<Project *>(
-                     item->data(0, Qt::UserRole + 1).value<void *>());
-    if (!proj) return;
+    // Map leaves are handled by currentItemChanged, which also covers
+    // keyboard navigation without duplicating mouse activation.
+}
 
-    // Selecting a sidebar map only navigates and highlights the corresponding
-    // hex range. Opening the editable map window is a double-click action.
-    openProject(proj);
-    if (auto *pv = activeView()) pv->showMap(map);
-    m_currentMapIdx = proj->maps.indexOf(map);
-    onMapActivated(map, proj);
+void MainWindow::activateTreeMapItem(QTreeWidgetItem *item)
+{
+    if (!item) return;
+    const auto mapVar = item->data(0, Qt::UserRole + 2);
+    if (!mapVar.isValid()) return;
+    const auto map = mapVar.value<MapInfo>();
+    auto *project = static_cast<Project *>(
+        item->data(0, Qt::UserRole + 1).value<void *>());
+    if (!project) return;
+
+    openProject(project);
+    if (auto *view = activeView()) view->showMap(map);
+    m_currentMapIdx = project->maps.indexOf(map);
+    onMapActivated(map, project);
 }
 
 // ── Misc ───────────────────────────────────────────────────────────────────────

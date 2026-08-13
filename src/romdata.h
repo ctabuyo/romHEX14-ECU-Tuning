@@ -16,6 +16,7 @@
 #include <QHash>
 #include <QVariant>
 #include <cstdint>
+#include <limits>
 
 // Shared ROM data model
 struct MapDimensions {
@@ -188,6 +189,23 @@ struct MapInfo {
         sideProps.insert(name, v);
     }
 
+    // Canonical editable-cell range.  `length` may include inline axes or
+    // importer-specific record data, while dimensions × dataSize describes
+    // the cell grid.  Keep consumers from outlining/selecting axis bytes.
+    uint32_t cellDataStart() const {
+        return address + mapDataOffset;
+    }
+
+    int cellDataLength() const {
+        const qint64 cellCount = qint64(qMax(1, dimensions.x))
+                                * qint64(qMax(1, dimensions.y));
+        const qint64 calculatedBytes = cellCount * qint64(qMax(1, dataSize));
+        const qint64 storedBytes = qMax<qint64>(0, qint64(length) - mapDataOffset);
+        const qint64 bytes = storedBytes > 0
+            ? qMin(storedBytes, calculatedBytes) : calculatedBytes;
+        return int(qMin<qint64>(bytes, std::numeric_limits<int>::max()));
+    }
+
     bool operator==(const MapInfo &o) const {
         return name == o.name && address == o.address;
     }
@@ -218,6 +236,11 @@ struct MapRegion {
     int length = 0;
     QString name;
 };
+
+inline MapRegion cellDataRegion(const MapInfo &map)
+{
+    return {map.cellDataStart(), map.cellDataLength(), map.name};
+}
 
 Q_DECLARE_METATYPE(MapInfo)
 

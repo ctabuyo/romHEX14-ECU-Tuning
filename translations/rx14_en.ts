@@ -3161,6 +3161,11 @@ Remember to save the project and export the ROM.</translation>
 <context>
     <name>HexWidget</name>
     <message>
+        <location filename="../src/hexwidget.cpp" line="166" />
+        <source>Drag to change bytes per row</source>
+        <translation>Drag to change bytes per row</translation>
+    </message>
+    <message>
         <location filename="../src/hexwidget.cpp" line="191" />
         <source>Marker</source>
         <translation>Marker</translation>
@@ -3249,6 +3254,31 @@ Remember to save the project and export the ROM.</translation>
         <location filename="../src/hexwidget.cpp" line="1378" />
         <source>Bar view</source>
         <translation>Bar view</translation>
+    </message>
+    <message>
+        <location filename="../src/hexwidget.cpp" line="206" />
+        <source>&lt;b&gt;Map: %1&lt;/b&gt;&lt;br&gt;Span: 0x%2 – 0x%3 (%4 bytes)</source>
+        <translation>&lt;b&gt;Map: %1&lt;/b&gt;&lt;br&gt;Span: 0x%2 – 0x%3 (%4 bytes)</translation>
+    </message>
+    <message>
+        <location filename="../src/hexwidget.cpp" line="616" />
+        <source>%1×%2 (%3 Bit)</source>
+        <translation>%1×%2 (%3 Bit)</translation>
+    </message>
+    <message>
+        <location filename="../src/hexwidget.cpp" line="617" />
+        <source>%1 Bit</source>
+        <translation>%1 Bit</translation>
+    </message>
+    <message>
+        <location filename="../src/hexwidget.cpp" line="624" />
+        <source>Map @ 0x%1: %2</source>
+        <translation>Map @ 0x%1: %2</translation>
+    </message>
+    <message>
+        <location filename="../src/hexwidget.cpp" line="626" />
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
     </message>
 </context>
 <context>

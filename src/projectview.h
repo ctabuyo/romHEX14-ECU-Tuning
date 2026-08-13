@@ -84,7 +84,6 @@ protected:
 private slots:
     void onVersionChanged(int index);
     void onOffsetSelected(uint32_t offset, uint8_t value);
-    void selectMapInTreeByAddress(uint32_t address);
     void onDataModified(int count);
     void updateComparisonSource();
 

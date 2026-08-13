@@ -174,7 +174,7 @@ ProjectView::ProjectView(QWidget *parent)
     connect(m_hexWidget, &HexWidget::mapClickedInHex, this, [this](uint32_t address) {
         if (!m_project) return;
         for (const MapInfo &map : m_project->maps) {
-            if (map.address == address) {
+            if (map.cellDataStart() == address) {
                 m_isSelectingFromHex = true;
                 showMap(map);
                 emit mapActivated(map, m_project);
@@ -290,7 +290,7 @@ void ProjectView::loadProject(Project *project)
     if (!project->maps.isEmpty()) {
         QVector<MapRegion> regions;
         for (const auto &m : project->maps)
-            regions.append({m.address, m.length, m.name});
+            regions.append(cellDataRegion(m));
         m_hexWidget->setMapRegions(regions);
         m_waveWidget->setMaps(project->maps);
     } else {
@@ -318,7 +318,7 @@ void ProjectView::loadProject(Project *project)
             QVector<MapRegion> regions;
             regions.reserve(m_project->maps.size());
             for (const auto &map : m_project->maps)
-                regions.append({map.address, map.length, map.name});
+                regions.append(cellDataRegion(map));
             m_hexWidget->setMapRegions(regions);
             // Re-push both map lists so an async auto-scan result or an A2L
             // import triggers a repaint without the caller having to touch
@@ -335,12 +335,10 @@ void ProjectView::loadProject(Project *project)
         if (!m_project) return;
         m_hexWidget->refreshData(m_project->currentData);
         m_waveWidget->refreshRomData(m_project->currentData);
-        const uint32_t mapStart = m_selectedMap.address + m_selectedMap.mapDataOffset;
+        const uint32_t mapStart = m_selectedMap.cellDataStart();
         const uint64_t mapEnd = uint64_t(mapStart)
-            + uint64_t(qMax(1, m_selectedMap.dimensions.x))
-            * uint64_t(qMax(1, m_selectedMap.dimensions.y))
-            * uint64_t(qMax(1, m_selectedMap.dataSize));
-        if (m_map3d && m_selectedMap.length > 0
+                              + uint64_t(m_selectedMap.cellDataLength());
+        if (m_map3d && m_selectedMap.cellDataLength() > 0
             && start < mapEnd && end > int(mapStart))
             m_map3d->showMap(m_project->currentData, m_selectedMap);
     });
@@ -348,20 +346,6 @@ void ProjectView::loadProject(Project *project)
             this, &ProjectView::rebuildVersionCombo);
     connect(project, &Project::versionsChanged,
             this, &ProjectView::rebuildComparisonCombo);
-}
-
-void ProjectView::selectMapInTreeByAddress(uint32_t address)
-{
-    if (!m_project) return;
-    for (const MapInfo &map : m_project->maps) {
-        if (map.address == address) {
-            m_isSelectingFromHex = true;
-            showMap(map);
-            emit mapActivated(map, m_project);
-            m_isSelectingFromHex = false;
-            break;
-        }
-    }
 }
 
 void ProjectView::showMap(const MapInfo &map)
@@ -373,12 +357,9 @@ void ProjectView::showMap(const MapInfo &map)
     // A map-list click behaves like WinOLS: select the map's data in the
     // hexdump, without opening an editor window.  Inline axes precede the
     // actual cell grid, so select only the editable map cells.
-    const uint32_t dataOffset = map.address + map.mapDataOffset;
+    const uint32_t dataOffset = map.cellDataStart();
     if (!m_isSelectingFromHex) {
-        const qint64 cellCount = qMax(1, map.dimensions.x) * qMax(1, map.dimensions.y);
-        const qint64 byteCount = cellCount * qMax(1, map.dataSize);
-        m_hexWidget->selectRange(dataOffset,
-                                  static_cast<int>(qMin<qint64>(byteCount, INT_MAX)));
+        m_hexWidget->selectRange(dataOffset, map.cellDataLength());
     }
     switchView(0);
 
@@ -648,6 +629,7 @@ void ProjectView::retranslateUi()
     if (m_emptyState && m_emptyState->isVisible())
         positionEmptyState();
     if (m_waveWidget) m_waveWidget->retranslateUi();
+    if (m_hexWidget) m_hexWidget->retranslateUi();
 }
 
 // ── View switching ────────────────────────────────────────────────────────────
