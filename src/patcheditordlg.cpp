@@ -493,8 +493,22 @@ void PatchEditorDlg::onApplyCurrent()
 
     if (confirm.snapshotChecked())
         m_project->snapshotVersion(tr("Before patch: %1").arg(m_labelEdit->text()));
-    applyToRom(m_project->currentData, m_project->fullTitle());
-    emit m_project->dataChanged();
+
+    QByteArray targetRom = m_project->currentData;
+    applyToRom(targetRom, m_project->fullTitle());
+
+    QVector<QPair<int, QByteArray>> patches;
+    const int len = qMin(targetRom.size(), m_project->currentData.size());
+    for (int i = 0; i < len; ++i) {
+        if (targetRom[i] != m_project->currentData[i]) {
+            int start = i;
+            while (i < len && targetRom[i] != m_project->currentData[i]) ++i;
+            patches.append({start, targetRom.mid(start, i - start)});
+        }
+    }
+    if (!patches.isEmpty()) {
+        m_project->applyRomPatches(patches, tr("Apply patch: %1").arg(m_labelEdit->text()));
+    }
 }
 
 void PatchEditorDlg::onApplyLinked()
