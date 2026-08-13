@@ -84,6 +84,7 @@ protected:
 private slots:
     void onVersionChanged(int index);
     void onOffsetSelected(uint32_t offset, uint8_t value);
+    void selectMapInTreeByAddress(uint32_t address);
     void onDataModified(int count);
     void updateComparisonSource();
 
@@ -106,6 +107,7 @@ private:
     HexWidget      *m_hexWidget  = nullptr;
     WaveformWidget *m_waveWidget = nullptr;
     Map3DWidget    *m_map3d      = nullptr;
+    bool            m_isSelectingFromHex = false;
 
     // Empty-state overlay shown when the active project has no maps.
     // Built once in the constructor and re-positioned via resizeEvent so it

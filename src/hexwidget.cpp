@@ -40,6 +40,9 @@ HexWidget::HexWidget(QWidget *parent)
     viewport()->setFocusPolicy(Qt::StrongFocus);
     setFocusPolicy(Qt::StrongFocus);
 
+    setMouseTracking(true);
+    viewport()->setMouseTracking(true);
+
     // Vertical overview minimap on the right edge
     m_overviewBar = new HexOverviewBar(this);
     // Reserve space on the right for the overview bar
@@ -63,6 +66,19 @@ HexWidget::HexWidget(QWidget *parent)
 
     connect(&AppConfig::instance(), &AppConfig::colorsChanged,
             viewport(), QOverload<>::of(&QWidget::update));
+
+    connect(&m_blinkTimer, &QTimer::timeout, this, [this]() {
+        if (m_blinkTicksRemaining > 0) {
+            m_blinkTicksRemaining--;
+            m_blinkHighlightState = !m_blinkHighlightState;
+            viewport()->update();
+            if (m_overviewBar) m_overviewBar->update();
+        } else {
+            m_blinkTimer.stop();
+            m_blinkHighlightState = false;
+            viewport()->update();
+        }
+    });
 }
 
 void HexWidget::syncScrollTo(int byteOffset)
@@ -180,6 +196,18 @@ bool HexWidget::event(QEvent *event)
                 parts << head;
                 if (!a.text.isEmpty()) parts << a.text.toHtmlEscaped();
             }
+            if (parts.isEmpty()) {
+                int mapIdx = mapRegionForOffset(byteIdx);
+                if (mapIdx >= 0 && mapIdx < m_mapRegions.size()) {
+                    const auto &mr = m_mapRegions[mapIdx];
+                    QString mapToolTip = QString("<b>Map: %1</b><br>Span: 0x%2 – 0x%3 (%4 bytes)")
+                        .arg(mr.name.toHtmlEscaped())
+                        .arg(m_baseAddress + mr.start, 8, 16, QChar('0')).toUpper()
+                        .arg(m_baseAddress + mr.start + mr.length - 1, 8, 16, QChar('0')).toUpper()
+                        .arg(mr.length);
+                    parts << mapToolTip;
+                }
+            }
             if (!parts.isEmpty()) {
                 QToolTip::showText(he->globalPos(), parts.join("<br>"), this);
                 return true;
@@ -253,7 +281,12 @@ void HexWidget::selectRange(uint32_t offset, int length)
     m_selectedOffset = start;
     m_selectionStart = start;
     m_selectionEnd = end;
-    verticalScrollBar()->setValue(start / m_bytesPerRow);
+    const int startRow = start / m_bytesPerRow;
+    const int endRow = end / m_bytesPerRow;
+    const int centerRow = (startRow + endRow) / 2;
+    const int visibleRows = (viewport()->height() - m_headerHeight) / m_rowHeight;
+    const int targetRow = qMax(0, centerRow - (visibleRows / 2));
+    verticalScrollBar()->setValue(targetRow);
     viewport()->update();
 }
 
@@ -262,6 +295,32 @@ void HexWidget::setMapRegions(const QVector<MapRegion> &regions)
     m_mapRegions = regions;
     m_overviewBar->rebuild();
     viewport()->update();
+}
+
+void HexWidget::setActiveMapAddress(uint32_t address)
+{
+    if (m_activeMapAddress == address) return;
+    m_activeMapAddress = address;
+    viewport()->update();
+    if (m_overviewBar) m_overviewBar->update();
+}
+
+void HexWidget::setActiveMap(const MapInfo &map)
+{
+    m_activeMapInfo = map;
+    m_activeMapAddress = map.address;
+    triggerMapBlinkAnimation();
+    if (m_overviewBar) m_overviewBar->update();
+}
+
+void HexWidget::triggerMapBlinkAnimation()
+{
+    m_blinkTicksRemaining = 6;
+    m_blinkHighlightState = true;
+    viewport()->update();
+    if (!m_blinkTimer.isActive()) {
+        m_blinkTimer.start(65);
+    }
 }
 
 void HexWidget::setComparisonData(const QByteArray &data)
@@ -405,6 +464,333 @@ void HexWidget::paintEvent(QPaintEvent *)
         if (y > h) break;
         renderRow(p, row, y);
     }
+
+    // Draw active map border trace box & title banner overlay
+    drawMapOverlayBox(p);
+    drawHoveredMapOverlay(p);
+}
+
+void HexWidget::drawMapOverlayBox(QPainter &p)
+{
+    if (m_activeMapAddress == 0 && m_activeMapInfo.address == 0 && m_activeMapInfo.length <= 0)
+        return;
+
+    const uint32_t startOff = m_activeMapInfo.address > 0 ? m_activeMapInfo.address : m_activeMapAddress;
+    const int mapLen = m_activeMapInfo.length > 0 ? m_activeMapInfo.length : 1;
+    const uint32_t endOff = startOff + mapLen - 1;
+
+    if (m_bytesPerRow <= 0 || m_rowHeight <= 0) return;
+
+    const int scrollRow = verticalScrollBar()->value();
+    const int vpH = viewport()->height();
+    const int visibleRows = (vpH - m_headerHeight) / m_rowHeight + 2;
+    const int startVisibleRow = scrollRow;
+    const int endVisibleRow = scrollRow + visibleRows;
+
+    const int startRow = startOff / m_bytesPerRow;
+    const int endRow = endOff / m_bytesPerRow;
+
+    if (endRow < startVisibleRow || startRow > endVisibleRow)
+        return; // map overlay outside current viewport
+
+    p.save();
+    p.setRenderHint(QPainter::Antialiasing, true);
+
+    QColor traceColor = m_blinkHighlightState ? QColor(255, 215, 0) : QColor(245, 60, 70);
+    int traceWidth = m_blinkHighlightState ? 3 : 2;
+    QPen outlinePen(traceColor, traceWidth, Qt::SolidLine);
+    p.setPen(outlinePen);
+
+    // 1. Draw Row-by-Row Cell Contour Outline Boxes
+    int mapMinY = INT_MAX;
+    int mapMaxY = -1;
+
+    for (int row = qMax(startRow, startVisibleRow); row <= qMin(endRow, endVisibleRow); ++row) {
+        uint32_t rowStart = row * m_bytesPerRow;
+        uint32_t rowEnd = rowStart + m_bytesPerRow - 1;
+
+        uint32_t activeRowStart = qMax(startOff, rowStart);
+        uint32_t activeRowEnd = qMin(endOff, rowEnd);
+
+        if (activeRowStart > activeRowEnd) continue;
+
+        int g1 = (activeRowStart % m_bytesPerRow) / m_groupSize;
+        int g2 = (activeRowEnd % m_bytesPerRow) / m_groupSize;
+
+        int y = m_headerHeight + (row - scrollRow) * m_rowHeight;
+        if (y < mapMinY) mapMinY = y;
+        if (y + m_rowHeight > mapMaxY) mapMaxY = y + m_rowHeight;
+
+        QRect r1 = byteRect(g1, y);
+        QRect r2 = byteRect(g2, y);
+
+        int leftX = r1.left() - 1;
+        int rightX = r2.right() + 1;
+
+        // Draw left & right vertical border lines for this row's map cell segment
+        p.drawLine(leftX, y, leftX, y + m_rowHeight);
+        p.drawLine(rightX, y, rightX, y + m_rowHeight);
+
+        // Draw top border line if row above is outside map or starts further right
+        if (row == startRow) {
+            p.drawLine(leftX, y, rightX, y);
+        } else if (row > startRow) {
+            uint32_t prevRowStart = (row - 1) * m_bytesPerRow;
+            uint32_t prevRowActiveStart = qMax(startOff, prevRowStart);
+            int prevG1 = (prevRowActiveStart % m_bytesPerRow) / m_groupSize;
+            int prevLeftX = byteRect(prevG1, 0).left() - 1;
+            if (leftX < prevLeftX) {
+                p.drawLine(leftX, y, prevLeftX, y);
+            }
+        }
+
+        // Draw bottom border line if row below is outside map or ends further left
+        if (row == endRow) {
+            p.drawLine(leftX, y + m_rowHeight, rightX, y + m_rowHeight);
+        } else if (row < endRow) {
+            uint32_t nextRowEnd = (row + 1) * m_bytesPerRow + m_bytesPerRow - 1;
+            uint32_t nextRowActiveEnd = qMin(endOff, nextRowEnd);
+            int nextG2 = (nextRowActiveEnd % m_bytesPerRow) / m_groupSize;
+            int nextRightX = byteRect(nextG2, 0).right() + 1;
+            if (rightX > nextRightX) {
+                p.drawLine(nextRightX, y + m_rowHeight, rightX, y + m_rowHeight);
+            }
+        }
+    }
+
+    // 2. Draw Left-Aligned In-Grid Active Map Title Label Header Banner
+    const int bits = (m_activeMapInfo.dataSize > 0 ? m_activeMapInfo.dataSize : 1) * 8;
+    const QString dimStr = (m_activeMapInfo.dimensions.x > 0 && m_activeMapInfo.dimensions.y > 0)
+        ? QString("%1x%2 (%3 Bit)").arg(m_activeMapInfo.dimensions.x).arg(m_activeMapInfo.dimensions.y).arg(bits)
+        : QString("%1 Bit").arg(bits);
+
+    const QString mapTitle = m_activeMapInfo.name.isEmpty()
+        ? QString("Map @ 0x%1: %2").arg(m_baseAddress + startOff, 8, 16, QChar('0')).toUpper().arg(dimStr)
+        : QString("%1: %2").arg(m_activeMapInfo.name).arg(dimStr);
+
+    QFont labelFont = m_monoFont;
+    labelFont.setPointSize(8);
+    labelFont.setBold(true);
+    p.setFont(labelFont);
+    QFontMetrics fm(labelFont);
+
+    // Position left-aligned inside top-left cell of active map
+    int gStart = (startOff % m_bytesPerRow) / m_groupSize;
+    int topRowY = m_headerHeight + (startRow - scrollRow) * m_rowHeight;
+    QRect rTopLeft = byteRect(gStart, topRowY);
+
+    int bannerX = rTopLeft.left() + 2;
+    int bannerY = qBound(m_headerHeight + 2, topRowY + 2, vpH - 22);
+
+    int availWidth = qMin(420, viewport()->width() - bannerX - 20);
+    if (availWidth > 80 && mapMaxY > m_headerHeight) {
+        QString displayText = fm.elidedText(mapTitle, Qt::ElideRight, availWidth - 12);
+        int textWidth = fm.horizontalAdvance(displayText) + 14;
+        int bannerW = qMin(textWidth, availWidth);
+        int bannerH = 16;
+
+        QRect bannerRect(bannerX, bannerY, bannerW, bannerH);
+
+        // WinOLS red banner fill with subtle rounded border
+        p.fillRect(bannerRect, QColor(190, 25, 35, 235));
+        p.setPen(QPen(QColor(245, 60, 70), 1.0));
+        p.drawRoundedRect(bannerRect, 2, 2);
+
+        p.setPen(Qt::white);
+        p.drawText(bannerRect, Qt::AlignCenter, displayText);
+    }
+
+    p.restore();
+}
+
+void HexWidget::drawHoveredMapOverlay(QPainter &p)
+{
+    if (m_hoveredMapIndex < 0 || m_hoveredMapIndex >= m_mapRegions.size())
+        return;
+
+    const MapRegion &mr = m_mapRegions[m_hoveredMapIndex];
+    const uint32_t startOff = mr.start;
+    const uint32_t endOff = mr.start + (mr.length > 0 ? mr.length - 1 : 0);
+
+    // Skip if this is the currently active map (already drawn in red/gold)
+    const uint32_t activeOff = m_activeMapInfo.address > 0 ? m_activeMapInfo.address : m_activeMapAddress;
+    if (activeOff > 0 && startOff == activeOff)
+        return;
+
+    if (m_bytesPerRow <= 0 || m_rowHeight <= 0) return;
+
+    const int scrollRow = verticalScrollBar()->value();
+    const int vpH = viewport()->height();
+    const int visibleRows = (vpH - m_headerHeight) / m_rowHeight + 2;
+    const int startVisibleRow = scrollRow;
+    const int endVisibleRow = scrollRow + visibleRows;
+
+    const int startRow = startOff / m_bytesPerRow;
+    const int endRow = endOff / m_bytesPerRow;
+
+    if (endRow < startVisibleRow || startRow > endVisibleRow)
+        return;
+
+    p.save();
+    p.setRenderHint(QPainter::Antialiasing, true);
+
+    // WinOLS Purple Hover Contour Trace Box
+    QPen purplePen(QColor(170, 70, 240), 2, Qt::SolidLine);
+    p.setPen(purplePen);
+
+    struct RowSegment {
+        int row;
+        int leftX, rightX;
+        int topY, botY;
+    };
+    QVector<RowSegment> segments;
+    int mapMaxY = -1;
+
+    for (int row = qMax(startRow, startVisibleRow); row <= qMin(endRow, endVisibleRow); ++row) {
+        uint32_t rowStart = row * m_bytesPerRow;
+        uint32_t rowEnd = rowStart + m_bytesPerRow - 1;
+
+        if (endOff < rowStart || startOff > rowEnd)
+            continue;
+
+        uint32_t segStart = qMax(startOff, rowStart);
+        uint32_t segEnd   = qMin(endOff, rowEnd);
+
+        int g1 = (segStart % m_bytesPerRow) / m_groupSize;
+        int g2 = (segEnd % m_bytesPerRow) / m_groupSize;
+
+        int screenY = m_headerHeight + (row - scrollRow) * m_rowHeight;
+        QRect r1 = byteRect(g1, screenY);
+        QRect r2 = byteRect(g2, screenY);
+
+        int leftX  = r1.left() - 2;
+        int rightX = r2.right() + 2;
+        int topY   = screenY - 1;
+        int botY   = screenY + m_rowHeight;
+
+        if (botY > mapMaxY) mapMaxY = botY;
+        segments.append({row, leftX, rightX, topY, botY});
+    }
+
+    for (int i = 0; i < segments.size(); ++i) {
+        const auto &s = segments[i];
+
+        // Left and Right outer vertical edges
+        p.drawLine(s.leftX, s.topY, s.leftX, s.botY);
+        p.drawLine(s.rightX, s.topY, s.rightX, s.botY);
+
+        // Top horizontal edge for first row
+        if (i == 0 || s.row != segments[i - 1].row + 1) {
+            p.drawLine(s.leftX, s.topY, s.rightX, s.topY);
+        } else {
+            // Step-in / step-out connector between row i-1 and row i
+            const auto &prev = segments[i - 1];
+            if (s.leftX != prev.leftX) p.drawLine(prev.leftX, s.topY, s.leftX, s.topY);
+            if (s.rightX != prev.rightX) p.drawLine(prev.rightX, s.topY, s.rightX, s.topY);
+        }
+
+        // Bottom horizontal edge for last row
+        if (i == segments.size() - 1 || segments[i + 1].row != s.row + 1) {
+            p.drawLine(s.leftX, s.botY, s.rightX, s.botY);
+        }
+    }
+
+    // WinOLS Purple Hover Title Banner
+    int bits = 16;
+    int dimX = 0, dimY = 0;
+    if (m_project) {
+        for (const MapInfo &mi : m_project->maps) {
+            if (mi.address == startOff) {
+                dimX = mi.dimensions.x;
+                dimY = mi.dimensions.y;
+                if (mi.dataSize > 0) bits = mi.dataSize * 8;
+                break;
+            }
+        }
+    }
+
+    const QString dimStr = (dimX > 0 && dimY > 0)
+        ? QString("%1x%2 (%3 Bit)").arg(dimX).arg(dimY).arg(bits)
+        : QString("%1 Bit").arg(bits);
+
+    const QString mapTitle = mr.name.isEmpty()
+        ? QString("Map @ 0x%1: %2").arg(m_baseAddress + startOff, 8, 16, QChar('0')).toUpper().arg(dimStr)
+        : QString("%1: %2").arg(mr.name).arg(dimStr);
+
+    QFont labelFont = m_monoFont;
+    labelFont.setPointSize(8);
+    labelFont.setBold(true);
+    p.setFont(labelFont);
+    QFontMetrics fm(labelFont);
+
+    int gStart = (startOff % m_bytesPerRow) / m_groupSize;
+    int topRowY = m_headerHeight + (startRow - scrollRow) * m_rowHeight;
+    QRect rTopLeft = byteRect(gStart, topRowY);
+
+    int bannerX = rTopLeft.left() + 2;
+    int bannerY = qBound(m_headerHeight + 2, topRowY + 2, vpH - 22);
+
+    int availWidth = qMin(420, viewport()->width() - bannerX - 20);
+    if (availWidth > 80 && mapMaxY > m_headerHeight) {
+        QString displayText = fm.elidedText(mapTitle, Qt::ElideRight, availWidth - 12);
+        int textWidth = fm.horizontalAdvance(displayText) + 14;
+        int bannerW = qMin(textWidth, availWidth);
+        int bannerH = 16;
+
+        QRect bannerRect(bannerX, bannerY, bannerW, bannerH);
+
+        // WinOLS Purple fill & border
+        p.fillRect(bannerRect, QColor(140, 40, 210, 235));
+        p.setPen(QPen(QColor(180, 80, 250), 1.0));
+        p.drawRoundedRect(bannerRect, 2, 2);
+
+        p.setPen(Qt::white);
+        p.drawText(bannerRect, Qt::AlignCenter, displayText);
+    }
+
+    p.restore();
+}
+
+void HexWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    QAbstractScrollArea::mouseMoveEvent(event);
+    int x = event->pos().x();
+    int y = event->pos().y();
+
+    if (y >= m_headerHeight) {
+        int row = verticalScrollBar()->value() + (y - m_headerHeight) / m_rowHeight;
+        int screenY = m_headerHeight + ((y - m_headerHeight) / m_rowHeight) * m_rowHeight;
+        const int groups = m_bytesPerRow / m_groupSize;
+
+        for (int g = 0; g < groups; g++) {
+            QRect br = byteRect(g, screenY);
+            if (x >= br.left() && x < br.right()) {
+                uint32_t hoverOff = row * m_bytesPerRow + g * m_groupSize;
+                if ((int)hoverOff < m_data.size()) {
+                    int mapIdx = mapRegionForOffset(hoverOff);
+                    if (mapIdx != m_hoveredMapIndex) {
+                        m_hoveredMapIndex = mapIdx;
+                        viewport()->update();
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    if (m_hoveredMapIndex != -1) {
+        m_hoveredMapIndex = -1;
+        viewport()->update();
+    }
+}
+
+void HexWidget::leaveEvent(QEvent *event)
+{
+    QAbstractScrollArea::leaveEvent(event);
+    if (m_hoveredMapIndex != -1) {
+        m_hoveredMapIndex = -1;
+        viewport()->update();
+    }
 }
 
 void HexWidget::renderRow(QPainter &p, int row, int y)
@@ -503,9 +889,16 @@ void HexWidget::renderRow(QPainter &p, int row, int y)
 
         // Background: map region
         int mapIdx = mapRegionForOffset(baseIdx);
-        if (mapIdx >= 0) {
-            QColor mc = AppConfig::instance().colors.mapBand[mapIdx % 5]; mc.setAlpha(30);
-            p.fillRect(br, mc);
+        if (mapIdx >= 0 && mapIdx < m_mapRegions.size()) {
+            const auto &mr = m_mapRegions[mapIdx];
+            const bool isActiveMap = (mr.start == m_activeMapAddress);
+            if (isActiveMap) {
+                QColor activeCol = QColor(40, 120, 225, 80);
+                p.fillRect(br, activeCol);
+            } else {
+                QColor mc = AppConfig::instance().colors.mapBand[mapIdx % 5]; mc.setAlpha(45);
+                p.fillRect(br, mc);
+            }
         }
 
         // Check if byte differs from comparison data
@@ -673,6 +1066,12 @@ void HexWidget::mousePressEvent(QMouseEvent *event)
                 m_editing = false;
                 m_editNibble = 0;
                 emit offsetSelected(clickOffset, (uint8_t)m_data[clickOffset]);
+
+                int mapIdx = mapRegionForOffset(clickOffset);
+                if (mapIdx >= 0 && mapIdx < m_mapRegions.size()) {
+                    emit mapClickedInHex(m_mapRegions[mapIdx].start);
+                }
+
                 viewport()->update();
             }
             return;
@@ -1084,7 +1483,12 @@ void HexOverviewBar::paintEvent(QPaintEvent *)
             int py2 = (int)(((double)mr.start + mr.length) / romSz * h);
             py1 = qBound(0, py1, h - 1);
             py2 = qBound(py1 + 1, py2, h);
-            p.fillRect(0, py1, 3, qMax(1, py2 - py1), QColor(58, 220, 255, 180));
+            const bool isActive = (mr.start == m_hex->activeMapAddress());
+            if (isActive) {
+                p.fillRect(0, py1, 6, qMax(2, py2 - py1), QColor(255, 215, 0, 255));
+            } else {
+                p.fillRect(0, py1, 3, qMax(1, py2 - py1), QColor(58, 220, 255, 180));
+            }
         }
     }
 

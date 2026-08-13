@@ -171,6 +171,18 @@ ProjectView::ProjectView(QWidget *parent)
 
     connect(m_hexWidget, &HexWidget::offsetSelected,
             this,        &ProjectView::onOffsetSelected);
+    connect(m_hexWidget, &HexWidget::mapClickedInHex, this, [this](uint32_t address) {
+        if (!m_project) return;
+        for (const MapInfo &map : m_project->maps) {
+            if (map.address == address) {
+                m_isSelectingFromHex = true;
+                showMap(map);
+                emit mapActivated(map, m_project);
+                m_isSelectingFromHex = false;
+                break;
+            }
+        }
+    });
     connect(m_hexWidget, &HexWidget::dataModified,
             this,        &ProjectView::onDataModified);
     connect(m_hexWidget, &HexWidget::bytesModified, this,
@@ -338,19 +350,36 @@ void ProjectView::loadProject(Project *project)
             this, &ProjectView::rebuildComparisonCombo);
 }
 
+void ProjectView::selectMapInTreeByAddress(uint32_t address)
+{
+    if (!m_project) return;
+    for (const MapInfo &map : m_project->maps) {
+        if (map.address == address) {
+            m_isSelectingFromHex = true;
+            showMap(map);
+            emit mapActivated(map, m_project);
+            m_isSelectingFromHex = false;
+            break;
+        }
+    }
+}
+
 void ProjectView::showMap(const MapInfo &map)
 {
     m_selectedMap = map;
     m_waveWidget->setCurrentMap(map);
+    m_hexWidget->setActiveMap(map);
 
     // A map-list click behaves like WinOLS: select the map's data in the
     // hexdump, without opening an editor window.  Inline axes precede the
     // actual cell grid, so select only the editable map cells.
-    const qint64 cellCount = qMax(1, map.dimensions.x) * qMax(1, map.dimensions.y);
-    const qint64 byteCount = cellCount * qMax(1, map.dataSize);
     const uint32_t dataOffset = map.address + map.mapDataOffset;
-    m_hexWidget->selectRange(dataOffset,
-                              static_cast<int>(qMin<qint64>(byteCount, INT_MAX)));
+    if (!m_isSelectingFromHex) {
+        const qint64 cellCount = qMax(1, map.dimensions.x) * qMax(1, map.dimensions.y);
+        const qint64 byteCount = cellCount * qMax(1, map.dataSize);
+        m_hexWidget->selectRange(dataOffset,
+                                  static_cast<int>(qMin<qint64>(byteCount, INT_MAX)));
+    }
     switchView(0);
 
     const uint32_t displayAddress = map.rawAddress ? map.rawAddress

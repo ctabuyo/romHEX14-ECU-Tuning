@@ -7715,6 +7715,32 @@ void MainWindow::onMapActivated(const MapInfo &map, Project *project)
 
     // Feed selected map context to AI assistant
     if (m_aiAssistant) m_aiAssistant->setSelectedMap(map);
+
+    // Sync selection in m_projectTree (left panel map tree)
+    if (m_projectTree && project) {
+        QTreeWidgetItemIterator it(m_projectTree);
+        while (*it) {
+            QTreeWidgetItem *item = *it;
+            auto mapVar = item->data(0, Qt::UserRole + 2);
+            auto *proj = static_cast<Project*>(item->data(0, Qt::UserRole + 1).value<void*>());
+            if (mapVar.isValid() && proj == project) {
+                auto m = mapVar.value<MapInfo>();
+                if (m.address == map.address) {
+                    m_projectTree->blockSignals(true);
+                    QTreeWidgetItem *pNode = item->parent();
+                    while (pNode) {
+                        pNode->setExpanded(true);
+                        pNode = pNode->parent();
+                    }
+                    m_projectTree->setCurrentItem(item);
+                    m_projectTree->scrollToItem(item);
+                    m_projectTree->blockSignals(false);
+                    break;
+                }
+            }
+            ++it;
+        }
+    }
 }
 
 void MainWindow::openMapViewer(Project *project, const MapInfo &map)

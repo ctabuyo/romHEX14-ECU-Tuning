@@ -11,6 +11,7 @@
 #include <QFont>
 #include <QSet>
 #include <QVector>
+#include <QTimer>
 #include "romdata.h"
 
 class HexWidget;
@@ -79,6 +80,11 @@ public:
     /// selected from the project tree so its data is visible in the hex view.
     void selectRange(uint32_t offset, int length);
     void setMapRegions(const QVector<MapRegion> &regions);
+    void setActiveMapAddress(uint32_t address);
+    void setActiveMap(const MapInfo &map);
+    void triggerMapBlinkAnimation();
+    uint32_t activeMapAddress() const { return m_activeMapAddress; }
+    const MapInfo &activeMapInfo() const { return m_activeMapInfo; }
     int modificationCount() const { return m_modifications.size(); }
 
     // Selection helpers
@@ -139,10 +145,15 @@ signals:
     /// the start byte offset, @p length is in bytes.
     void selectionToMapRequested(uint32_t address, int length);
 
+    /// Emitted when clicking on an identified map block in HexWidget.
+    void mapClickedInHex(uint32_t address);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void leaveEvent(QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
@@ -157,12 +168,21 @@ private:
     void pushUndo(int offset, const QByteArray &before, const QByteArray &after);
     void updateModifications(int offset, int length);
 
+    void drawMapOverlayBox(QPainter &p);
+    void drawHoveredMapOverlay(QPainter &p);
+
     QByteArray m_data;
     QByteArray m_originalData;
     QSet<uint32_t> m_modifications;
     Project       *m_project = nullptr;  // non-owning shared ROM document
     QByteArray m_comparisonData;
     QVector<MapRegion> m_mapRegions;
+    uint32_t           m_activeMapAddress = 0;
+    MapInfo            m_activeMapInfo;
+    int                m_hoveredMapIndex = -1;
+    QTimer             m_blinkTimer;
+    int                m_blinkTicksRemaining = 0;
+    bool               m_blinkHighlightState = false;
 
     int m_bytesPerRow = 16;
     int m_rowHeight = 22;
