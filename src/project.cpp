@@ -24,6 +24,97 @@
 
 Project::Project(QObject *parent) : QObject(parent) {}
 
+bool Project::applyRomPatches(const QVector<QPair<int, QByteArray>> &patches,
+                              const QString &description)
+{
+    if (patches.isEmpty() || currentData.isEmpty()) return false;
+
+    RomUndoEntry entry;
+    entry.description = description;
+    entry.startOffset = currentData.size();
+
+    // Apply in caller order.  This makes overlapping patches deterministic and
+    // lets undo restore them in reverse order.
+    for (const auto &patch : patches) {
+        const int offset = patch.first;
+        const QByteArray &after = patch.second;
+        if (offset < 0 || after.isEmpty() || offset + after.size() > currentData.size())
+            continue;
+
+        const QByteArray before = currentData.mid(offset, after.size());
+        if (before == after) continue;
+
+        currentData.replace(offset, after.size(), after);
+        entry.items.append({offset, before, after});
+        entry.startOffset = qMin(entry.startOffset, offset);
+        entry.endOffset = qMax(entry.endOffset, offset + after.size());
+    }
+
+    if (entry.items.isEmpty()) return false;
+
+    if (m_romUndoIndex + 1 < m_romUndo.size())
+        m_romUndo.resize(m_romUndoIndex + 1);
+    m_romUndo.append(std::move(entry));
+    if (m_romUndo.size() > kMaxRomUndo) {
+        m_romUndo.removeFirst();
+        --m_romUndoIndex;
+    }
+    m_romUndoIndex = m_romUndo.size() - 1;
+
+    modified = true;
+    const auto &applied = m_romUndo[m_romUndoIndex];
+    emit romPatched(applied.startOffset, applied.endOffset);
+    emit romUndoStateChanged();
+    emit dataChanged();
+    return true;
+}
+
+bool Project::canUndoRomEdit() const
+{
+    return m_romUndoIndex >= 0;
+}
+
+bool Project::canRedoRomEdit() const
+{
+    return m_romUndoIndex + 1 < m_romUndo.size();
+}
+
+void Project::undoRomEdit()
+{
+    if (!canUndoRomEdit()) return;
+    const RomUndoEntry &entry = m_romUndo[m_romUndoIndex];
+    for (int i = entry.items.size() - 1; i >= 0; --i) {
+        const RomPatchItem &patch = entry.items[i];
+        currentData.replace(patch.offset, patch.before.size(), patch.before);
+    }
+    --m_romUndoIndex;
+    modified = true;
+    emit romPatched(entry.startOffset, entry.endOffset);
+    emit romUndoStateChanged();
+    emit dataChanged();
+}
+
+void Project::redoRomEdit()
+{
+    if (!canRedoRomEdit()) return;
+    ++m_romUndoIndex;
+    const RomUndoEntry &entry = m_romUndo[m_romUndoIndex];
+    for (const RomPatchItem &patch : entry.items)
+        currentData.replace(patch.offset, patch.after.size(), patch.after);
+    modified = true;
+    emit romPatched(entry.startOffset, entry.endOffset);
+    emit romUndoStateChanged();
+    emit dataChanged();
+}
+
+void Project::clearRomUndo()
+{
+    if (m_romUndo.isEmpty() && m_romUndoIndex == -1) return;
+    m_romUndo.clear();
+    m_romUndoIndex = -1;
+    emit romUndoStateChanged();
+}
+
 AnnotationStore *Project::annotations()
 {
     if (!m_annotations) {
@@ -119,7 +210,9 @@ bool Project::restoreVersion(int index)
 {
     if (index < 0 || index >= versions.size()) return false;
     currentData = versions[index].data;
+    clearRomUndo();
     modified    = true;
+    emit romPatched(0, currentData.size());
     emit dataChanged();
     return true;
 }
