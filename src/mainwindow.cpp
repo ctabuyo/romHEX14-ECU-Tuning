@@ -2650,6 +2650,22 @@ void MainWindow::buildActions()
            "switch back, compare trials"));
 
     // ── Selection / map editing operations (Sprint A) ──────────────────
+    // These are project-level actions rather than per-widget actions. Every
+    // editable view writes through Project's shared ROM transaction stack, so
+    // the menu history matches the Ctrl+Z/Ctrl+Y history in every view.
+    m_actUndoRom = new QAction(this);
+    m_actUndoRom->setShortcut(QKeySequence::Undo);
+    m_actUndoRom->setEnabled(false);
+    connect(m_actUndoRom, &QAction::triggered, this, [this]() {
+        if (auto *project = activeProject()) project->undoRomEdit();
+    });
+    m_actRedoRom = new QAction(this);
+    m_actRedoRom->setShortcut(QKeySequence::Redo);
+    m_actRedoRom->setEnabled(false);
+    connect(m_actRedoRom, &QAction::triggered, this, [this]() {
+        if (auto *project = activeProject()) project->redoRomEdit();
+    });
+
     m_actValPlus1     = new QAction(tr("Value +1"), this);
     m_actValPlus1->setShortcut(QKeySequence(Qt::Key_Plus));
     m_actValMinus1    = new QAction(tr("Value −1"), this);
@@ -2855,8 +2871,21 @@ void MainWindow::buildMenuBar()
     m_menuDatalog = menuBar()->addMenu("");
     m_menuWindow  = menuBar()->addMenu("");
     m_menuHelp    = menuBar()->addMenu("&?");
+    // The active MDI window can change while a menu has focus. Refreshing here
+    // keeps Edit → Undo/Redo accurate in that case as well.
+    connect(m_menuEdit, &QMenu::aboutToShow,
+            this, &MainWindow::updateRomUndoActions);
     // Add Preferences immediately so it's always in the menu
     if (m_actPreferences) m_menuMisc->addAction(m_actPreferences);
+}
+
+void MainWindow::updateRomUndoActions()
+{
+    const Project *project = activeProject();
+    if (m_actUndoRom)
+        m_actUndoRom->setEnabled(project && project->canUndoRomEdit());
+    if (m_actRedoRom)
+        m_actRedoRom->setEnabled(project && project->canRedoRomEdit());
 }
 
 // ── retranslateUi — rebuilds all menus and updates all translatable strings ───
@@ -2898,6 +2927,25 @@ void MainWindow::retranslateUi()
     m_actTile->setText(tr("Tile Windows"));
     m_actCascade->setText(tr("Cascade Windows"));
     m_actCompare->setText(tr("Compare Projects…"));
+    if (m_actUndoRom)         m_actUndoRom->setText(tr("Undo"));
+    if (m_actRedoRom)         m_actRedoRom->setText(tr("Redo"));
+    m_actPrevMap->setText(tr("Previous Map"));
+    m_actNextMap->setText(tr("Next Map"));
+    m_actSyncCursors->setText(tr("Synchronize Cursors"));
+    m_act8bit->setText(tr("8-bit"));
+    m_act16bit->setText(tr("16-bit"));
+    m_act32bit->setText(tr("32-bit"));
+    m_actFloat->setText(tr("32-bit Float"));
+    m_actLo->setText(tr("Little Endian"));
+    m_actHi->setText(tr("Big Endian"));
+    m_actSigned->setText(tr("Signed"));
+    m_actUnsigned->setText(tr("Unsigned"));
+    m_actDec->setText(tr("Decimal"));
+    m_actHex->setText(tr("Hexadecimal"));
+    m_actBin->setText(tr("Binary"));
+    m_actPct->setText(tr("Percentage"));
+    m_actDifference->setText(tr("Show Difference"));
+    m_actHeightColors->setText(tr("Height Colours"));
     m_actPrevMap->setToolTip(tr("Move cursor to previous map  (Ctrl+←)"));
     m_actNextMap->setToolTip(tr("Move cursor to next map  (Ctrl+→)"));
     m_actSyncCursors->setToolTip(tr("Sync 2D view scroll across all open projects"));
@@ -3049,12 +3097,26 @@ void MainWindow::retranslateUi()
 
     // ── Edit menu ─────────────────────────────────────────────────────
     m_menuEdit->clear();
-    m_menuEdit->addAction(m_actPrevMap);
-    m_menuEdit->addAction(m_actNextMap);
+    m_menuEdit->addAction(m_actUndoRom);
+    m_menuEdit->addAction(m_actRedoRom);
     m_menuEdit->addSeparator();
-    m_menuEdit->addAction(tr("&Find Map…"), QKeySequence::Find, this, [this]() {
-        if (m_filterEdit) { m_filterEdit->setFocus(); m_filterEdit->selectAll(); }
-    });
+    // WinOLS keeps value transforms in Edit. All of these route through the
+    // shared Project transaction stream: one operation, one history entry,
+    // and one synchronized refresh for hex, waveform and map views.
+    m_menuEdit->addAction(m_actValPlus1);
+    m_menuEdit->addAction(m_actValMinus1);
+    m_menuEdit->addSeparator();
+    m_menuEdit->addAction(m_actChangeAbs);
+    m_menuEdit->addAction(m_actChangeRel);
+    m_menuEdit->addAction(m_actChangeSlider);
+    m_menuEdit->addAction(m_actRoundLimit);
+    m_menuEdit->addAction(m_actOriginalVal);
+    m_menuEdit->addSeparator();
+    m_menuEdit->addAction(m_actInterpolate);
+    m_menuEdit->addAction(m_actSmooth);
+    m_menuEdit->addAction(m_actFlatten);
+    m_menuEdit->addSeparator();
+    m_menuEdit->addAction(m_actAgain);
 
     // ── View menu ─────────────────────────────────────────────────────
     m_menuView->clear();
@@ -3064,6 +3126,30 @@ void MainWindow::retranslateUi()
         if (auto *v = activeView()) v->switchView(1); });
     m_menuView->addAction(tr("&3D Map"), this, [this]() {
         if (auto *v = activeView()) v->switchView(2); });
+    m_menuView->addSeparator();
+    {
+        QMenu *widthMenu = m_menuView->addMenu(tr("Data &Width"));
+        widthMenu->addAction(m_act8bit);
+        widthMenu->addAction(m_act16bit);
+        widthMenu->addAction(m_act32bit);
+        widthMenu->addAction(m_actFloat);
+
+        QMenu *byteOrderMenu = m_menuView->addMenu(tr("Byte &Order"));
+        byteOrderMenu->addAction(m_actLo);
+        byteOrderMenu->addAction(m_actHi);
+
+        QMenu *signMenu = m_menuView->addMenu(tr("&Sign"));
+        signMenu->addAction(m_actSigned);
+        signMenu->addAction(m_actUnsigned);
+
+        QMenu *numberMenu = m_menuView->addMenu(tr("Number &Format"));
+        numberMenu->addAction(m_actDec);
+        numberMenu->addAction(m_actHex);
+        numberMenu->addAction(m_actBin);
+        numberMenu->addAction(m_actPct);
+    }
+    m_menuView->addAction(m_actDifference);
+    m_menuView->addAction(m_actHeightColors);
     m_menuView->addSeparator();
     m_menuView->addAction(m_actToggleAI);
     if (m_actToggleDiff)
@@ -3096,22 +3182,8 @@ void MainWindow::retranslateUi()
     m_menuSel->clear();
     m_menuSel->addAction(m_actSyncCursors);
     m_menuSel->addSeparator();
-    m_menuSel->addAction(m_actCompare);
-    m_menuSel->addSeparator();
-    // Sprint A — map editing operations.  All entries operate on the
-    // active view's selection (waveform / hex) or whole-map (3D).
-    m_menuSel->addAction(m_actValPlus1);
-    m_menuSel->addAction(m_actValMinus1);
-    m_menuSel->addAction(m_actChangeAbs);
-    m_menuSel->addAction(m_actChangeRel);
-    m_menuSel->addAction(m_actChangeSlider);
-    m_menuSel->addAction(m_actRoundLimit);
-    m_menuSel->addAction(m_actOriginalVal);
-    m_menuSel->addAction(m_actInterpolate);
-    m_menuSel->addAction(m_actSmooth);
-    m_menuSel->addAction(m_actFlatten);
-    m_menuSel->addSeparator();
-    m_menuSel->addAction(m_actAgain);
+    m_menuSel->addAction(m_actPrevMap);
+    m_menuSel->addAction(m_actNextMap);
 
     // ── Find menu ─────────────────────────────────────────────────────
     m_menuFind->clear();
@@ -3128,6 +3200,9 @@ void MainWindow::retranslateUi()
         v->goToAddress(addr);
     });
     m_menuFind->addAction(tr("Find &Value…"), this, &MainWindow::actFindValue);
+    m_menuFind->addAction(tr("Find &Map…"), QKeySequence::Find, this, [this]() {
+        if (m_filterEdit) { m_filterEdit->setFocus(); m_filterEdit->selectAll(); }
+    });
 
     // Sprint C — annotations / markers
     m_menuFind->addSeparator();
@@ -3228,7 +3303,6 @@ void MainWindow::retranslateUi()
     m_menuMisc->addAction(tr("Project &Info…"), this, &MainWindow::editProjectInfo);
     m_menuMisc->addSeparator();
     m_menuMisc->addAction(m_actAddVersion);
-    m_menuMisc->addAction(m_actOptimize);
     m_menuMisc->addSeparator();
     // ── Auto-detect Maps (WinOLS-style scanner) ────────────────────────
     // NOTE: parallel agents may also add items to this menu (e.g.
@@ -3655,12 +3729,26 @@ QMdiSubWindow *MainWindow::openProject(Project *project)
             this, &MainWindow::onCloneVersionRequested);
     QPointer<QMdiSubWindow> safeSw(sw);
     QPointer<Project> safeProject(project);
+    connect(project, &Project::romPatched, this,
+            [this, project](int, int) {
+        m_projectsWithPendingRomPatch.insert(project);
+    });
+    connect(project, &Project::romUndoStateChanged, this, [this]() {
+        updateRomUndoActions();
+    });
+    connect(project, &QObject::destroyed, this, [this, project]() {
+        m_projectsWithPendingRomPatch.remove(project);
+    });
     connect(project, &Project::dataChanged, sw, [this, safeSw, safeProject]() {
+        const bool isRomPatch = m_projectsWithPendingRomPatch.remove(safeProject.data());
         if (!safeSw || !safeProject) return;
         safeSw->setWindowTitle(safeProject->modified
             ? safeProject->fullTitle() + "  *"
             : safeProject->fullTitle());
-        refreshProjectTree();
+        // romPatched() has already refreshed the byte-level views. Rebuilding
+        // the tree here destroys/reselects items and scrolls it on every +/-.
+        if (!isRomPatch)
+            refreshProjectTree();
     });
 
     // Debounced autosave on any mutation (data edits, version snapshots,
@@ -7394,6 +7482,7 @@ void MainWindow::applyDisplayFormat()
 
 void MainWindow::onSubWindowActivated(QMdiSubWindow *sw)
 {
+    updateRomUndoActions();
     // Auto-save mode: onFocusChange — fire when the active sub-window changes.
     if (rx14::appSettings().value("autoSaveMode", "afterDelay")
             .toString() == "onFocusChange") {
@@ -7497,31 +7586,18 @@ void MainWindow::showMapOverlay(const QByteArray &romData, const MapInfo &map,
     // at once, including two views of the same map.
     auto *ov = new MapOverlay(this);
     m_overlays.append(ov);
+    connect(ov, &MapOverlay::activated, this, [this](MapOverlay *overlay) {
+        m_activeOverlay = overlay;
+    });
     connect(ov, &QObject::destroyed, this, [this]() {
         m_overlays.removeAll(QPointer<MapOverlay>());
     });
 
-    // Wire ROM patch write-back.
+    // Project-backed overlays submit their byte transactions directly to the
+    // shared Project ROM document.  The document broadcasts the repaint and
+    // dirty-state notifications to every bound view.
     if (project) {
         QPointer<Project> projPtr(project);
-
-        // romPatchReady fires once PER CELL — patch silently, no tree rebuild
-        connect(ov, &MapOverlay::romPatchReady,
-                this, [projPtr](uint32_t offset, QByteArray bytes) {
-            if (!projPtr) return;
-            if ((int)(offset + bytes.size()) > projPtr->currentData.size()) return;
-            auto *dst = reinterpret_cast<uint8_t*>(projPtr->currentData.data());
-            std::memcpy(dst + offset, bytes.constData(), bytes.size());
-            projPtr->modified = true;
-            // NOTE: do NOT emit dataChanged here — editBatchDone does it once
-        });
-
-        // editBatchDone fires ONCE per user action (applyDelta / undo / redo)
-        connect(ov, &MapOverlay::editBatchDone,
-                this, [projPtr, this]() {
-            if (!projPtr) return;
-            emit projPtr->dataChanged();   // triggers exactly one refreshProjectTree
-        });
 
         // addressCorrected — user manually confirmed the correct address
         connect(ov, &MapOverlay::addressCorrected,
@@ -7539,18 +7615,9 @@ void MainWindow::showMapOverlay(const QByteArray &romData, const MapInfo &map,
             refreshProjectTree();
         });
 
-        // Share this project's view editor so overlay edits land on the
-        // same undo stack as the hex / waveform / 3D views, and route the
-        // overlay's embedded 3D "Edit map" menu through the shared path.
-        WaveformEditor *sharedEd = nullptr;
-        for (auto *sub : m_mdi->subWindowList()) {
-            auto *pv = qobject_cast<ProjectView *>(sub->widget());
-            if (pv && pv->project() == project && pv->waveformWidget()) {
-                sharedEd = pv->waveformWidget()->editor();
-                break;
-            }
-        }
-        ov->setSharedEditor(sharedEd, project);
+        // The overlay reads/writes the same project ROM transaction stream as
+        // every other view; it does not borrow a widget-local editor.
+        ov->setProject(project);
         connect(ov, &MapOverlay::editOpRequested,
                 this, &MainWindow::onEditOpRequestedFromView);
         // Propagate map property changes back to the project
@@ -10007,6 +10074,18 @@ void MainWindow::onJumpMarker(bool forward)
 
 void MainWindow::onEditOpFromMenu(EditOp op)
 {
+    // The top-level Edit menu belongs to MainWindow, while a map grid is a
+    // separate tool window. Its selection survives opening the menu, but the
+    // generic ProjectView resolver cannot see it and would edit the full map.
+    // Let the active grid claim +/- first, using its keyboard-identical math.
+    if ((op == EditOp::ValuePlus1 || op == EditOp::ValueMinus1)
+        && m_activeOverlay
+        && m_activeOverlay->targetProject() == activeProject()
+        && m_activeOverlay->incrementGridSelectionFromMenu(
+               op == EditOp::ValuePlus1 ? +1 : -1)) {
+        return;
+    }
+
     EditParams p;
     bool ok = false;
 
@@ -11003,9 +11082,8 @@ bool MainWindow::debugUndo(int subIdx, QString *outErr)
     }
     auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
     if (!pv) { if (outErr) *outErr = "no view"; return false; }
-    auto *ed = pv->waveformWidget() ? pv->waveformWidget()->editor() : nullptr;
-    if (!ed) { if (outErr) *outErr = "no editor"; return false; }
-    ed->undo();
+    if (!pv->project()) { if (outErr) *outErr = "no project"; return false; }
+    pv->project()->undoRomEdit();
     return true;
 }
 

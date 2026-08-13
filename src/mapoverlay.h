@@ -22,7 +22,6 @@
 #include "map3dwidget.h"
 #include "map3dsimwidget.h"
 
-class WaveformEditor;
 class Project;
 
 struct CellEdit {
@@ -48,15 +47,21 @@ public:
     bool displaysMap(const MapInfo &map) const;
     Project *targetProject() const { return m_syncProject; }
 
+    // Entry point for the application's Edit menu. It uses the grid selection
+    // and the same WinOLS-compatible quantisation path as a +/- key press.
+    // Returning true prevents a selected but saturated cell from falling
+    // through to MainWindow's whole-map fallback.
+    bool incrementGridSelectionFromMenu(int delta);
+
     Q_SLOT void previewScalingFormat(const QString &format);
     void previewMapUpdate(const MapInfo &preview);
 
-    // Share the owning ProjectView's editor so this dialog's edits land on
-    // the SAME undo stack as the hex / waveform / 3D views (and vice-versa).
-    // Passing nullptr reverts to the dialog-local undo stack (standalone use).
-    void setSharedEditor(WaveformEditor *editor, Project *project);
+    // Bind to the project-owned ROM document. Passing nullptr reverts to the
+    // dialog-local data/undo stack (standalone use).
+    void setProject(Project *project);
 
 signals:
+    void activated(MapOverlay *overlay);
     void romPatchReady(uint32_t offset, QByteArray bytes);
     void editBatchDone();
     void addressCorrected(const QString &mapName, uint32_t newAddress);
@@ -67,6 +72,7 @@ signals:
     void editOpRequested(int opCode);
 
 protected:
+    bool event(QEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *ev) override;
 
 private slots:
@@ -83,11 +89,16 @@ private:
 
     void autoResize();
     CellEdit writeCell(int row, int col, double newPhys);
+    // Write an already quantized storage value.  This is used by keyboard
+    // stepping after it has selected the correct neighbouring raw count.
+    CellEdit writeRawCell(int row, int col, uint32_t newRaw);
     // Commit a batch of cell edits as ONE undo step — routed to the shared
-    // editor when one is set, otherwise to the dialog-local undo stack.
+    // project document when one is set, otherwise to the dialog-local stack.
     void commitBatch(const EditBatch &batch);
-    // Reload m_data from the shared project after an external edit/undo.
+    // Reload m_data from the shared project after an external edit/undo while
+    // retaining the grid selection and current cell.
     void reloadFromProject();
+    void rebuildTablePreservingGridState();
     // Current physical value of one cell (respects scaling/sign/byte order).
     double cellPhys(int row, int col) const;
     // True when the grid is a read-only view (showing original, or a
@@ -131,10 +142,8 @@ private:
     QVector<EditBatch> m_undoStack;
     QVector<EditBatch> m_redoStack;
 
-    // Shared-undo wiring (null when running standalone → local stack used)
-    WaveformEditor *m_undoEditor    = nullptr;
-    Project        *m_syncProject   = nullptr;
-    bool            m_committingSelf = false;   // guards reload re-entrancy
+    // Project document (null when running standalone → local stack used).
+    Project *m_syncProject = nullptr;
 
     // Inline editor state
     bool m_editOpen = false;

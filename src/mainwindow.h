@@ -334,6 +334,9 @@ private:
     // ── Open map editors ──────────────────────────────────────────────
     // A map can be opened in more than one independent editor window.
     QList<QPointer<MapOverlay>> m_overlays;
+    // Main-window actions need this to recover the selected grid cells of the
+    // most recently active map tool window.
+    QPointer<MapOverlay> m_activeOverlay;
 
     // ── A2L parser ────────────────────────────────────────────────────
     A2LParser *m_parser          = nullptr;
@@ -349,6 +352,10 @@ private:
 
     // ── Projects / navigation state ───────────────────────────────────
     QVector<Project *> m_projects;
+    // A ROM patch already drives hex/wave/map repaint through romPatched().
+    // Keep its following dataChanged() for title/autosave/diff work, but do
+    // not rebuild and scroll the project tree for every byte transaction.
+    QSet<Project *> m_projectsWithPendingRomPatch;
     int                m_currentMapIdx = -1; // index into activeProject->maps
     QPointer<Project>  m_luaLastCreatedMapProject;
     int                m_luaLastCreatedMapIndex = -1;
@@ -433,6 +440,8 @@ private:
     };
     QAction *m_actValPlus1    = nullptr;
     QAction *m_actValMinus1   = nullptr;
+    QAction *m_actUndoRom     = nullptr;
+    QAction *m_actRedoRom     = nullptr;
     QAction *m_actChangeAbs   = nullptr;
     QAction *m_actChangeRel   = nullptr;
     QAction *m_actChangeSlider = nullptr;
@@ -447,6 +456,7 @@ private:
     bool       m_haveLastEdit = false;
     void applyEditOp(EditOp op, const EditParams &p);
     void onEditOpFromMenu(EditOp op);    // helper that pops dialog if needed
+    void updateRomUndoActions();
     /// Slot connected to HexWidget::editOpRequested / Map3DWidget::editOpRequested.
     /// Wrapped as a real member function (not a lambda) because
     /// Qt::UniqueConnection refuses lambdas — using a lambda crashes with

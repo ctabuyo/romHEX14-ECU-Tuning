@@ -5,10 +5,10 @@
  */
 
 #include "mapoverlay.h"
-#include "waveformeditor.h"
 #include "project.h"
 #include "appconfig.h"
 #include "appconstants.h"
+#include <QSignalBlocker>
 #include "mappropertiesdlg.h"
 #include "featuregate.h"
 #ifdef RX14_PRO_BUILD
@@ -41,6 +41,7 @@
 #include <QDialogButtonBox>
 #include <QMessageBox>
 #include <cmath>
+#include <limits>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Icons
@@ -1549,19 +1550,9 @@ void MapOverlay::buildTable()
 // ═══════════════════════════════════════════════════════════════════════════════
 CellEdit MapOverlay::writeCell(int row, int col, double newPhys)
 {
-    const int cols = qMax(1, m_map.dimensions.x);
-    const int rows = qMax(1, m_map.dimensions.y);
-
-    uint32_t offset = m_map.address + m_map.mapDataOffset
-                      + uint32_t(m_map.columnMajor ? col * rows + row : row * cols + col) * m_cellSize;
-
     const bool scaled = m_map.hasScaling
                         && m_map.scaling.type != CompuMethod::Type::Identical;
     const CompuMethod &cm = m_map.scaling;
-
-    const auto *src = reinterpret_cast<const uint8_t*>(m_data.constData());
-    const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
-    uint32_t oldRaw = readRomValue(src, m_data.size(), offset, m_cellSize, cellBO);
 
     double rawD = scaled ? cm.toRaw(newPhys) : newPhys;
     uint32_t newRaw;
@@ -1579,12 +1570,26 @@ CellEdit MapOverlay::writeCell(int row, int col, double newPhys)
         newRaw = uint32_t(qBound(0.0, std::round(rawD), maxRaw));
     }
 
+    return writeRawCell(row, col, newRaw);
+}
+
+CellEdit MapOverlay::writeRawCell(int row, int col, uint32_t newRaw)
+{
+    const int cols = qMax(1, m_map.dimensions.x);
+    const int rows = qMax(1, m_map.dimensions.y);
+
+    const uint32_t offset = m_map.address + m_map.mapDataOffset
+                            + uint32_t(m_map.columnMajor ? col * rows + row : row * cols + col) * m_cellSize;
+    const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
+    const auto *src = reinterpret_cast<const uint8_t*>(m_data.constData());
+    const uint32_t oldRaw = readRomValue(src, m_data.size(), offset, m_cellSize, cellBO);
+
     auto *dst = reinterpret_cast<uint8_t*>(m_data.data());
     writeRomValue(dst, m_data.size(), offset, m_cellSize, cellBO, newRaw);
 
-    // In shared-editor mode the project buffer is synced by commitBatch()
-    // via the editor; only patch directly in standalone mode.
-    if (!m_undoEditor) {
+    // A project-backed overlay submits the complete batch through Project.
+    // Standalone overlays retain their local patch signal for legacy callers.
+    if (!m_syncProject) {
         QByteArray patch(m_cellSize, '\0');
         writeRomValue(reinterpret_cast<uint8_t*>(patch.data()), m_cellSize,
                       0, m_cellSize, cellBO, newRaw);
@@ -1597,20 +1602,16 @@ CellEdit MapOverlay::writeCell(int row, int col, double newPhys)
 // ═══════════════════════════════════════════════════════════════════════════════
 // Shared-undo wiring
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::setSharedEditor(WaveformEditor *editor, Project *project)
+void MapOverlay::setProject(Project *project)
 {
-    m_undoEditor  = editor;
     m_syncProject = project;
-    if (m_undoEditor) {
-        // Refresh when the ROM changes elsewhere (hex/waveform edit, or an
-        // undo/redo on the shared stack). Ignore our own commits.
-        connect(m_undoEditor, &WaveformEditor::dataModified,
-                this, [this]{ reloadFromProject(); });
-        connect(m_undoEditor, &WaveformEditor::undoStateChanged,
+    if (m_syncProject) {
+        connect(m_syncProject, &Project::romPatched,
+                this, [this](int, int) { reloadFromProject(); });
+        connect(m_syncProject, &Project::romUndoStateChanged,
                 this, &MapOverlay::updateUndoRedoButtons);
-        // If the owning view/editor is torn down, fall back to standalone.
-        connect(m_undoEditor, &QObject::destroyed, this, [this]{
-            m_undoEditor = nullptr; m_syncProject = nullptr;
+        connect(m_syncProject, &QObject::destroyed, this, [this]{
+            m_syncProject = nullptr;
             updateUndoRedoButtons();
         });
     }
@@ -1621,21 +1622,13 @@ void MapOverlay::commitBatch(const EditBatch &batch)
 {
     if (batch.isEmpty()) return;
 
-    if (m_undoEditor) {
-        // Route through the shared editor as ONE undo step spanning the
-        // edited cells. writeCell() has already mutated m_data, so the
-        // covering span holds the new bytes; the editor snapshots the old
-        // bytes from its own (still-unmodified) buffer.
-        uint32_t lo = UINT32_MAX, hi = 0;
+    if (m_syncProject) {
+        QVector<QPair<int, QByteArray>> patches;
         for (const auto &e : batch) {
-            lo = qMin(lo, e.offset);
-            hi = qMax(hi, e.offset + uint32_t(m_cellSize));
+            if (int(e.offset + uint32_t(m_cellSize)) <= m_data.size())
+                patches.append({int(e.offset), m_data.mid(int(e.offset), m_cellSize)});
         }
-        if (hi <= lo || int(hi) > m_data.size()) return;
-        const QByteArray after = m_data.mid(int(lo), int(hi - lo));
-        m_committingSelf = true;
-        m_undoEditor->applyRawBatch(int(lo), after);
-        m_committingSelf = false;
+        m_syncProject->applyRomPatches(patches, tr("Map edit"));
     } else {
         pushUndo(batch);
     }
@@ -1643,12 +1636,47 @@ void MapOverlay::commitBatch(const EditBatch &batch)
 
 void MapOverlay::reloadFromProject()
 {
-    if (m_committingSelf || !m_syncProject) return;
+    if (!m_syncProject) return;
     if (m_syncProject->currentData.isEmpty()) return;
     m_data = m_syncProject->currentData;
     cancelInlineEditor();
-    buildTable();
+    rebuildTablePreservingGridState();
     updateUndoRedoButtons();
+}
+
+void MapOverlay::rebuildTablePreservingGridState()
+{
+    struct Cell { int row; int column; };
+    QVector<Cell> selected;
+    selected.reserve(m_table->selectedItems().size());
+    for (const auto *item : m_table->selectedItems())
+        selected.append({item->row(), item->column()});
+
+    const QModelIndex current = m_table->currentIndex();
+    const int verticalScroll = m_table->verticalScrollBar()->value();
+    const int horizontalScroll = m_table->horizontalScrollBar()->value();
+
+    buildTable();
+
+    QItemSelectionModel *selectionModel = m_table->selectionModel();
+    if (selectionModel) {
+        QSignalBlocker block(selectionModel);
+        selectionModel->clearSelection();
+        for (const Cell &cell : selected) {
+            const QModelIndex index = m_table->model()->index(cell.row, cell.column);
+            if (index.isValid())
+                selectionModel->select(index, QItemSelectionModel::Select);
+        }
+        if (current.isValid()) {
+            const QModelIndex index = m_table->model()->index(current.row(), current.column());
+            if (index.isValid())
+                selectionModel->setCurrentIndex(index, QItemSelectionModel::NoUpdate);
+        }
+    }
+
+    m_table->verticalScrollBar()->setValue(verticalScroll);
+    m_table->horizontalScrollBar()->setValue(horizontalScroll);
+    updateStatusBar();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1699,7 +1727,7 @@ void MapOverlay::applyBatchOp(int mode)
     }
 
     commitBatch(batch);
-    buildTable();
+    if (!m_syncProject) rebuildTablePreservingGridState();
     emit editBatchDone();
 }
 
@@ -1779,7 +1807,7 @@ void MapOverlay::interpolateSelection()
     if (batch.isEmpty()) return;
 
     commitBatch(batch);
-    buildTable();
+    if (!m_syncProject) rebuildTablePreservingGridState();
     emit editBatchDone();
 }
 
@@ -1885,7 +1913,7 @@ void MapOverlay::commitInlineEditor(int dCol, int dRow)
         batch.append(writeCell(it->row(), it->column(), newPhys));
 
     commitBatch(batch);
-    buildTable();   // clears pending flags too (items recreated)
+    if (!m_syncProject) rebuildTablePreservingGridState();
     emit editBatchDone();
 
     // Navigate after commit
@@ -1965,6 +1993,37 @@ void MapOverlay::incrementSelectedCells(int delta)
         if (it->column() < cols) sel.append({it->row(), it->column()});
     if (sel.isEmpty()) return;
 
+    // WinOLS treats +/- as an engineering-value step.  A formatted map with
+    // two decimals steps by 0.01, for example, rather than by one physical
+    // unit.  Keep the same automatic precision rule as formatValue().
+    auto displayPrecision = [&cm, scaled]() {
+        if (!scaled) return 0;
+        if (!cm.format.isEmpty()) {
+            const int dot = cm.format.indexOf('.');
+            if (dot >= 0) {
+                int end = dot + 1;
+                while (end < cm.format.size() && cm.format[end].isDigit()) ++end;
+                return qBound(0, cm.format.mid(dot + 1, end - dot - 1).toInt(), 100);
+            }
+        }
+        if (cm.type == CompuMethod::Type::Linear && cm.linA != 0.0 && cm.linA != 1.0)
+            return qBound(0, int(std::floor(-std::log10(std::abs(cm.linA)))), 3);
+        return 0;
+    };
+    const double engineeringStep = std::pow(10.0, -displayPrecision());
+    const double requestedDelta = double(delta) * engineeringStep;
+
+    const int bits = m_cellSize * 8;
+    const qint64 minStored = m_map.dataSigned ? -(qint64(1) << (bits - 1)) : 0;
+    const qint64 maxStored = m_map.dataSigned ?  (qint64(1) << (bits - 1)) - 1
+                                               :  (qint64(1) << bits) - 1;
+    auto storageValue = [this](uint32_t bitsValue) -> qint64 {
+        if (!m_map.dataSigned) return qint64(bitsValue);
+        if (m_cellSize == 1) return qint8(bitsValue);
+        if (m_cellSize == 4) return qint32(bitsValue);
+        return qint16(bitsValue);
+    };
+
     EditBatch batch;
     for (const auto &s : sel) {
         uint32_t off = m_map.address + m_map.mapDataOffset
@@ -1974,13 +2033,86 @@ void MapOverlay::incrementSelectedCells(int delta)
         uint32_t rv = readRomValue(raw, m_data.size(), off, m_cellSize, cellBO);
         double sv = m_map.dataSigned ? readRomValueAsDouble(raw, m_data.size(), off, m_cellSize, cellBO, true) : double(rv);
         double phys = scaled ? cm.toPhysical(sv) : sv;
-        double newPhys = phys + delta;
-        batch.append(writeCell(s.row, s.col, newPhys));
+        const double targetPhys = phys + requestedDelta;
+        const double rawTarget = scaled ? cm.toRaw(targetPhys) : targetPhys;
+
+        uint32_t candidateRaw;
+        if (m_map.dataSigned) {
+            candidateRaw = uint32_t(int32_t(qBound(double(minStored), std::round(rawTarget), double(maxStored))));
+        } else {
+            candidateRaw = uint32_t(qBound(0.0, std::round(rawTarget), double(maxStored)));
+        }
+
+        // A converted integer can be different in storage yet still move the
+        // displayed value the wrong way for a negative/non-linear conversion.
+        // Accept only a representable value that advances in the requested
+        // engineering direction.
+        const double epsilon = 1e-12 * qMax(1.0, std::abs(phys));
+        auto advancesRequestedDirection = [&](uint32_t rawBits) {
+            const double candidateStored = double(storageValue(rawBits));
+            const double candidatePhys = scaled ? cm.toPhysical(candidateStored) : candidateStored;
+            if (!std::isfinite(candidatePhys)) return false;
+            return requestedDelta > 0.0 ? candidatePhys > phys + epsilon
+                                        : candidatePhys < phys - epsilon;
+        };
+
+        if (candidateRaw != rv && !advancesRequestedDirection(candidateRaw))
+            candidateRaw = rv;
+
+        // WinOLS does not let scaling quantisation turn a non-zero +/- command
+        // into a silent no-op.  Probe the adjacent representable raw values and
+        // choose the one that moves physical value towards the requested step.
+        if (candidateRaw == rv && requestedDelta != 0.0) {
+            const qint64 currentStored = storageValue(rv);
+            uint32_t bestRaw = rv;
+            double bestDistance = std::numeric_limits<double>::infinity();
+            for (const qint64 neighbour : {currentStored - 1, currentStored + 1}) {
+                if (neighbour < minStored || neighbour > maxStored) continue;
+                const uint32_t neighbourBits = uint32_t(neighbour);
+                if (!advancesRequestedDirection(neighbourBits)) continue;
+                const double neighbourPhys = scaled ? cm.toPhysical(double(neighbour)) : double(neighbour);
+                const double distance = std::abs(targetPhys - neighbourPhys);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestRaw = neighbourBits;
+                }
+            }
+            candidateRaw = bestRaw;
+        }
+
+        if (candidateRaw != rv)
+            batch.append(writeRawCell(s.row, s.col, candidateRaw));
     }
 
+    if (batch.isEmpty()) return;
     commitBatch(batch);
-    buildTable();
+    if (!m_syncProject) rebuildTablePreservingGridState();
     emit editBatchDone();
+}
+
+bool MapOverlay::incrementGridSelectionFromMenu(int delta)
+{
+    // A 3D map command intentionally remains on MainWindow's whole-map path:
+    // its view has no grid selection. Only the visible table can own a
+    // selection-scoped menu increment.
+    if (!isVisible() || m_stack->currentWidget() != m_table)
+        return false;
+
+    const int dataCols = qMax(1, m_map.dimensions.x);
+    bool hasDataCell = false;
+    for (const auto *item : m_table->selectedItems()) {
+        if (item && item->column() < dataCols) {
+            hasDataCell = true;
+            break;
+        }
+    }
+    if (!hasDataCell)
+        return false;
+
+    // Treat a selected read-only / saturated cell as handled too. Falling
+    // through would make MainWindow apply the edit to the full map instead.
+    incrementSelectedCells(delta);
+    return true;
 }
 
 void MapOverlay::deleteSelectedCells()
@@ -1999,7 +2131,7 @@ void MapOverlay::deleteSelectedCells()
         batch.append(writeCell(s.row, s.col, 0.0));
 
     commitBatch(batch);
-    buildTable();
+    if (!m_syncProject) rebuildTablePreservingGridState();
     emit editBatchDone();
 }
 
@@ -2057,7 +2189,7 @@ void MapOverlay::pasteFromClipboard()
 
     if (!batch.isEmpty()) {
         commitBatch(batch);
-        buildTable();
+        if (!m_syncProject) rebuildTablePreservingGridState();
         emit editBatchDone();
     }
 }
@@ -2065,8 +2197,28 @@ void MapOverlay::pasteFromClipboard()
 // ═══════════════════════════════════════════════════════════════════════════════
 // eventFilter — keyboard handling for table and inline editor
 // ═══════════════════════════════════════════════════════════════════════════════
+bool MapOverlay::event(QEvent *event)
+{
+    if (event->type() == QEvent::WindowActivate)
+        emit activated(this);
+    return QDialog::event(event);
+}
+
 bool MapOverlay::eventFilter(QObject *obj, QEvent *ev)
 {
+    // QAction shortcuts are resolved before the corresponding KeyPress.  The
+    // main window also owns +/- shortcuts, but when the map grid has focus
+    // they must belong to this selection, not the waveform/hex dispatcher.
+    if (ev->type() == QEvent::ShortcutOverride
+        && (obj == m_table || obj == m_table->viewport()) && !m_editOpen) {
+        auto *ke = static_cast<QKeyEvent*>(ev);
+        if (ke->key() == Qt::Key_Plus || ke->key() == Qt::Key_Equal
+            || ke->key() == Qt::Key_Minus) {
+            ke->accept();
+            return true;
+        }
+    }
+
     if (ev->type() != QEvent::KeyPress)
         return QDialog::eventFilter(obj, ev);
 
@@ -2242,10 +2394,9 @@ bool MapOverlay::eventFilter(QObject *obj, QEvent *ev)
 // ═══════════════════════════════════════════════════════════════════════════════
 void MapOverlay::undoEdit()
 {
-    if (m_undoEditor) {
-        // Shared stack: the editor's dataModified drives reloadFromProject().
+    if (m_syncProject) {
         cancelInlineEditor();
-        m_undoEditor->undo();
+        m_syncProject->undoRomEdit();
         return;
     }
     if (m_undoStack.isEmpty()) return;
@@ -2268,9 +2419,9 @@ void MapOverlay::undoEdit()
 
 void MapOverlay::redoEdit()
 {
-    if (m_undoEditor) {
+    if (m_syncProject) {
         cancelInlineEditor();
-        m_undoEditor->redo();
+        m_syncProject->redoRomEdit();
         return;
     }
     if (m_redoStack.isEmpty()) return;
@@ -2301,14 +2452,12 @@ void MapOverlay::pushUndo(const EditBatch &batch)
 
 void MapOverlay::updateUndoRedoButtons()
 {
-    if (m_undoEditor) {
-        // Shared stack — the step count is owned by the editor, so just
-        // reflect availability (undo/redo also cover edits made elsewhere).
-        m_btnUndo->setEnabled(m_undoEditor->canUndo());
-        m_btnRedo->setEnabled(m_undoEditor->canRedo());
-        m_btnUndo->setToolTip(m_undoEditor->canUndo()
+    if (m_syncProject) {
+        m_btnUndo->setEnabled(m_syncProject->canUndoRomEdit());
+        m_btnRedo->setEnabled(m_syncProject->canRedoRomEdit());
+        m_btnUndo->setToolTip(m_syncProject->canUndoRomEdit()
             ? tr("Undo  Ctrl+Z") : tr("Nothing to undo"));
-        m_btnRedo->setToolTip(m_undoEditor->canRedo()
+        m_btnRedo->setToolTip(m_syncProject->canRedoRomEdit()
             ? tr("Redo  Ctrl+Y") : tr("Nothing to redo"));
         return;
     }
