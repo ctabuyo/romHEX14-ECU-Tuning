@@ -382,7 +382,7 @@ void AIFunctionsDlg::onFunctionClicked(int index)
     if (confirm.snapshotChecked())
         m_project->snapshotVersion(tr("Before AI function: %1").arg(fn.name));
 
-    QByteArray rollback = m_project->currentData;
+    QByteArray backup = m_project->currentData;
 
     QProgressDialog progress(tr("Applying changes..."), tr("Cancel"),
                              0, pending.size(), this);
@@ -398,15 +398,28 @@ void AIFunctionsDlg::onFunctionClicked(int index)
 
     if (count < 0) {
         // Canceled mid-apply — roll back in memory
-        m_project->currentData = rollback;
+        m_project->currentData = backup;
         QMessageBox::information(this, tr("Canceled"),
             tr("Apply was canceled and changes have been rolled back."));
         return;
     }
 
     if (count > 0) {
-        m_project->modified = true;
-        emit m_project->dataChanged();
+        QByteArray mutated = m_project->currentData;
+        m_project->currentData = backup;
+
+        QVector<QPair<int, QByteArray>> patches;
+        const int len = qMin(mutated.size(), m_project->currentData.size());
+        for (int i = 0; i < len; ++i) {
+            if (mutated[i] != m_project->currentData[i]) {
+                int start = i;
+                while (i < len && mutated[i] != m_project->currentData[i]) ++i;
+                patches.append({start, mutated.mid(start, i - start)});
+            }
+        }
+        if (!patches.isEmpty()) {
+            m_project->applyRomPatches(patches, tr("AI function: %1").arg(fn.name));
+        }
         emit projectModified();
 
         QMessageBox::information(this,
