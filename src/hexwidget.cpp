@@ -5,6 +5,7 @@
  */
 
 #include "hexwidget.h"
+#include "project.h"
 #include "appconfig.h"
 #include "annotations/AnnotationStore.h"
 #include <QPainter>
@@ -754,6 +755,10 @@ void HexWidget::keyPressEvent(QKeyEvent *event)
 
     // ── Ctrl+Z: undo ────────────────────────────────────────────────────
     if (event->matches(QKeySequence::Undo)) {
+        if (m_project) {
+            m_project->undoRomEdit();
+            return;
+        }
         if (m_undoIndex >= 0 && m_undoIndex < m_undoStack.size()) {
             const HexUndoEntry &entry = m_undoStack[m_undoIndex];
             m_data.replace(entry.offset, entry.before.size(), entry.before);
@@ -767,6 +772,10 @@ void HexWidget::keyPressEvent(QKeyEvent *event)
 
     // ── Ctrl+Y / Ctrl+Shift+Z: redo ─────────────────────────────────────
     if (event->matches(QKeySequence::Redo)) {
+        if (m_project) {
+            m_project->redoRomEdit();
+            return;
+        }
         if (m_undoIndex + 1 < m_undoStack.size()) {
             m_undoIndex++;
             const HexUndoEntry &entry = m_undoStack[m_undoIndex];

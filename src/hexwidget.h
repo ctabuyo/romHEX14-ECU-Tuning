@@ -14,6 +14,7 @@
 #include "romdata.h"
 
 class HexWidget;
+class Project;
 
 // ── Vertical overview minimap (sits next to the scrollbar) ──────────────────
 class HexOverviewBar : public QWidget {
@@ -54,6 +55,7 @@ public:
     enum class SidebarMode { ASCII, Bars };
 
     explicit HexWidget(QWidget *parent = nullptr);
+    void setProject(Project *project) { m_project = project; }
 
     void loadData(const QByteArray &data, uint32_t baseAddress = 0);
     /// Initial project attach: pass current bytes plus the unedited
@@ -158,6 +160,7 @@ private:
     QByteArray m_data;
     QByteArray m_originalData;
     QSet<uint32_t> m_modifications;
+    Project       *m_project = nullptr;  // non-owning shared ROM document
     QByteArray m_comparisonData;
     QVector<MapRegion> m_mapRegions;
 

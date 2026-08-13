@@ -173,6 +173,14 @@ ProjectView::ProjectView(QWidget *parent)
             this,        &ProjectView::onOffsetSelected);
     connect(m_hexWidget, &HexWidget::dataModified,
             this,        &ProjectView::onDataModified);
+    connect(m_hexWidget, &HexWidget::bytesModified, this,
+            [this](int start, int length) {
+        if (!m_project || start < 0 || length <= 0) return;
+        const QByteArray hexData = m_hexWidget->getData();
+        if (start + length > hexData.size()) return;
+        m_project->applyRomPatches(
+            {{start, hexData.mid(start, length)}}, tr("Hex edit"));
+    });
 
     connect(m_waveWidget, &WaveformWidget::mapClicked,
             this, [this](const MapInfo &map) {
@@ -197,22 +205,15 @@ ProjectView::ProjectView(QWidget *parent)
     connect(m_hexWidget, &HexWidget::selectionToMapRequested,
             this, runCreateMap);
 
-    // ── Waveform editing → Project sync ────────────────────────────
+    // ── Waveform editing → shared Project ROM transaction ──────────
     connect(m_waveWidget, &WaveformWidget::dataModified, this, [this](int start, int end) {
         if (!m_project) return;
         const QByteArray &waveData = m_waveWidget->romData();
         if (waveData.size() != m_project->currentData.size()) return;
         const int len = qMin(end, waveData.size()) - start;
         if (len <= 0 || start < 0) return;
-        // Skip if bytes already match (avoid redundant dataChanged / feedback loop)
-        if (std::memcmp(m_project->currentData.constData() + start,
-                        waveData.constData() + start, len) == 0)
-            return;
-        std::memcpy(m_project->currentData.data() + start,
-                    waveData.constData() + start, len);
-        m_hexWidget->refreshData(m_project->currentData);
-        m_project->modified = true;
-        emit m_project->dataChanged();
+        m_project->applyRomPatches(
+            {{start, waveData.mid(start, len)}}, tr("Waveform edit"));
     });
 
     connect(m_addressInput, &QLineEdit::returnPressed, this, [this]() {
@@ -262,6 +263,8 @@ void ProjectView::loadProject(Project *project)
     }
 
     m_titleLabel->setText(project->fullTitle());
+    m_hexWidget->setProject(project);
+    m_waveWidget->setProject(project);
     m_hexWidget->loadData(project->currentData, project->originalData,
                           project->baseAddress);
     m_hexWidget->setAnnotationStore(project->annotations());
@@ -314,6 +317,20 @@ void ProjectView::loadProject(Project *project)
                                                   : m_project->autoDetectedMaps);
             updateEmptyState();
         }
+    });
+    connect(project, &Project::romPatched, this,
+            [this](int start, int end) {
+        if (!m_project) return;
+        m_hexWidget->refreshData(m_project->currentData);
+        m_waveWidget->refreshRomData(m_project->currentData);
+        const uint32_t mapStart = m_selectedMap.address + m_selectedMap.mapDataOffset;
+        const uint64_t mapEnd = uint64_t(mapStart)
+            + uint64_t(qMax(1, m_selectedMap.dimensions.x))
+            * uint64_t(qMax(1, m_selectedMap.dimensions.y))
+            * uint64_t(qMax(1, m_selectedMap.dataSize));
+        if (m_map3d && m_selectedMap.length > 0
+            && start < mapEnd && end > int(mapStart))
+            m_map3d->showMap(m_project->currentData, m_selectedMap);
     });
     connect(project, &Project::versionsChanged,
             this, &ProjectView::rebuildVersionCombo);

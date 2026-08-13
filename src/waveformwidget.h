@@ -22,8 +22,12 @@ class WaveformWidget : public QWidget {
 
 public:
     explicit WaveformWidget(QWidget *parent = nullptr);
+    void setProject(class Project *project) { m_project = project; }
 
     void showROM(const QByteArray &romData, const QByteArray &originalData);
+    /// Refresh the rendering cache from the project-owned ROM without
+    /// re-binding the editor (which would discard its transient state).
+    void refreshRomData(const QByteArray &romData);
     void goToAddress(uint32_t offset);
 
     /// Access to the underlying free-form editor.  Used by MainWindow's
@@ -163,6 +167,7 @@ private:
 
     // WaveformEditor (free-form editing engine)
     WaveformEditor *m_editor = nullptr;
+    class Project  *m_project = nullptr;  // non-owning shared ROM document
 
     // Free-form drawing state
     bool   m_isDrawing  = false;

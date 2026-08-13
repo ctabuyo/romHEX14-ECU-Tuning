@@ -5,6 +5,7 @@
  */
 
 #include "waveformwidget.h"
+#include "project.h"
 #include "appconfig.h"
 #include "logger.h"
 #include "annotations/AnnotationStore.h"
@@ -231,6 +232,16 @@ void WaveformWidget::showROM(const QByteArray &romData, const QByteArray &origin
         m_editor->setByteOrder(m_byteOrder);
     }
 
+    update();
+}
+
+void WaveformWidget::refreshRomData(const QByteArray &romData)
+{
+    if (m_data == romData) return;
+    m_data = romData;
+    m_overviewCache.clear();
+    invalidatePixCache();
+    buildOverviewCache();
     update();
 }
 
@@ -550,15 +561,19 @@ void WaveformWidget::showContextMenu(const QPoint &pos)
 
     // ── Undo / Redo ──
     auto *actUndo = menu.addAction(tr("Undo") + "\tCtrl+Z");
-    actUndo->setEnabled(m_editor && m_editor->canUndo());
+    actUndo->setEnabled(m_project ? m_project->canUndoRomEdit()
+                                  : (m_editor && m_editor->canUndo()));
     connect(actUndo, &QAction::triggered, this, [this]() {
-        if (m_editor) m_editor->undo();
+        if (m_project) m_project->undoRomEdit();
+        else if (m_editor) m_editor->undo();
     });
 
     auto *actRedo = menu.addAction(tr("Redo") + "\tCtrl+Y");
-    actRedo->setEnabled(m_editor && m_editor->canRedo());
+    actRedo->setEnabled(m_project ? m_project->canRedoRomEdit()
+                                  : (m_editor && m_editor->canRedo()));
     connect(actRedo, &QAction::triggered, this, [this]() {
-        if (m_editor) m_editor->redo();
+        if (m_project) m_project->redoRomEdit();
+        else if (m_editor) m_editor->redo();
     });
 
     menu.exec(mapToGlobal(pos));
@@ -2207,18 +2222,18 @@ void WaveformWidget::keyPressEvent(QKeyEvent *e)
 
     // ── Ctrl+Z / Ctrl+Shift+Z undo/redo ──────────────────────────────
     if (e->key() == Qt::Key_Z && ctrl) {
-        if (m_editor) {
+        if (m_project || m_editor) {
             if (shift)
-                m_editor->redo();
+                m_project ? m_project->redoRomEdit() : m_editor->redo();
             else
-                m_editor->undo();
+                m_project ? m_project->undoRomEdit() : m_editor->undo();
             e->accept();
             return;
         }
     }
     if (e->key() == Qt::Key_Y && ctrl) {
-        if (m_editor) {
-            m_editor->redo();
+        if (m_project || m_editor) {
+            m_project ? m_project->redoRomEdit() : m_editor->redo();
             e->accept();
             return;
         }
