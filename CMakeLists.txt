@@ -149,6 +149,13 @@ set(SOURCES
     src/dtcdialog.cpp
     src/diffpanel.cpp
     src/hexcomparedlg.cpp
+    src/romcompare.cpp
+    src/romcomparedlg.cpp
+    src/bytediffwidget.cpp
+    src/hexdiffwaveform.cpp
+    src/hexdifflistwidget.cpp
+    src/checksummanager.cpp
+    src/checksumelectdlg.cpp
     src/alignmentmap.cpp
     src/olsparser.cpp
     src/kpimportdlg.cpp
@@ -269,6 +276,13 @@ set(HEADERS
     src/mappackdlg.h
     src/logger.h
     src/mappropertiesdlg.h
+    src/romcompare.h
+    src/romcomparedlg.h
+    src/bytediffwidget.h
+    src/hexdiffwaveform.h
+    src/hexdifflistwidget.h
+    src/checksummanager.h
+    src/checksumelectdlg.h
     src/projectpropertiesdlg.h
     src/aiprovider.h
     src/aitoolexecutor.h
@@ -369,7 +383,6 @@ else()
         src/stubs/updatechecker.h
         src/stubs/accountwidget.h
         src/stubs/logindialog.h
-        src/stubs/checksummanager.h
     )
 endif()
 
@@ -543,4 +556,24 @@ if(ZLIB_FOUND)
     target_link_libraries(test_mapdetect_corpus PRIVATE ZLIB::ZLIB)
 else()
     target_link_libraries(test_mapdetect_corpus PRIVATE z)
+endif()
+
+# ── Deploy checksumhelper.exe and ChecksumDLL next to the executable ──────────
+# The 32-bit checksumhelper.exe bridges 64-bit rx14 to 32-bit WinOLS checksum DLLs.
+# Both must sit alongside rx14.exe for the DLL-bridge checksums to work (Windows only).
+if(WIN32)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/checksumhelper.exe")
+        add_custom_command(TARGET rx14 POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/checksumhelper.exe"
+                "$<TARGET_FILE_DIR:rx14>/checksumhelper.exe"
+            COMMENT "Deploying checksumhelper.exe")
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ChecksumDLL")
+        add_custom_command(TARGET rx14 POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_CURRENT_SOURCE_DIR}/ChecksumDLL"
+                "$<TARGET_FILE_DIR:rx14>/ChecksumDLL"
+            COMMENT "Deploying ChecksumDLL folder (152 ECU DLLs)")
+    endif()
 endif()
