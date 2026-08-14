@@ -149,6 +149,13 @@ set(SOURCES
     src/dtcdialog.cpp
     src/diffpanel.cpp
     src/hexcomparedlg.cpp
+    src/romcompare.cpp
+    src/romcomparedlg.cpp
+    src/bytediffwidget.cpp
+    src/hexdiffwaveform.cpp
+    src/hexdifflistwidget.cpp
+    src/checksummanager.cpp
+    src/checksumelectdlg.cpp
     src/alignmentmap.cpp
     src/olsparser.cpp
     src/kpimportdlg.cpp
@@ -269,6 +276,13 @@ set(HEADERS
     src/mappackdlg.h
     src/logger.h
     src/mappropertiesdlg.h
+    src/romcompare.h
+    src/romcomparedlg.h
+    src/bytediffwidget.h
+    src/hexdiffwaveform.h
+    src/hexdifflistwidget.h
+    src/checksummanager.h
+    src/checksumelectdlg.h
     src/projectpropertiesdlg.h
     src/aiprovider.h
     src/aitoolexecutor.h
@@ -369,7 +383,6 @@ else()
         src/stubs/updatechecker.h
         src/stubs/accountwidget.h
         src/stubs/logindialog.h
-        src/stubs/checksummanager.h
     )
 endif()
 
