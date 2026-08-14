@@ -3019,10 +3019,8 @@ void MainWindow::retranslateUi()
     m_menuProject->addSeparator();
     m_menuProject->addAction(m_actLinkRom);
     m_menuProject->addAction(m_actImportLinkedVer);
-#ifdef RX14_PRO_BUILD
     m_menuProject->addAction(m_actCompareRoms);
     m_menuProject->addAction(m_actCompareHex);
-#endif
     m_menuProject->addSeparator();
     m_menuProject->addAction(m_actImportMapPack);
     m_menuProject->addAction(m_actImportCsvList);
@@ -3031,9 +3029,9 @@ void MainWindow::retranslateUi()
     m_menuProject->addAction(m_actDtcManager);
 #ifdef RX14_PRO_BUILD
     m_menuProject->addAction(m_actAIFunctions);
+#endif
     m_menuProject->addAction(m_actVerifyChecksum);
     m_menuProject->addAction(m_actCorrectChecksum);
-#endif
     m_menuProject->addSeparator();
     // Sprint D — map list export
     m_menuProject->addAction(tr("Export map list as &CSV…"),
