@@ -57,3 +57,8 @@ windbout2.md
 tescik*.jpg
 romhex14-community-*.zip
 wols_inspect/
+
+# Checksum DLL bridge — shipped for Windows checksum support (community)
+!/checksumhelper.exe
+!/ChecksumDLL/
+!/ChecksumDLL/*.dll

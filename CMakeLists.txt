@@ -557,3 +557,23 @@ if(ZLIB_FOUND)
 else()
     target_link_libraries(test_mapdetect_corpus PRIVATE z)
 endif()
+
+# ── Deploy checksumhelper.exe and ChecksumDLL next to the executable ──────────
+# The 32-bit checksumhelper.exe bridges 64-bit rx14 to 32-bit WinOLS checksum DLLs.
+# Both must sit alongside rx14.exe for the DLL-bridge checksums to work (Windows only).
+if(WIN32)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/checksumhelper.exe")
+        add_custom_command(TARGET rx14 POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_CURRENT_SOURCE_DIR}/checksumhelper.exe"
+                "$<TARGET_FILE_DIR:rx14>/checksumhelper.exe"
+            COMMENT "Deploying checksumhelper.exe")
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/ChecksumDLL")
+        add_custom_command(TARGET rx14 POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_CURRENT_SOURCE_DIR}/ChecksumDLL"
+                "$<TARGET_FILE_DIR:rx14>/ChecksumDLL"
+            COMMENT "Deploying ChecksumDLL folder (152 ECU DLLs)")
+    endif()
+endif()

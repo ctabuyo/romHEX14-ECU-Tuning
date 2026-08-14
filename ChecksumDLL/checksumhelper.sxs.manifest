@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity type="win32" name="checksumhelper.sxs" version="1.0.0.0" processorArchitecture="x86"/>
+  <file name="msvcr80.dll"/>
+  <file name="msvcp80.dll"/>
+  <file name="mfc80.dll"/>
+  <file name="gmp.dll"/>
+</assembly>
