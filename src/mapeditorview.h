@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include <QWidget>
 #include <QComboBox>
 #include <QLineEdit>
 #include <QToolButton>
@@ -25,17 +25,21 @@
 class Project;
 
 struct CellEdit {
-    uint32_t offset;
-    uint32_t oldRaw;
-    uint32_t newRaw;
+    uint32_t offset = 0;
+    QByteArray oldBytes;
+    QByteArray newBytes;
 };
 using EditBatch = QVector<CellEdit>;
 
-class MapOverlay : public QDialog {
+// The editor content intentionally has no window policy of its own.  A
+// QDockWidget (or another host) decides whether it is docked, tabified,
+// split, or floating; this avoids the modal/focus behaviour of the former
+// QDialog-based map overlay.
+class MapEditorView : public QWidget {
     Q_OBJECT
 
 public:
-    explicit MapOverlay(QWidget *parent = nullptr);
+    explicit MapEditorView(QWidget *parent = nullptr);
 
     void showMap(const QByteArray &romData,
                  const MapInfo   &map,
@@ -46,6 +50,8 @@ public:
     void retranslateUi();
     bool displaysMap(const MapInfo &map) const;
     Project *targetProject() const { return m_syncProject; }
+    // Called by the ADS workspace host after selecting this editor tab.
+    void focusEditor();
 
     // Entry point for the application's Edit menu. It uses the grid selection
     // and the same WinOLS-compatible quantisation path as a +/- key press.
@@ -61,7 +67,11 @@ public:
     void setProject(Project *project);
 
 signals:
-    void activated(MapOverlay *overlay);
+    void activated(MapEditorView *editor);
+    // The ADS host owns the lifetime; the editor only requests closure.
+    void closeRequested();
+    void floatToggleRequested();
+    void redockRequested();
     void romPatchReady(uint32_t offset, QByteArray bytes);
     void editBatchDone();
     void addressCorrected(const QString &mapName, uint32_t newAddress);
@@ -85,10 +95,11 @@ private slots:
 private:
     // Grid display mode — plain values, or numeric difference vs the
     // original ROM (absolute delta or percentage).
-    enum class DisplayMode { Values = 0, DeltaAbs = 1, DeltaPct = 2 };
+    enum class DisplayMode { Values = 0, RawHex = 1, RawDec = 2,
+                             DeltaAbs = 3, DeltaPct = 4 };
 
-    void autoResize();
     CellEdit writeCell(int row, int col, double newPhys);
+    CellEdit writeCellBytes(int row, int col, const QByteArray &newBytes);
     // Write an already quantized storage value.  This is used by keyboard
     // stepping after it has selected the correct neighbouring raw count.
     CellEdit writeRawCell(int row, int col, uint32_t newRaw);
@@ -125,6 +136,9 @@ private:
     void deleteSelectedCells();
     void copySelectionToClipboard();
     void pasteFromClipboard();
+    int displayColumns() const;
+    bool isVisualCell(int row, int col) const;
+    uint32_t visualCellOffset(int row, int col) const;
 
     // ── Data ────────────────────────────────────────────────────────────────
     QByteArray m_data;
@@ -138,6 +152,7 @@ private:
     bool       m_heatEnabled     = true;
     int        m_fontSize        = 9;
     DisplayMode m_displayMode    = DisplayMode::Values;
+    int        m_displayColumns  = 0; // 0 = native X dimension; never serialized into MapInfo
 
     QVector<EditBatch> m_undoStack;
     QVector<EditBatch> m_redoStack;
@@ -164,6 +179,7 @@ private:
     QPushButton *m_btnTranslate   = nullptr;
     QPushButton *m_btnAIExplain  = nullptr;
     QSpinBox    *m_fontSpin       = nullptr;
+    QSpinBox    *m_displayColumnsSpin = nullptr;
 
     // Operation bar
     QWidget     *m_opBarWidget = nullptr; // entire operation bar row

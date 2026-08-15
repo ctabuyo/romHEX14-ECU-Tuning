@@ -42,7 +42,7 @@ public:
     // Called by MainWindow when a map is selected in the left panel
     void showMap(const MapInfo &map);
     void goToAddress(uint32_t addr);
-    void switchToView(int index); // 0=Text, 1=2D, 2=3D
+    void switchToView(int index); // 0=Hex, 1=2D, 2=3D
     void goToMap(const MapInfo &map);
     // Forward display parameters to the hex widget
     void setDisplayParams(int cellSize, ByteOrder bo, int displayFmt, bool isSigned);
@@ -69,7 +69,7 @@ signals:
     void cloneVersionRequested(Project *project, int versionIndex);
 
 public slots:
-    void switchView(int index); // 0=Text/Hex  1=2D/Waveform  2=3D
+    void switchView(int index); // 0=Hex  1=2D  2=3D
 
     /// Sprint B: forward "Diff vs Original" overlay flag to all three
     /// child widgets (hex / waveform / 3D map).  Each widget renders the

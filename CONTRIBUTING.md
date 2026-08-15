@@ -122,14 +122,28 @@ When reporting a bug, please include:
 
 ## Architecture Overview
 
-The application follows a standard Qt6 MDI (Multiple Document Interface) architecture:
+romHEX uses a Qt6 document workspace powered by [Qt Advanced Docking System
+(ADS)](https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System), not
+`QMdiArea`. ADS 5.0.0 is fetched by CMake at configure time and pinned to its
+release commit in `CMakeLists.txt`.
 
-- `MainWindow` — Top-level window, menu bar, toolbar, project tree
-- `Project` — Represents one open ROM file with maps, metadata, and editing state
-- `ProjectView` — MDI sub-window wrapping hex/waveform/3D views
-- `MapOverlay` — Inline 2D map editor with axis display
+- `MainWindow` — Top-level window, menu bar, toolbar, project tree, and the
+  shared `ads::CDockManager` workspace host.
+- `Project` — The project document: ROM bytes, maps, metadata, and transactional
+  edit history.
+- `ProjectView` — One Hex / waveform / 3D document dock per project.
+- `MapEditorView` — A pure map-editor widget hosted in one document dock per
+  project/map pair. It is not a dialog and must not own document lifecycle.
+- `MapValueCodec` — The single conversion boundary for map-cell raw bytes,
+  scaled physical values, numeric bounds, and floating-point safety.
 - `src/io/ols/` — OLS/KP file format parser (import only in community edition)
 - `translations/` — Qt Linguist `.ts` files for all 4 languages
+
+When adding a document-style view, keep its content widget independent of its
+ADS frame. `MainWindow` owns dock creation, activation, closing, and project
+lifecycle; the content widget owns only its UI and emits requests for project
+operations. Route ROM mutations through `Project::applyRomPatches()` so every
+edit participates in undo/redo and live view updates.
 
 ## License
 

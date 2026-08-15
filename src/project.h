@@ -220,7 +220,7 @@ public:
     // and currentData are empty.  Children point back via parentProject.
     //
     // Sub-projects are SIBLINGS of the parent inside MainWindow::m_projects
-    // (so each gets its own MDI subwindow & ProjectView), but the project
+    // (so each gets its own Hex document dock & ProjectView), but the project
     // tree renders them nested under the parent. This re-uses the existing
     // openProject() / autosave / linked-ROM machinery instead of inventing
     // a new "child window" concept.

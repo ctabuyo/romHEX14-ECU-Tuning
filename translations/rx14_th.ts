@@ -7626,7 +7626,7 @@ Size: %2 KB%3</source>
     </message>
 </context>
 <context>
-    <name>MapOverlay</name>
+    <name>MapEditorView</name>
     <message>
         <location filename="../src/mapoverlay.cpp" line="284"/>
         <source>Map</source>

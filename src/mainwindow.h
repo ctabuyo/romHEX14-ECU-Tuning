@@ -7,8 +7,7 @@
 #pragma once
 
 #include <QMainWindow>
-#include <QMdiArea>
-#include <QMdiSubWindow>
+#include <QDockWidget>
 #include <QTreeWidget>
 #include <QLineEdit>
 #include <QLabel>
@@ -33,7 +32,7 @@
 #include "io/ols/MapAutoDetect.h"   // ols::MapCandidate
 #include "romcomparedlg.h"
 #include "projectview.h"
-#include "mapoverlay.h"
+#include "mapeditorview.h"
 #include "a2lparser.h"
 #include "a2limportdialog.h"
 #include "project.h"
@@ -50,6 +49,10 @@ class DiffPanel;
 class SavepointManager;
 class SavepointsPanel;
 class QDockWidget;
+namespace ads {
+class CDockManager;
+class CDockWidget;
+}
 class ModulePanel;
 struct PaletteEntry;
 #ifdef RX14_DEBUG_RPC
@@ -79,12 +82,23 @@ public:
     void     luaRememberLastCreatedMap(Project *project, int mapIndex);
     struct MapInfo *luaLastCreatedMap(Project *project) const;
     void     luaClearLastCreatedMap(Project *project = nullptr);
+    // Session-local indices for the legacy Lua window API. They refer to Hex
+    // docks only, preserving its historical "one window per project" model.
+    int      luaWindowCount() const;
+    int      luaActiveWindowIndex() const;
+    bool     luaActivateWindow(int zeroBasedIndex);
 
 #ifdef RX14_DEBUG_RPC
     // ── Debug RPC entry points ────────────────────────────────────────────
     // Called from DebugRpc on the Qt main thread.  All return QJsonObject /
     // bool so the RPC layer can forward results without re-implementing
-    // policy.  Read-only methods are const.
+    // window management in the server.
+    QJsonObject rpcGetWorkspaceInfo() const;
+    bool rpcActivateWindow(const QString &windowId);
+    bool rpcCloseWindow(const QString &windowId);
+    QJsonArray rpcGetOpenProjects() const;
+    QJsonObject rpcGetProjectInfo(const QString &projPath) const;
+    bool rpcCloseProject(const QString &projPath);
     QJsonObject debugStateSnapshot() const;
     bool        debugTakeScreenshot(const QString &target,
                                     QString *outPath,
@@ -167,6 +181,9 @@ private slots:
     void actGoHome();       // close all projects (save prompt) → welcome page
     void actTileWindows();
     void actCascadeWindows();
+    void actSaveWorkspacePerspective();
+    void actRestoreWorkspaceLayout();
+    void actLoadWorkspacePerspective();
     void actCompareProjects();
 
     // ROM linking / compare
@@ -187,7 +204,7 @@ private slots:
     void actShowCommandPalette();
 
     // Internal
-    void onSubWindowActivated(QMdiSubWindow *sw);
+    void onWorkspaceDockActivated();
     void onMapActivated(const MapInfo &map, Project *project);
     void onStatusMessage(const QString &msg);
     void onCloneVersionRequested(Project *parent, int versionIndex);
@@ -227,7 +244,7 @@ private:
     void loadLanguage(const QString &lang);
     void retranslateUi();
 
-    QMdiSubWindow *openProject(Project *project);
+    ads::CDockWidget *openProject(Project *project);
     void loadROMIntoProject(Project *project, const QString &romPath);
     void loadA2LIntoProject(Project *project, const QString &a2lPath);
     void runMapAutoDetectOnImport(Project *project);
@@ -236,9 +253,62 @@ private:
     void updateAutoSaveStatus();
     void refreshProjectTree();     // thin wrapper — arms debounce timer
     void refreshProjectTreeNow();  // actual rebuild
+    void updateMapTreeEditorAccents();
+
+    struct MapEditorKey {
+        // A display/A2L identifier is not guaranteed unique: a calibration
+        // may legitimately contain several maps with the same name or id.
+        // Cell data start is the stable per-map discriminator inside a project.
+        QString mapId;
+        uint32_t cellDataStart = 0;
+
+        bool operator==(const MapEditorKey &other) const {
+            return mapId == other.mapId && cellDataStart == other.cellDataStart;
+        }
+        friend size_t qHash(const MapEditorKey &key, size_t seed = 0) noexcept {
+            return ::qHash(key.mapId, seed) ^ ::qHash(key.cellDataStart, seed);
+        }
+    };
+    enum class CloseIntent { UnreferencedViewClose, ExplicitProjectClose };
+    struct WorkspaceViewRecord {
+        enum class Kind { HexView, MapEditor };
+        Project *project = nullptr;
+        QPointer<ads::CDockWidget> dock;
+        QPointer<QWidget> content;
+        Kind kind = Kind::HexView;
+        MapEditorKey mapKey;
+    };
+
+    static MapEditorKey mapEditorKey(const MapInfo &map);
+    ads::CDockWidget *projectDock(Project *project) const;
+    QList<ProjectView *> projectViews() const;
+    ProjectView *projectViewAt(int index) const;
+    ProjectView *activeProjectView() const;
+    QList<MapEditorView *> mapEditorViews(Project *project = nullptr) const;
+    MapEditorView *activeMapEditor() const;
+    ads::CDockWidget *findMapEditorDock(Project *project, const MapInfo &map) const;
+    void updateMapEditorKey(Project *project, MapEditorView *editor,
+                            const MapInfo &map);
+    void registerWorkspaceDock(Project *project, ads::CDockWidget *dock,
+                               QWidget *content, WorkspaceViewRecord::Kind kind,
+                               const MapEditorKey &mapKey);
+    void unregisterWorkspaceDock(ads::CDockWidget *dock);
+    // Wayland compositor title-bar drags cannot be observed by ADS. This is
+    // the deterministic counterpart to drag-to-dock for an already-floating
+    // document and keeps the Float Active Window command reversible.
+    void redockWorkspaceDock(ads::CDockWidget *dock);
+    // ADS emits closeRequested before it destroys a DeleteOnClose dock.
+    // Keep the document-save policy here rather than in a QWidget close event:
+    // CDockWidget::closeDockWidget() removes the dock directly and does not
+    // send QEvent::Close to the dock widget.
+    bool closeWorkspaceDock(ads::CDockWidget *dock);
+    void requestProjectFinalization(Project *project, CloseIntent intent);
 
     ProjectView *activeView()    const;
     Project     *activeProject() const;
+    bool hasOpenMapEditors(Project *project) const;
+    bool hasVisibleProjectView(Project *project) const;
+    void finalizeProjectWhenUnreferenced(Project *project);
     void broadcastAvailableProjects();   // push m_projects to all ProjectViews
     void finalizeClosedProject(Project *p); // deferred cleanup after sub close
     void spawnLinkedRomSubwindowsFor(Project *parent);  // re-open child windows after load
@@ -255,10 +325,18 @@ private:
                          int prevApplied, int totalMaps);
     void applyTreeFilter();    // push current format state → overlay
     void applyUiTheme();       // rebuild stylesheets from AppConfig UI colors
-    void retileWindows();      // resize all visible sub-windows to fill MDI viewport
-    void showMapOverlay(const QByteArray &romData, const MapInfo &map,
-                        ByteOrder byteOrder, Project *project = nullptr);
+    void retileWindows();      // reset the dynamic document arrangement
+    void openMapEditor(const QByteArray &romData, const MapInfo &map,
+                       ByteOrder byteOrder, Project *project = nullptr);
     void openMapViewer(Project *project, const MapInfo &map);
+    // Returns true after bringing the sole editor for this project/map to
+    // front.  Map editors are widgets hosted by ADS, never dialogs.
+    bool activateMapEditor(Project *project, const MapInfo &map);
+    ads::CDockWidget *mapEditorDock(const MapEditorView *editor) const;
+    void closeMapEditor(MapEditorView *editor);
+    void closeMapEditors(Project *project, const MapInfo *map = nullptr);
+    void saveWorkspacePerspective(const QString &name);
+    void restoreWorkspacePerspective(const QString &name);
 
     // ── Translators ───────────────────────────────────────────────────
     QTranslator m_qtTr;
@@ -276,7 +354,7 @@ private:
     QLabel      *m_recentMapsTitle = nullptr;
     QLineEdit   *m_filterEdit           = nullptr;
     QPushButton *m_filterChangedBtn     = nullptr;   // "changed only" toggle
-    QMdiArea    *m_mdi                  = nullptr;
+    ads::CDockManager *m_dockManager     = nullptr;
     QStackedWidget *m_centralStack  = nullptr;
     QWidget        *m_welcomePage   = nullptr;
     QToolBar       *m_formatToolbar  = nullptr;
@@ -284,6 +362,8 @@ private:
     QAction        *m_actAutoScanOnLoad = nullptr;
     QHash<Project*, QFutureWatcher<QVector<ols::MapCandidate>>*>
         m_mapScanWatchers;
+    QSet<Project *> m_finalizationScheduled;
+    QSet<Project *> m_forceProjectClose;
     QWidget        *m_scanStatusWidget = nullptr;
     QLabel         *m_scanStatusLabel  = nullptr;
     QProgressBar   *m_scanStatusBar    = nullptr;
@@ -333,12 +413,10 @@ private:
     QStringList datalogRecent() const;
     void datalogPushRecent(const QString &path);
 
-    // ── Open map editors ──────────────────────────────────────────────
-    // A map can be opened in more than one independent editor window.
-    QList<QPointer<MapOverlay>> m_overlays;
-    // Main-window actions need this to recover the selected grid cells of the
-    // most recently active map tool window.
-    QPointer<MapOverlay> m_activeOverlay;
+    // Map-editor dock ownership lives exclusively in m_workspaceViews.
+    QHash<Project *, QPointer<ads::CDockWidget>> m_projectDocks;
+    QList<WorkspaceViewRecord> m_workspaceViews;
+    QPointer<ads::CDockWidget> m_activeWorkspaceDock;
 
     // ── A2L parser ────────────────────────────────────────────────────
     A2LParser *m_parser          = nullptr;
@@ -413,9 +491,11 @@ private:
     QAction *m_actCorrectChecksum = nullptr;
 
     // ── Window actions ─────────────────────────────────────────────────
-    QAction *m_actTile    = nullptr;
-    QAction *m_actCascade = nullptr;
-    QAction *m_actCompare = nullptr;
+    QAction *m_actTile        = nullptr;
+    QAction *m_actCascade     = nullptr;
+    QAction *m_actCompare     = nullptr;
+    QAction *m_actFloatWindow = nullptr;
+    QAction *m_actLoadWorkspaceLayout = nullptr;
 
     // ── Navigation actions ─────────────────────────────────────────────
     QAction *m_actPrevMap     = nullptr;

@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include "mapoverlay.h"
+#include "mapeditorview.h"
+#include "mapvaluecodec.h"
 #include "project.h"
 #include "appconfig.h"
 #include "appconstants.h"
@@ -36,12 +37,15 @@
 #include <QScreen>
 #include <QApplication>
 #include <QStyledItemDelegate>
+#include <QDoubleValidator>
 #include <QKeyEvent>
+#include <QLocale>
 #include <QShortcut>
 #include <QDialogButtonBox>
 #include <QMessageBox>
 #include <cmath>
 #include <limits>
+#include <algorithm>
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Icons
@@ -276,15 +280,13 @@ public:
 // ═══════════════════════════════════════════════════════════════════════════════
 // Constructor
 // ═══════════════════════════════════════════════════════════════════════════════
-MapOverlay::MapOverlay(QWidget *parent)
-    : QDialog(parent,
-              Qt::Tool | Qt::WindowTitleHint |
-              Qt::WindowCloseButtonHint | Qt::WindowMinMaxButtonsHint)
+MapEditorView::MapEditorView(QWidget *parent)
+    : QWidget(parent)
 {
     setWindowTitle(tr("Map"));
-    setAttribute(Qt::WA_DeleteOnClose, true);
     resize(680, 460);
     setMinimumSize(480, 320);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     auto *root = new QVBoxLayout(this);
     root->setContentsMargins(6, 6, 6, 4);
@@ -335,6 +337,16 @@ MapOverlay::MapOverlay(QWidget *parent)
     m_byteOrderCombo->setStyleSheet(m_cellSizeCombo->styleSheet());
     toolbar->addWidget(m_byteOrderCombo);
 
+    auto *columnsLabel = new QLabel(tr("Cols:"));
+    columnsLabel->setStyleSheet("color:#8b949e; font-size:8pt;");
+    toolbar->addWidget(columnsLabel);
+    m_displayColumnsSpin = new QSpinBox();
+    m_displayColumnsSpin->setRange(1, 256);
+    m_displayColumnsSpin->setFixedWidth(58);
+    m_displayColumnsSpin->setToolTip(tr("Visual columns only — does not change the map dimensions"));
+    m_displayColumnsSpin->setStyleSheet(m_cellSizeCombo->styleSheet());
+    toolbar->addWidget(m_displayColumnsSpin);
+
     mkSep();
 
     m_btnUndo = mkBtn(0, QColor("#8b949e"), tr("Undo  Ctrl+Z"));
@@ -369,13 +381,15 @@ MapOverlay::MapOverlay(QWidget *parent)
         "QToolButton:hover{background:#1c2128;color:#e7eefc;border-color:#484f58}"
         "QToolButton:checked{background:rgba(124,58,237,0.3);color:#c084fc;border-color:#7c3aed}");
 
-    // Difference view selector — plain values vs numeric delta / % vs original
+    // Projection selector — physical/raw storage values or differences vs original.
     m_diffCombo = new QComboBox();
     m_diffCombo->addItem(tr("Values"));
+    m_diffCombo->addItem(tr("Raw Hex"));
+    m_diffCombo->addItem(tr("Raw Dec"));
     m_diffCombo->addItem(tr("Δ Original"));
     m_diffCombo->addItem(tr("% Original"));
-    m_diffCombo->setFixedWidth(104);
-    m_diffCombo->setToolTip(tr("Show plain values, or the numeric difference from the original ROM"));
+    m_diffCombo->setFixedWidth(112);
+    m_diffCombo->setToolTip(tr("Show physical values, raw storage values, or differences from the original ROM"));
     m_diffCombo->setStyleSheet(m_cellSizeCombo->styleSheet());
 
     toolbar->addWidget(m_btnOri);
@@ -810,6 +824,12 @@ MapOverlay::MapOverlay(QWidget *parent)
     cellDel->gridLine     = ac.mapGridLine;
     m_table->setItemDelegate(cellDel);
     m_table->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_table, &QTableWidget::cellDoubleClicked, this,
+            [this](int row, int column) {
+        if (column < firstDataCol() || column > lastDataCol()) return;
+        m_table->setCurrentCell(row, column);
+        openInlineEditor();
+    });
     connect(m_table, &QTableWidget::customContextMenuRequested, this, [this](const QPoint &pos) {
         QMenu menu(this);
         menu.setStyleSheet(
@@ -817,6 +837,13 @@ MapOverlay::MapOverlay(QWidget *parent)
             "QMenu::item:selected { background:#2d333b; }"
             "QMenu::separator { height:1px; background:#30363d; margin:4px 8px; }");
 
+        const bool isFloating = (window() && (window()->windowFlags() & Qt::Window));
+        QAction *actFloat = isFloating ? nullptr
+                                       : menu.addAction(tr("Float to Desktop (Dual Monitor)  (Alt+F5)"));
+        QAction *actRedock = isFloating
+            ? menu.addAction(tr("Re-dock into Main Workspace  (Alt+F5)"))
+            : nullptr;
+        menu.addSeparator();
         auto *actProp   = menu.addAction(tr("Properties…"));
         menu.addSeparator();
         auto *actCopy   = menu.addAction(tr("Copy selection"));
@@ -827,7 +854,11 @@ MapOverlay::MapOverlay(QWidget *parent)
         QAction *chosen = menu.exec(m_table->viewport()->mapToGlobal(pos));
         if (!chosen) return;
 
-        if (chosen == actProp) {
+        if (actFloat && chosen == actFloat) {
+            emit floatToggleRequested();
+        } else if (actRedock && chosen == actRedock) {
+            emit redockRequested();
+        } else if (chosen == actProp) {
             MapInfo savedMap = m_map;  // snapshot for cancel
             ByteOrder savedBO = m_byteOrder;
             MapPropertiesDialog dlg(m_map, m_byteOrder, this);
@@ -887,7 +918,7 @@ MapOverlay::MapOverlay(QWidget *parent)
     // its request so the host routes it through the shared edit dispatcher
     // (same path/undo stack as the main window's 3D view).
     connect(m_map3d, &Map3DWidget::editOpRequested,
-            this, &MapOverlay::editOpRequested);
+            this, &MapEditorView::editOpRequested);
 
     m_map3dSim = new Map3DSimWidget();
 
@@ -979,6 +1010,17 @@ MapOverlay::MapOverlay(QWidget *parent)
         "  selection-background-color:#1f6feb;"
         "  padding:0;"
         "}");
+    // Physical/raw-decimal values are numeric. Raw hex switches this validator
+    // off while the inline editor is open, then parseRaw() validates the final
+    // storage bit pattern before any ROM mutation.
+    auto *numericInput = new QDoubleValidator(
+        -std::numeric_limits<double>::max(),
+        std::numeric_limits<double>::max(),
+        std::numeric_limits<double>::max_digits10,
+        m_inlineEdit);
+    numericInput->setLocale(QLocale::c());
+    numericInput->setNotation(QDoubleValidator::ScientificNotation);
+    m_inlineEdit->setValidator(numericInput);
     m_inlineEdit->hide();
     m_inlineEdit->installEventFilter(this);
 
@@ -1003,6 +1045,13 @@ MapOverlay::MapOverlay(QWidget *parent)
     connect(m_byteOrderCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int idx) {
         m_byteOrder = ByteOrder(m_byteOrderCombo->itemData(idx).toInt());
+        cancelInlineEditor();
+        buildTable();
+    });
+
+    connect(m_displayColumnsSpin, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, [this](int columns) {
+        m_displayColumns = columns;
         cancelInlineEditor();
         buildTable();
     });
@@ -1048,7 +1097,7 @@ MapOverlay::MapOverlay(QWidget *parent)
 
     connect(m_diffCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int idx) {
-        m_displayMode = static_cast<DisplayMode>(qBound(0, idx, 2));
+        m_displayMode = static_cast<DisplayMode>(qBound(0, idx, 4));
         // Leaving plain-values mode turns off the read-only "original" view.
         if (m_displayMode != DisplayMode::Values && m_showingOriginal) {
             m_showingOriginal = false;
@@ -1067,13 +1116,13 @@ MapOverlay::MapOverlay(QWidget *parent)
         buildTable();
     });
 
-    connect(m_btnUndo, &QToolButton::clicked, this, &MapOverlay::undoEdit);
-    connect(m_btnRedo, &QToolButton::clicked, this, &MapOverlay::redoEdit);
+    connect(m_btnUndo, &QToolButton::clicked, this, &MapEditorView::undoEdit);
+    connect(m_btnRedo, &QToolButton::clicked, this, &MapEditorView::redoEdit);
 
     connect(m_btnAddPct, &QToolButton::clicked, this, [this]{ applyBatchOp(0); });
     connect(m_btnAddVal, &QToolButton::clicked, this, [this]{ applyBatchOp(1); });
     connect(m_btnSetVal, &QToolButton::clicked, this, [this]{ applyBatchOp(2); });
-    connect(m_btnInterp, &QToolButton::clicked, this, &MapOverlay::interpolateSelection);
+    connect(m_btnInterp, &QToolButton::clicked, this, &MapEditorView::interpolateSelection);
 
     // Close inline editor if user scrolls (simple and reliable)
     connect(m_table->horizontalScrollBar(), &QScrollBar::valueChanged,
@@ -1091,15 +1140,17 @@ MapOverlay::MapOverlay(QWidget *parent)
 
     // Keyboard shortcuts
     auto *undoSc = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z), this);
-    connect(undoSc, &QShortcut::activated, this, &MapOverlay::undoEdit);
+    connect(undoSc, &QShortcut::activated, this, &MapEditorView::undoEdit);
     auto *redoSc = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Y), this);
-    connect(redoSc, &QShortcut::activated, this, &MapOverlay::redoEdit);
+    connect(redoSc, &QShortcut::activated, this, &MapEditorView::redoEdit);
+    auto *closeSc = new QShortcut(QKeySequence::Close, this);
+    connect(closeSc, &QShortcut::activated, this, &MapEditorView::closeRequested);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // showMap
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::showMap(const QByteArray &romData, const MapInfo &map,
+void MapEditorView::showMap(const QByteArray &romData, const MapInfo &map,
                          ByteOrder byteOrder, const QByteArray &originalData)
 {
     const bool mapChanged = (m_map.name != map.name || m_map.address != map.address);
@@ -1129,6 +1180,11 @@ void MapOverlay::showMap(const QByteArray &romData, const MapInfo &map,
 
     m_cellSize  = (map.dataSize > 0) ? map.dataSize : 2;
     m_byteOrder = byteOrder;
+    if (m_displayColumns <= 0) m_displayColumns = qMax(1, map.dimensions.x);
+    if (m_displayColumnsSpin) {
+        QSignalBlocker block(m_displayColumnsSpin);
+        m_displayColumnsSpin->setValue(qBound(1, m_displayColumns, 256));
+    }
 
     // Window title
     QString display = map.description.isEmpty() ? map.name
@@ -1182,22 +1238,26 @@ void MapOverlay::showMap(const QByteArray &romData, const MapInfo &map,
     m_btnHeat->setVisible(!isSmall);
 
     buildTable();
-    autoResize();
-    if (!isVisible()) show();
-    raise();
-    activateWindow();
-    m_table->setFocus();
+    // Visibility and window activation belong to the host QDockWidget. This
+    // content widget must remain usable in any host without creating a
+    // tool-window of its own.
 }
 
-bool MapOverlay::displaysMap(const MapInfo &map) const
+bool MapEditorView::displaysMap(const MapInfo &map) const
 {
     return m_map.name == map.name && m_map.address == map.address;
+}
+
+void MapEditorView::focusEditor()
+{
+    if (m_table)
+        m_table->setFocus(Qt::OtherFocusReason);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // setDisplayParams
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::setDisplayParams(int cellSize, ByteOrder byteOrder, bool /*heightColors*/)
+void MapEditorView::setDisplayParams(int cellSize, ByteOrder byteOrder, bool /*heightColors*/)
 {
     bool changed = false;
     if (cellSize != m_cellSize) {
@@ -1220,7 +1280,7 @@ void MapOverlay::setDisplayParams(int cellSize, ByteOrder byteOrder, bool /*heig
 // ═══════════════════════════════════════════════════════════════════════════════
 // retranslateUi
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::retranslateUi()
+void MapEditorView::retranslateUi()
 {
     const int ci = m_cellSizeCombo->currentIndex();
     const int oi = m_byteOrderCombo->currentIndex();
@@ -1244,10 +1304,12 @@ void MapOverlay::retranslateUi()
         m_diffCombo->blockSignals(true);
         m_diffCombo->clear();
         m_diffCombo->addItem(tr("Values"));
+        m_diffCombo->addItem(tr("Raw Hex"));
+        m_diffCombo->addItem(tr("Raw Dec"));
         m_diffCombo->addItem(tr("Δ Original"));
         m_diffCombo->addItem(tr("% Original"));
         m_diffCombo->setCurrentIndex(di);
-        m_diffCombo->setToolTip(tr("Show plain values, or the numeric difference from the original ROM"));
+        m_diffCombo->setToolTip(tr("Show physical values, raw storage values, or differences from the original ROM"));
         m_diffCombo->blockSignals(false);
     }
     if (m_btnInterp) {
@@ -1262,41 +1324,15 @@ void MapOverlay::retranslateUi()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// autoResize
-// ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::autoResize()
-{
-    // Calculate ideal table size
-    int tw = m_table->verticalHeader()->width();
-    for (int c = 0; c < m_table->columnCount(); ++c) tw += m_table->columnWidth(c);
-    tw += m_table->verticalScrollBar()->sizeHint().width() + 4;
-
-    int th = m_table->horizontalHeader()->height();
-    for (int r = 0; r < m_table->rowCount(); ++r) th += m_table->rowHeight(r);
-    th += m_table->horizontalScrollBar()->sizeHint().height() + 4;
-
-    // Chrome overhead: toolbar (~30) + opbar (~30) + axis bar (~24) + status (~24)
-    // + warning bar (~30 if visible) + margins (~30)
-    const int chrome = 170;
-
-    QScreen *scr = screen() ? screen() : QApplication::primaryScreen();
-    QRect av = scr ? scr->availableGeometry() : QRect(0,0,1920,1080);
-    int idealW = qMax(tw + 30, 480);  // ensure toolbar widgets fit
-    int idealH = qMax(th + chrome, 320);
-    resize(qMin(idealW, int(av.width()  * 0.92)),
-           qMin(idealH, int(av.height() * 0.88)));
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // Preview updates
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::previewScalingFormat(const QString &format)
+void MapEditorView::previewScalingFormat(const QString &format)
 {
     m_map.scaling.format = format;
     buildTable();
 }
 
-void MapOverlay::previewMapUpdate(const MapInfo &preview)
+void MapEditorView::previewMapUpdate(const MapInfo &preview)
 {
     m_map = preview;
     setWindowTitle(tr("%1 — %2").arg(m_map.name).arg(m_map.description.isEmpty() ? m_map.type : m_map.description));
@@ -1306,10 +1342,10 @@ void MapOverlay::previewMapUpdate(const MapInfo &preview)
 // ═══════════════════════════════════════════════════════════════════════════════
 // buildTable
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::buildTable()
+void MapEditorView::buildTable()
 {
-    if (m_cellSize < 1 || m_cellSize > 4) {
-        LOG_WARN(QString("MapOverlay::buildTable — invalid cellSize %1, resetting to 2").arg(m_cellSize));
+    if (m_cellSize < 1 || m_cellSize > 8) {
+        LOG_WARN(QString("MapEditorView::buildTable — invalid cellSize %1, resetting to 2").arg(m_cellSize));
         m_cellSize = 2;
     }
 
@@ -1317,13 +1353,16 @@ void MapOverlay::buildTable()
                             ? m_originalData : m_data;
     const auto *raw = reinterpret_cast<const uint8_t*>(src.constData());
     const int dlen  = src.size();
-    const int cols  = qBound(1, m_map.dimensions.x, 256);
-    const int rows  = qBound(1, m_map.dimensions.y, 256);
+    const int nativeCols = qBound(1, m_map.dimensions.x, 256);
+    const int nativeRows = qBound(1, m_map.dimensions.y, 256);
+    const int cellCount = nativeCols * nativeRows;
+    const int cols = qBound(1, displayColumns(), 256);
+    const int rows = (cellCount + cols - 1) / cols;
     // If the originating dimensions are obviously broken, or the cells fall
     // outside the ROM buffer, show an empty table rather than crashing.
     if (m_map.dimensions.x > 256 || m_map.dimensions.y > 256
         || dlen <= 0
-        || static_cast<qint64>(m_map.address) + qint64(rows) * cols * m_cellSize > dlen) {
+        || static_cast<qint64>(m_map.cellDataStart()) + qint64(cellCount) * m_cellSize > dlen) {
         m_table->setRowCount(0);
         m_table->setColumnCount(0);
         setWindowTitle(tr("%1 — not yet supported").arg(m_map.name));
@@ -1333,31 +1372,34 @@ void MapOverlay::buildTable()
                         && m_map.scaling.type != CompuMethod::Type::Identical;
     const CompuMethod &cm = m_map.scaling;
 
-    QVector<QVector<uint32_t>> rawV(rows, QVector<uint32_t>(cols, 0));
+    QVector<QVector<quint64>> rawV(rows, QVector<quint64>(cols, 0));
     QVector<QVector<double>>   physV(rows, QVector<double>(cols, 0.0));
     double minP = 1e300, maxP = -1e300;
 
-    const bool colMaj = m_map.columnMajor;
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {
-            uint32_t off = m_map.address + m_map.mapDataOffset
-                           + uint32_t(colMaj ? c * rows + r : r * cols + c) * m_cellSize;
-            const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
-            uint32_t v = readRomValue(raw, dlen, off, m_cellSize, cellBO);
-            rawV[r][c] = v;
-            double sv = m_map.dataSigned ? readRomValueAsDouble(raw, dlen, off, m_cellSize, cellBO, true) : double(v);
-            double p = scaled ? cm.toPhysical(sv) : sv;
-            physV[r][c] = p;
-            if (p < minP) minP = p;
-            if (p > maxP) maxP = p;
+            if (!isVisualCell(r, c)) continue;
+            const uint32_t off = visualCellOffset(r, c);
+            const CodecResult value = MapValueCodec::decode(src, off, m_map, m_byteOrder);
+            rawV[r][c] = value.rawBits;
+            const double p = value.physicalValue;
+            // Non-finite float cells are rendered explicitly by the codec but
+            // must not poison min/max or heat-map arithmetic.
+            physV[r][c] = std::isfinite(p) ? p : 0.0;
+            if (std::isfinite(p) && p < minP) minP = p;
+            if (std::isfinite(p) && p > maxP) maxP = p;
         }
     }
 
+    if (!std::isfinite(minP) || !std::isfinite(maxP)) minP = maxP = 0.0;
     const double range = (maxP > minP) ? (maxP - minP) : 1.0;
     const QString unit = (scaled && !cm.unit.isEmpty()) ? cm.unit : QString();
 
     // ── Difference view: per-cell delta (or %) vs the original ROM ──────────
-    const bool diffMode = (m_displayMode != DisplayMode::Values)
+    const bool rawMode = m_displayMode == DisplayMode::RawHex
+                         || m_displayMode == DisplayMode::RawDec;
+    const bool diffMode = (m_displayMode == DisplayMode::DeltaAbs
+                           || m_displayMode == DisplayMode::DeltaPct)
                           && !m_originalData.isEmpty();
     QVector<QVector<double>> deltaV;
     double maxAbsDelta = 0.0;
@@ -1368,13 +1410,10 @@ void MapOverlay::buildTable()
         const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
         for (int r = 0; r < rows; ++r) {
             for (int c = 0; c < cols; ++c) {
-                uint32_t off = m_map.address + m_map.mapDataOffset
-                               + uint32_t(colMaj ? c * rows + r : r * cols + c) * m_cellSize;
-                uint32_t orv = readRomValue(oraw, olen, off, m_cellSize, cellBO);
-                double osv = m_map.dataSigned
-                             ? readRomValueAsDouble(oraw, olen, off, m_cellSize, cellBO, true)
-                             : double(orv);
-                double op  = scaled ? cm.toPhysical(osv) : osv;
+                if (!isVisualCell(r, c)) continue;
+                const uint32_t off = visualCellOffset(r, c);
+                const CodecResult original = MapValueCodec::decode(m_originalData, off, m_map, m_byteOrder);
+                const double op = original.physicalValue;
                 double d;
                 if (m_displayMode == DisplayMode::DeltaPct)
                     d = (op != 0.0) ? (physV[r][c] - op) / std::fabs(op) * 100.0
@@ -1441,27 +1480,33 @@ void MapOverlay::buildTable()
     m_table->setColumnCount(cols + 1);  // +1 right heat bar column
 
     for (int c = 0; c < cols; ++c)
-        m_table->setHorizontalHeaderItem(c, new QTableWidgetItem(axLabel(m_map.xAxis, c)));
+        m_table->setHorizontalHeaderItem(c, new QTableWidgetItem(
+            cols == nativeCols ? axLabel(m_map.xAxis, c) : QString::number(c)));
     m_table->setHorizontalHeaderItem(cols, new QTableWidgetItem(""));
 
     for (int r = 0; r < rows; ++r)
-        m_table->setVerticalHeaderItem(r, new QTableWidgetItem(axLabel(m_map.yAxis, r)));
+        m_table->setVerticalHeaderItem(r, new QTableWidgetItem(
+            cols == nativeCols ? axLabel(m_map.yAxis, r) : QString::number(r)));
 
     for (int r = 0; r < rows; ++r) {
         double rowPct = 0;
         for (int c = 0; c < cols; ++c) {
-            const uint32_t rv  = rawV[r][c];
+            if (!isVisualCell(r, c)) {
+                auto *blank = new QTableWidgetItem();
+                blank->setFlags(blank->flags() & ~(Qt::ItemIsSelectable | Qt::ItemIsEditable));
+                m_table->setItem(r, c, blank);
+                continue;
+            }
+            const quint64  rv  = rawV[r][c];
             const double   pv  = physV[r][c];
             const double   pct = qBound(0.0, (pv - minP) / range, 1.0);
             rowPct += pct;
 
             bool modified = false;
             if (!m_showingOriginal && !m_originalData.isEmpty()) {
-                uint32_t origOff = m_map.address + m_map.mapDataOffset
-                                   + uint32_t(colMaj ? c * rows + r : r * cols + c) * m_cellSize;
-                uint32_t origV = readRomValue(origRaw, m_originalData.size(),
-                                              origOff, m_cellSize, cellByteOrder(m_map, m_byteOrder));
-                modified = (origV != rv);
+                const uint32_t origOff = visualCellOffset(r, c);
+                modified = m_originalData.mid(int(origOff), m_cellSize)
+                    != src.mid(int(origOff), m_cellSize);
             }
 
             QColor bg, fg;
@@ -1492,9 +1537,17 @@ void MapOverlay::buildTable()
                 bg = heatColor(pct);
                 const int luma = bg.red()*299 + bg.green()*587 + bg.blue()*114;
                 fg = (luma > 100000) ? QColor(0x0d,0x0d,0x0d) : QColor(0xf5,0xf5,0xf5);
-                display = scaled ? cm.formatValue(pv) : QString::number(rv);
-                fullVal = scaled ? (cm.formatValue(pv) + (unit.isEmpty()?" ":" "+unit))
-                                 : QString::number(rv);
+                const CodecResult current = MapValueCodec::decode(src,
+                    visualCellOffset(r, c),
+                    m_map, m_byteOrder);
+                if (rawMode) {
+                    display = MapValueCodec::formatRaw(current, m_map,
+                        m_displayMode == DisplayMode::RawHex);
+                    fullVal = display;
+                } else {
+                    display = MapValueCodec::formatPhysical(current, m_map);
+                    fullVal = display + (unit.isEmpty() ? QString() : " " + unit);
+                }
             }
 
             auto *item = new QTableWidgetItem(display);
@@ -1548,68 +1601,49 @@ void MapOverlay::buildTable()
 // ═══════════════════════════════════════════════════════════════════════════════
 // writeCell — write one physical value, return CellEdit for undo
 // ═══════════════════════════════════════════════════════════════════════════════
-CellEdit MapOverlay::writeCell(int row, int col, double newPhys)
+CellEdit MapEditorView::writeCell(int row, int col, double newPhys)
 {
-    const bool scaled = m_map.hasScaling
-                        && m_map.scaling.type != CompuMethod::Type::Identical;
-    const CompuMethod &cm = m_map.scaling;
-
-    double rawD = scaled ? cm.toRaw(newPhys) : newPhys;
-    uint32_t newRaw;
-    if (m_map.dataSigned) {
-        // Signed: clamp to signed range, then cast to unsigned for storage
-        double minS, maxS;
-        if (m_cellSize == 1)      { minS = -128.0;       maxS = 127.0; }
-        else if (m_cellSize == 4) { minS = -2147483648.0; maxS = 2147483647.0; }
-        else                      { minS = -32768.0;     maxS = 32767.0; }
-        int32_t sv = (int32_t)qBound(minS, std::round(rawD), maxS);
-        newRaw = (uint32_t)sv; // two's complement
-    } else {
-        const double maxRaw = (m_cellSize == 1) ? 255.0
-                            : (m_cellSize == 4) ? 4294967295.0 : 65535.0;
-        newRaw = uint32_t(qBound(0.0, std::round(rawD), maxRaw));
-    }
-
-    return writeRawCell(row, col, newRaw);
+    const CodecResult encoded = MapValueCodec::physicalToBytes(newPhys, m_map, m_byteOrder);
+    if (!encoded.isUsable()) return {};
+    return writeCellBytes(row, col, encoded.rawBytes);
 }
 
-CellEdit MapOverlay::writeRawCell(int row, int col, uint32_t newRaw)
+CellEdit MapEditorView::writeCellBytes(int row, int col, const QByteArray &newBytes)
 {
-    const int cols = qMax(1, m_map.dimensions.x);
-    const int rows = qMax(1, m_map.dimensions.y);
+    const uint32_t offset = visualCellOffset(row, col);
+    if (newBytes.size() != m_cellSize || int(offset) + m_cellSize > m_data.size())
+        return {};
+    const QByteArray oldBytes = m_data.mid(int(offset), m_cellSize);
+    if (oldBytes == newBytes) return {};
+    m_data.replace(int(offset), m_cellSize, newBytes);
+    if (!m_syncProject)
+        emit romPatchReady(offset, newBytes);
+    return {offset, oldBytes, newBytes};
+}
 
-    const uint32_t offset = m_map.address + m_map.mapDataOffset
-                            + uint32_t(m_map.columnMajor ? col * rows + row : row * cols + col) * m_cellSize;
-    const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
-    const auto *src = reinterpret_cast<const uint8_t*>(m_data.constData());
-    const uint32_t oldRaw = readRomValue(src, m_data.size(), offset, m_cellSize, cellBO);
-
-    auto *dst = reinterpret_cast<uint8_t*>(m_data.data());
-    writeRomValue(dst, m_data.size(), offset, m_cellSize, cellBO, newRaw);
-
-    // A project-backed overlay submits the complete batch through Project.
-    // Standalone overlays retain their local patch signal for legacy callers.
-    if (!m_syncProject) {
-        QByteArray patch(m_cellSize, '\0');
-        writeRomValue(reinterpret_cast<uint8_t*>(patch.data()), m_cellSize,
-                      0, m_cellSize, cellBO, newRaw);
-        emit romPatchReady(offset, patch);
-    }
-
-    return {offset, oldRaw, newRaw};
+CellEdit MapEditorView::writeRawCell(int row, int col, uint32_t newRaw)
+{
+    // Keyboard stepping already holds a storage bit pattern. Preserve those
+    // bits (especially two's-complement signed values) rather than parsing it
+    // as a positive decimal raw value.
+    const CodecResult encoded = MapValueCodec::parseRaw(
+        QStringLiteral("0x%1").arg(newRaw, m_cellSize * 2, 16, QChar('0')),
+        m_map, m_byteOrder, true);
+    if (!encoded.isUsable()) return {};
+    return writeCellBytes(row, col, encoded.rawBytes);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Shared-undo wiring
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::setProject(Project *project)
+void MapEditorView::setProject(Project *project)
 {
     m_syncProject = project;
     if (m_syncProject) {
         connect(m_syncProject, &Project::romPatched,
                 this, [this](int, int) { reloadFromProject(); });
         connect(m_syncProject, &Project::romUndoStateChanged,
-                this, &MapOverlay::updateUndoRedoButtons);
+                this, &MapEditorView::updateUndoRedoButtons);
         connect(m_syncProject, &QObject::destroyed, this, [this]{
             m_syncProject = nullptr;
             updateUndoRedoButtons();
@@ -1618,15 +1652,29 @@ void MapOverlay::setProject(Project *project)
     updateUndoRedoButtons();
 }
 
-void MapOverlay::commitBatch(const EditBatch &batch)
+void MapEditorView::commitBatch(const EditBatch &batch)
 {
     if (batch.isEmpty()) return;
 
     if (m_syncProject) {
+        QVector<CellEdit> ordered = batch;
+        std::sort(ordered.begin(), ordered.end(), [](const CellEdit &a, const CellEdit &b) {
+            return a.offset < b.offset;
+        });
         QVector<QPair<int, QByteArray>> patches;
-        for (const auto &e : batch) {
-            if (int(e.offset + uint32_t(m_cellSize)) <= m_data.size())
-                patches.append({int(e.offset), m_data.mid(int(e.offset), m_cellSize)});
+        for (const auto &e : ordered) {
+            if (!e.newBytes.isEmpty() && int(e.offset) + e.newBytes.size() <= m_data.size())
+            {
+                // Coalesce exactly adjacent selected cells in storage order.
+                // Gaps remain separate, so an L-shaped/sparse 2D selection
+                // can never overwrite an unselected intermediate byte.
+                if (!patches.isEmpty()
+                    && patches.last().first + patches.last().second.size() == int(e.offset)) {
+                    patches.last().second += e.newBytes;
+                } else {
+                    patches.append({int(e.offset), e.newBytes});
+                }
+            }
         }
         m_syncProject->applyRomPatches(patches, tr("Map edit"));
     } else {
@@ -1634,7 +1682,7 @@ void MapOverlay::commitBatch(const EditBatch &batch)
     }
 }
 
-void MapOverlay::reloadFromProject()
+void MapEditorView::reloadFromProject()
 {
     if (!m_syncProject) return;
     if (m_syncProject->currentData.isEmpty()) return;
@@ -1644,7 +1692,7 @@ void MapOverlay::reloadFromProject()
     updateUndoRedoButtons();
 }
 
-void MapOverlay::rebuildTablePreservingGridState()
+void MapEditorView::rebuildTablePreservingGridState()
 {
     struct Cell { int row; int column; };
     QVector<Cell> selected;
@@ -1682,7 +1730,7 @@ void MapOverlay::rebuildTablePreservingGridState()
 // ═══════════════════════════════════════════════════════════════════════════════
 // applyBatchOp — bulk operation via the Δ input
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::applyBatchOp(int mode)
+void MapEditorView::applyBatchOp(int mode)
 {
     if (isReadOnlyView()) return;
     cancelInlineEditor();
@@ -1694,8 +1742,6 @@ void MapOverlay::applyBatchOp(int mode)
         else return;
     }
 
-    const int cols = qMax(1, m_map.dimensions.x);
-    const int rows = qMax(1, m_map.dimensions.y);
     const bool scaled = m_map.hasScaling
                         && m_map.scaling.type != CompuMethod::Type::Identical;
     const CompuMethod &cm = m_map.scaling;
@@ -1704,18 +1750,14 @@ void MapOverlay::applyBatchOp(int mode)
     struct Sel { int row, col; };
     QVector<Sel> sel;
     for (auto *it : m_table->selectedItems())
-        if (it->column() < cols) sel.append({it->row(), it->column()});
+        if (isVisualCell(it->row(), it->column())) sel.append({it->row(), it->column()});
     if (sel.isEmpty()) return;
 
     EditBatch batch;
+    bool clamped = false;
     for (const auto &s : sel) {
-        uint32_t off = m_map.address + m_map.mapDataOffset
-                       + uint32_t(m_map.columnMajor ? s.col * rows + s.row : s.row * cols + s.col) * m_cellSize;
-        const auto *raw = reinterpret_cast<const uint8_t*>(m_data.constData());
-        const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
-        uint32_t rv = readRomValue(raw, m_data.size(), off, m_cellSize, cellBO);
-        double sv = m_map.dataSigned ? readRomValueAsDouble(raw, m_data.size(), off, m_cellSize, cellBO, true) : double(rv);
-        double phys = scaled ? cm.toPhysical(sv) : sv;
+        const CodecResult current = MapValueCodec::decode(m_data, visualCellOffset(s.row, s.col), m_map, m_byteOrder);
+        const double phys = current.physicalValue;
 
         double newPhys;
         switch (mode) {
@@ -1723,7 +1765,18 @@ void MapOverlay::applyBatchOp(int mode)
         case 1:  newPhys = phys + delta;                  break;
         default: newPhys = delta;                          break;
         }
-        batch.append(writeCell(s.row, s.col, newPhys));
+        const CodecResult encoded = MapValueCodec::physicalToBytes(newPhys, m_map, m_byteOrder);
+        if (!encoded.isUsable()) continue;
+        clamped |= encoded.needsConfirmation();
+        const CellEdit edit = writeCellBytes(s.row, s.col, encoded.rawBytes);
+        if (!edit.newBytes.isEmpty()) batch.append(edit);
+    }
+
+    if (!batch.isEmpty() && clamped && QMessageBox::question(
+            this, tr("Clamp selected cells"),
+            tr("One or more calculated values exceed this cell type's range and will be clamped. Continue?"),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) {
+        return;
     }
 
     commitBatch(batch);
@@ -1731,27 +1784,15 @@ void MapOverlay::applyBatchOp(int mode)
     emit editBatchDone();
 }
 
-bool MapOverlay::isReadOnlyView() const
+bool MapEditorView::isReadOnlyView() const
 {
-    return m_showingOriginal || m_displayMode != DisplayMode::Values;
+    return m_showingOriginal || m_displayMode == DisplayMode::DeltaAbs
+        || m_displayMode == DisplayMode::DeltaPct;
 }
 
-double MapOverlay::cellPhys(int row, int col) const
+double MapEditorView::cellPhys(int row, int col) const
 {
-    const int cols = qMax(1, m_map.dimensions.x);
-    const int rows = qMax(1, m_map.dimensions.y);
-    const uint32_t off = m_map.address + m_map.mapDataOffset
-                         + uint32_t(m_map.columnMajor ? col * rows + row
-                                                      : row * cols + col) * m_cellSize;
-    const auto *raw = reinterpret_cast<const uint8_t*>(m_data.constData());
-    const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
-    uint32_t rv = readRomValue(raw, m_data.size(), off, m_cellSize, cellBO);
-    double sv = m_map.dataSigned
-                ? readRomValueAsDouble(raw, m_data.size(), off, m_cellSize, cellBO, true)
-                : double(rv);
-    const bool scaled = m_map.hasScaling
-                        && m_map.scaling.type != CompuMethod::Type::Identical;
-    return scaled ? m_map.scaling.toPhysical(sv) : sv;
+    return MapValueCodec::decode(m_data, visualCellOffset(row, col), m_map, m_byteOrder).physicalValue;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1760,17 +1801,17 @@ double MapOverlay::cellPhys(int row, int col) const
 //   • single row / column:       linear between the two ends
 // The corner (anchor) cells are preserved; everything between is recomputed.
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::interpolateSelection()
+void MapEditorView::interpolateSelection()
 {
     if (isReadOnlyView()) return;
     cancelInlineEditor();
 
-    const int cols = qMax(1, m_map.dimensions.x);
+    const int cols = displayColumns();
 
     // Bounding rectangle of the current selection (data cells only)
     int r0 = -1, r1 = -1, c0 = -1, c1 = -1;
     for (auto *it : m_table->selectedItems()) {
-        if (it->column() >= cols) continue;   // skip the heat-bar column
+        if (!isVisualCell(it->row(), it->column())) continue;   // heat/empty cell
         const int r = it->row(), c = it->column();
         if (r0 < 0) { r0 = r1 = r; c0 = c1 = c; }
         else { r0 = qMin(r0, r); r1 = qMax(r1, r); c0 = qMin(c0, c); c1 = qMax(c1, c); }
@@ -1814,15 +1855,14 @@ void MapOverlay::interpolateSelection()
 // ═══════════════════════════════════════════════════════════════════════════════
 // Inline editor
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::openInlineEditor(const QString &prefill)
+void MapEditorView::openInlineEditor(const QString &prefill)
 {
     if (isReadOnlyView() || m_btn3D->isChecked()) return;
 
     QTableWidgetItem *cur = m_table->currentItem();
     if (!cur) return;
 
-    const int cols = qMax(1, m_map.dimensions.x);
-    if (cur->column() >= cols) return;   // heat bar column — skip
+    if (!isVisualCell(cur->row(), cur->column())) return;
 
     m_editRow = cur->row();
     m_editCol = cur->column();
@@ -1831,19 +1871,16 @@ void MapOverlay::openInlineEditor(const QString &prefill)
     markPendingCells(true);
 
     // Pre-fill with current value (unless a typed character was provided)
+    const bool rawHex = m_displayMode == DisplayMode::RawHex;
+    const bool rawDec = m_displayMode == DisplayMode::RawDec;
+    m_inlineEdit->setValidator(rawHex ? nullptr
+        : m_inlineEdit->findChild<QDoubleValidator *>());
     if (prefill.isEmpty()) {
-        const bool scaled = m_map.hasScaling
-                            && m_map.scaling.type != CompuMethod::Type::Identical;
-        const int rows = qMax(1, m_map.dimensions.y);
-        const int cols2 = qMax(1, m_map.dimensions.x);
-        uint32_t off = m_map.address + m_map.mapDataOffset
-                       + uint32_t(m_map.columnMajor ? m_editCol * rows + m_editRow : m_editRow * cols2 + m_editCol) * m_cellSize;
-        const auto *raw = reinterpret_cast<const uint8_t*>(m_data.constData());
-        const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
-        uint32_t rv = readRomValue(raw, m_data.size(), off, m_cellSize, cellBO);
-        double sv = m_map.dataSigned ? readRomValueAsDouble(raw, m_data.size(), off, m_cellSize, cellBO, true) : double(rv);
-        double phys = scaled ? m_map.scaling.toPhysical(sv) : sv;
-        m_inlineEdit->setText(scaled ? m_map.scaling.formatValue(phys) : QString::number(sv));
+        const uint32_t off = visualCellOffset(m_editRow, m_editCol);
+        const CodecResult value = MapValueCodec::decode(m_data, off, m_map, m_byteOrder);
+        m_inlineEdit->setText(rawHex ? MapValueCodec::formatRaw(value, m_map, true)
+            : rawDec ? MapValueCodec::formatRaw(value, m_map, false)
+                     : MapValueCodec::formatPhysical(value, m_map));
         m_inlineEdit->selectAll();
     } else {
         m_inlineEdit->setText(prefill);
@@ -1857,7 +1894,7 @@ void MapOverlay::openInlineEditor(const QString &prefill)
     updateStatusBar();
 }
 
-void MapOverlay::repositionInlineEditor()
+void MapEditorView::repositionInlineEditor()
 {
     // May be called before m_editOpen is set — always reposition if row/col are valid
     if (m_editRow < 0 || m_editCol < 0) return;
@@ -1868,24 +1905,42 @@ void MapOverlay::repositionInlineEditor()
         m_inlineEdit->setGeometry(r.adjusted(-1, -1, 1, 1));
 }
 
-void MapOverlay::markPendingCells(bool mark)
+void MapEditorView::markPendingCells(bool mark)
 {
-    const int cols = qMax(1, m_map.dimensions.x);
     for (auto *it : m_table->selectedItems()) {
-        if (it->column() < cols)
+        if (isVisualCell(it->row(), it->column()))
             it->setData(Qt::UserRole + 2, mark);
     }
     m_table->viewport()->update();
 }
 
-void MapOverlay::commitInlineEditor(int dCol, int dRow)
+void MapEditorView::commitInlineEditor(int dCol, int dRow)
 {
     if (!m_editOpen) return;
 
-    bool ok;
-    double newPhys = m_inlineEdit->text().trimmed().toDouble(&ok);
-    if (!ok) {
-        cancelInlineEditor();
+    const bool rawHex = m_displayMode == DisplayMode::RawHex;
+    const bool rawDec = m_displayMode == DisplayMode::RawDec;
+    CodecResult encoded;
+    if (rawHex || rawDec) {
+        encoded = MapValueCodec::parseRaw(m_inlineEdit->text(), m_map, m_byteOrder, rawHex);
+    } else {
+        bool ok = false;
+        const double newPhys = QLocale::c().toDouble(m_inlineEdit->text().trimmed(), &ok);
+        if (ok) encoded = MapValueCodec::physicalToBytes(newPhys, m_map, m_byteOrder);
+    }
+    if (!encoded.isUsable()) {
+        // Empty input is a valid intermediate QLineEdit state, but it is not a
+        // value.  Keep the editor open so the user can correct it; never turn
+        // an invalid entry into a cancelled or accidental calibration change.
+        m_statusBar->setText(tr("Enter a finite numeric value, or press Esc to cancel."));
+        m_inlineEdit->setFocus();
+        return;
+    }
+    if (encoded.needsConfirmation()
+        && QMessageBox::question(this, tr("Clamp cell value"),
+            tr("The entered value exceeds this cell's range and will be clamped. Continue?"),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) {
+        m_inlineEdit->setFocus();
         return;
     }
 
@@ -1893,14 +1948,13 @@ void MapOverlay::commitInlineEditor(int dCol, int dRow)
     m_editOpen = false;
     m_inlineEdit->hide();
 
-    const int cols = qMax(1, m_map.dimensions.x);
-    const int rows = qMax(1, m_map.dimensions.y);
+    const int cols = displayColumns();
 
     // Collect selected data cells
     QList<QTableWidgetItem*> selItems = m_table->selectedItems();
     QVector<QTableWidgetItem*> targets;
     for (auto *it : selItems)
-        if (it->column() < cols) targets.append(it);
+        if (isVisualCell(it->row(), it->column())) targets.append(it);
 
     if (targets.isEmpty()) {
         // Fallback: just write current cell
@@ -1909,8 +1963,10 @@ void MapOverlay::commitInlineEditor(int dCol, int dRow)
     }
 
     EditBatch batch;
-    for (auto *it : targets)
-        batch.append(writeCell(it->row(), it->column(), newPhys));
+    for (auto *it : targets) {
+        const CellEdit edit = writeCellBytes(it->row(), it->column(), encoded.rawBytes);
+        if (!edit.newBytes.isEmpty()) batch.append(edit);
+    }
 
     commitBatch(batch);
     if (!m_syncProject) rebuildTablePreservingGridState();
@@ -1918,8 +1974,8 @@ void MapOverlay::commitInlineEditor(int dCol, int dRow)
 
     // Navigate after commit
     if (dCol != 0 || dRow != 0) {
-        int nr = qBound(0, m_editRow + dRow, rows - 1);
-        int nc = qBound(0, m_editCol + dCol, cols - 1);
+        int nr = qBound(0, m_editRow + dRow, lastDataRow());
+        int nc = qBound(0, m_editCol + dCol, lastDataCol());
         m_table->setCurrentCell(nr, nc);
         m_table->scrollToItem(m_table->item(nr, nc));
         openInlineEditor();
@@ -1929,7 +1985,7 @@ void MapOverlay::commitInlineEditor(int dCol, int dRow)
     }
 }
 
-void MapOverlay::cancelInlineEditor()
+void MapEditorView::cancelInlineEditor()
 {
     if (!m_editOpen) return;
     m_editOpen = false;
@@ -1942,12 +1998,37 @@ void MapOverlay::cancelInlineEditor()
 // ═══════════════════════════════════════════════════════════════════════════════
 // Table-level keyboard helpers
 // ═══════════════════════════════════════════════════════════════════════════════
-int MapOverlay::firstDataCol() const { return 0; }
-int MapOverlay::lastDataCol()  const { return qMax(1, m_map.dimensions.x) - 1; }
-int MapOverlay::firstDataRow() const { return 0; }
-int MapOverlay::lastDataRow()  const { return qMax(1, m_map.dimensions.y) - 1; }
+int MapEditorView::displayColumns() const
+{
+    return qBound(1, m_displayColumns > 0 ? m_displayColumns : m_map.dimensions.x, 256);
+}
 
-void MapOverlay::navigateCell(int dRow, int dCol, bool extend)
+bool MapEditorView::isVisualCell(int row, int col) const
+{
+    if (row < 0 || col < 0 || col >= displayColumns()) return false;
+    const qint64 index = qint64(row) * displayColumns() + col;
+    return index >= 0 && index < qint64(qMax(1, m_map.dimensions.x)) * qMax(1, m_map.dimensions.y);
+}
+
+uint32_t MapEditorView::visualCellOffset(int row, int col) const
+{
+    if (!isVisualCell(row, col)) return std::numeric_limits<uint32_t>::max();
+    const int nativeCols = qMax(1, m_map.dimensions.x);
+    const int nativeRows = qMax(1, m_map.dimensions.y);
+    const int index = row * displayColumns() + col;
+    const int nativeRow = index / nativeCols;
+    const int nativeCol = index % nativeCols;
+    const int storageIndex = m_map.columnMajor
+        ? nativeCol * nativeRows + nativeRow : index;
+    return m_map.cellDataStart() + uint32_t(storageIndex) * m_cellSize;
+}
+
+int MapEditorView::firstDataCol() const { return 0; }
+int MapEditorView::lastDataCol()  const { return qMax(0, m_table->columnCount() - 2); }
+int MapEditorView::firstDataRow() const { return 0; }
+int MapEditorView::lastDataRow()  const { return qMax(0, m_table->rowCount() - 1); }
+
+void MapEditorView::navigateCell(int dRow, int dCol, bool extend)
 {
     auto *cur = m_table->currentItem();
     if (!cur) return;
@@ -1977,12 +2058,10 @@ void MapOverlay::navigateCell(int dRow, int dCol, bool extend)
     if (item) m_table->scrollToItem(item);
 }
 
-void MapOverlay::incrementSelectedCells(int delta)
+void MapEditorView::incrementSelectedCells(int delta)
 {
     if (isReadOnlyView()) return;
 
-    const int cols = qMax(1, m_map.dimensions.x);
-    const int rows = qMax(1, m_map.dimensions.y);
     const bool scaled = m_map.hasScaling
                         && m_map.scaling.type != CompuMethod::Type::Identical;
     const CompuMethod &cm = m_map.scaling;
@@ -1990,7 +2069,7 @@ void MapOverlay::incrementSelectedCells(int delta)
     struct Sel { int row, col; };
     QVector<Sel> sel;
     for (auto *it : m_table->selectedItems())
-        if (it->column() < cols) sel.append({it->row(), it->column()});
+        if (isVisualCell(it->row(), it->column())) sel.append({it->row(), it->column()});
     if (sel.isEmpty()) return;
 
     // WinOLS treats +/- as an engineering-value step.  A formatted map with
@@ -2013,6 +2092,23 @@ void MapOverlay::incrementSelectedCells(int delta)
     const double engineeringStep = std::pow(10.0, -displayPrecision());
     const double requestedDelta = double(delta) * engineeringStep;
 
+    // Float and 64-bit cells do not fit the legacy integer neighbour probe.
+    // Route them through the codec instead; it preserves byte order, rejects
+    // non-finite results, and keeps the entire selection one transaction.
+    if (m_cellSize > 4 || MapValueCodec::isFloatingPoint(m_map)) {
+        EditBatch floatBatch;
+        for (const auto &s : sel) {
+            const CellEdit edit = writeCell(s.row, s.col,
+                cellPhys(s.row, s.col) + requestedDelta);
+            if (!edit.newBytes.isEmpty()) floatBatch.append(edit);
+        }
+        if (floatBatch.isEmpty()) return;
+        commitBatch(floatBatch);
+        if (!m_syncProject) rebuildTablePreservingGridState();
+        emit editBatchDone();
+        return;
+    }
+
     const int bits = m_cellSize * 8;
     const qint64 minStored = m_map.dataSigned ? -(qint64(1) << (bits - 1)) : 0;
     const qint64 maxStored = m_map.dataSigned ?  (qint64(1) << (bits - 1)) - 1
@@ -2026,8 +2122,7 @@ void MapOverlay::incrementSelectedCells(int delta)
 
     EditBatch batch;
     for (const auto &s : sel) {
-        uint32_t off = m_map.address + m_map.mapDataOffset
-                       + uint32_t(m_map.columnMajor ? s.col * rows + s.row : s.row * cols + s.col) * m_cellSize;
+        const uint32_t off = visualCellOffset(s.row, s.col);
         const auto *raw = reinterpret_cast<const uint8_t*>(m_data.constData());
         const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
         uint32_t rv = readRomValue(raw, m_data.size(), off, m_cellSize, cellBO);
@@ -2090,7 +2185,7 @@ void MapOverlay::incrementSelectedCells(int delta)
     emit editBatchDone();
 }
 
-bool MapOverlay::incrementGridSelectionFromMenu(int delta)
+bool MapEditorView::incrementGridSelectionFromMenu(int delta)
 {
     // A 3D map command intentionally remains on MainWindow's whole-map path:
     // its view has no grid selection. Only the visible table can own a
@@ -2098,10 +2193,9 @@ bool MapOverlay::incrementGridSelectionFromMenu(int delta)
     if (!isVisible() || m_stack->currentWidget() != m_table)
         return false;
 
-    const int dataCols = qMax(1, m_map.dimensions.x);
     bool hasDataCell = false;
     for (const auto *item : m_table->selectedItems()) {
-        if (item && item->column() < dataCols) {
+        if (item && isVisualCell(item->row(), item->column())) {
             hasDataCell = true;
             break;
         }
@@ -2115,15 +2209,14 @@ bool MapOverlay::incrementGridSelectionFromMenu(int delta)
     return true;
 }
 
-void MapOverlay::deleteSelectedCells()
+void MapEditorView::deleteSelectedCells()
 {
     if (isReadOnlyView()) return;
 
-    const int cols = qMax(1, m_map.dimensions.x);
     struct Sel { int row, col; };
     QVector<Sel> sel;
     for (auto *it : m_table->selectedItems())
-        if (it->column() < cols) sel.append({it->row(), it->column()});
+        if (isVisualCell(it->row(), it->column())) sel.append({it->row(), it->column()});
     if (sel.isEmpty()) return;
 
     EditBatch batch;
@@ -2135,14 +2228,14 @@ void MapOverlay::deleteSelectedCells()
     emit editBatchDone();
 }
 
-void MapOverlay::copySelectionToClipboard()
+void MapEditorView::copySelectionToClipboard()
 {
     QStringList rows;
     int prevRow = -1;
     QStringList rowVals;
     const auto sel = m_table->selectedItems();
     for (auto *it : sel) {
-        if (it->column() >= qMax(1, m_map.dimensions.x)) continue; // skip heat bar
+        if (!isVisualCell(it->row(), it->column())) continue; // skip heat/empty cell
         if (it->row() != prevRow && prevRow != -1) {
             rows << rowVals.join('\t');
             rowVals.clear();
@@ -2154,39 +2247,54 @@ void MapOverlay::copySelectionToClipboard()
     QApplication::clipboard()->setText(rows.join('\n'));
 }
 
-void MapOverlay::pasteFromClipboard()
+void MapEditorView::pasteFromClipboard()
 {
     if (isReadOnlyView()) return;
 
     const QString text = QApplication::clipboard()->text().trimmed();
     if (text.isEmpty()) return;
 
-    const int cols = qMax(1, m_map.dimensions.x);
-
     // Determine top-left corner from current cell
     auto *cur = m_table->currentItem();
     if (!cur) return;
     int startRow = cur->row();
     int startCol = cur->column();
-    if (startCol >= cols) return;
+    if (!isVisualCell(startRow, startCol)) return;
 
     // Parse clipboard as rows of tab-delimited values
     const QStringList lines = text.split('\n');
     EditBatch batch;
+    bool clamped = false;
     for (int dr = 0; dr < lines.size(); ++dr) {
         int r = startRow + dr;
         if (r > lastDataRow()) break;
         const QStringList vals = lines[dr].split('\t');
         for (int dc = 0; dc < vals.size(); ++dc) {
             int c = startCol + dc;
-            if (c > lastDataCol()) break;
-            bool ok;
-            double v = vals[dc].trimmed().toDouble(&ok);
-            if (!ok) continue;
-            batch.append(writeCell(r, c, v));
+            if (c > lastDataCol() || !isVisualCell(r, c)) break;
+            CodecResult encoded;
+            if (m_displayMode == DisplayMode::RawHex
+                || m_displayMode == DisplayMode::RawDec) {
+                encoded = MapValueCodec::parseRaw(vals[dc], m_map, m_byteOrder,
+                    m_displayMode == DisplayMode::RawHex);
+            } else {
+                bool ok = false;
+                const double value = QLocale::c().toDouble(vals[dc].trimmed(), &ok);
+                if (!ok) continue;
+                encoded = MapValueCodec::physicalToBytes(value, m_map, m_byteOrder);
+            }
+            if (!encoded.isUsable()) continue;
+            clamped |= encoded.needsConfirmation();
+            batch.append(writeCellBytes(r, c, encoded.rawBytes));
         }
     }
 
+    if (!batch.isEmpty() && clamped && QMessageBox::question(
+            this, tr("Clamp pasted cells"),
+            tr("One or more pasted values exceed this cell type's range and will be clamped. Continue?"),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) {
+        return;
+    }
     if (!batch.isEmpty()) {
         commitBatch(batch);
         if (!m_syncProject) rebuildTablePreservingGridState();
@@ -2197,15 +2305,19 @@ void MapOverlay::pasteFromClipboard()
 // ═══════════════════════════════════════════════════════════════════════════════
 // eventFilter — keyboard handling for table and inline editor
 // ═══════════════════════════════════════════════════════════════════════════════
-bool MapOverlay::event(QEvent *event)
+bool MapEditorView::event(QEvent *event)
 {
-    if (event->type() == QEvent::WindowActivate)
+    if (event->type() == QEvent::WindowActivate || event->type() == QEvent::FocusIn)
         emit activated(this);
-    return QDialog::event(event);
+    return QWidget::event(event);
 }
 
-bool MapOverlay::eventFilter(QObject *obj, QEvent *ev)
+bool MapEditorView::eventFilter(QObject *obj, QEvent *ev)
 {
+    if ((obj == m_table || obj == m_table->viewport())
+        && ev->type() == QEvent::FocusIn) {
+        emit activated(this);
+    }
     // QAction shortcuts are resolved before the corresponding KeyPress.  The
     // main window also owns +/- shortcuts, but when the map grid has focus
     // they must belong to this selection, not the waveform/hex dispatcher.
@@ -2220,7 +2332,7 @@ bool MapOverlay::eventFilter(QObject *obj, QEvent *ev)
     }
 
     if (ev->type() != QEvent::KeyPress)
-        return QDialog::eventFilter(obj, ev);
+        return QWidget::eventFilter(obj, ev);
 
     auto *ke = static_cast<QKeyEvent*>(ev);
 
@@ -2378,21 +2490,34 @@ bool MapOverlay::eventFilter(QObject *obj, QEvent *ev)
             return true;
         }
 
-        // ── Any printable character opens the editor pre-seeded ──────────
-        if (!ke->text().isEmpty() && ke->text().at(0).isPrint()
+        // ── Numeric input opens the editor pre-seeded ────────────────────
+        // Arbitrary printable text used to start the editor too, so pressing
+        // a letter could leave an invalid word (for example "hello") on a
+        // calibration cell. Values are numeric; reserve keyboard editing for
+        // a plausible numeric first character and leave other keys untouched.
+        if (!ke->text().isEmpty()
                 && !(ke->modifiers() & (Qt::ControlModifier | Qt::AltModifier))) {
+            const QChar first = ke->text().at(0);
+            const bool rawHex = m_displayMode == DisplayMode::RawHex;
+            const bool startsNumericValue = first.isDigit()
+                || first == QLatin1Char('+') || first == QLatin1Char('-')
+                || first == QLatin1Char('.') || first == QLatin1Char(',');
+            const bool startsHexValue = first.isDigit() || first == QLatin1Char('x')
+                || (first.toLower() >= QLatin1Char('a') && first.toLower() <= QLatin1Char('f'));
+            if (!(rawHex ? startsHexValue : startsNumericValue))
+                return true;
             openInlineEditor(ke->text());
             return true;
         }
     }
 
-    return QDialog::eventFilter(obj, ev);
+    return QWidget::eventFilter(obj, ev);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Undo / Redo
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::undoEdit()
+void MapEditorView::undoEdit()
 {
     if (m_syncProject) {
         cancelInlineEditor();
@@ -2402,14 +2527,10 @@ void MapOverlay::undoEdit()
     if (m_undoStack.isEmpty()) return;
     cancelInlineEditor();
     EditBatch batch = m_undoStack.takeLast();
-    auto *dst = reinterpret_cast<uint8_t*>(m_data.data());
-    const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
     for (const auto &e : batch) {
-        writeRomValue(dst, m_data.size(), e.offset, m_cellSize, cellBO, e.oldRaw);
-        QByteArray patch(m_cellSize, '\0');
-        writeRomValue(reinterpret_cast<uint8_t*>(patch.data()), m_cellSize,
-                      0, m_cellSize, cellBO, e.oldRaw);
-        emit romPatchReady(e.offset, patch);
+        if (int(e.offset) + e.oldBytes.size() > m_data.size()) continue;
+        m_data.replace(int(e.offset), e.oldBytes.size(), e.oldBytes);
+        emit romPatchReady(e.offset, e.oldBytes);
     }
     m_redoStack.append(batch);
     updateUndoRedoButtons();
@@ -2417,7 +2538,7 @@ void MapOverlay::undoEdit()
     emit editBatchDone();
 }
 
-void MapOverlay::redoEdit()
+void MapEditorView::redoEdit()
 {
     if (m_syncProject) {
         cancelInlineEditor();
@@ -2427,14 +2548,10 @@ void MapOverlay::redoEdit()
     if (m_redoStack.isEmpty()) return;
     cancelInlineEditor();
     EditBatch batch = m_redoStack.takeLast();
-    auto *dst = reinterpret_cast<uint8_t*>(m_data.data());
-    const ByteOrder cellBO = cellByteOrder(m_map, m_byteOrder);
     for (const auto &e : batch) {
-        writeRomValue(dst, m_data.size(), e.offset, m_cellSize, cellBO, e.newRaw);
-        QByteArray patch(m_cellSize, '\0');
-        writeRomValue(reinterpret_cast<uint8_t*>(patch.data()), m_cellSize,
-                      0, m_cellSize, cellBO, e.newRaw);
-        emit romPatchReady(e.offset, patch);
+        if (int(e.offset) + e.newBytes.size() > m_data.size()) continue;
+        m_data.replace(int(e.offset), e.newBytes.size(), e.newBytes);
+        emit romPatchReady(e.offset, e.newBytes);
     }
     m_undoStack.append(batch);
     updateUndoRedoButtons();
@@ -2442,7 +2559,7 @@ void MapOverlay::redoEdit()
     emit editBatchDone();
 }
 
-void MapOverlay::pushUndo(const EditBatch &batch)
+void MapEditorView::pushUndo(const EditBatch &batch)
 {
     if (batch.isEmpty()) return;
     m_undoStack.append(batch);
@@ -2450,7 +2567,7 @@ void MapOverlay::pushUndo(const EditBatch &batch)
     updateUndoRedoButtons();
 }
 
-void MapOverlay::updateUndoRedoButtons()
+void MapEditorView::updateUndoRedoButtons()
 {
     if (m_syncProject) {
         m_btnUndo->setEnabled(m_syncProject->canUndoRomEdit());
@@ -2474,13 +2591,12 @@ void MapOverlay::updateUndoRedoButtons()
 // ═══════════════════════════════════════════════════════════════════════════════
 // updateStatusBar
 // ═══════════════════════════════════════════════════════════════════════════════
-void MapOverlay::updateStatusBar()
+void MapEditorView::updateStatusBar()
 {
     if (m_editOpen) {
-        const int cols = qMax(1, m_map.dimensions.x);
         int n = 0;
         for (auto *it : m_table->selectedItems())
-            if (it->column() < cols) ++n;
+            if (isVisualCell(it->row(), it->column())) ++n;
         m_statusBar->setText(
             n > 1
             ? tr("Editing  —  value will be written to %1 selected cells  ·  Enter confirm  ·  Tab next column  ·  ↑↓ next row  ·  Esc cancel").arg(n)
@@ -2488,16 +2604,15 @@ void MapOverlay::updateStatusBar()
         return;
     }
 
-    const int cols = qMax(1, m_map.dimensions.x);
     int n = 0;
     for (auto *it : m_table->selectedItems())
-        if (it->column() < cols) ++n;
+        if (isVisualCell(it->row(), it->column())) ++n;
 
     if (n == 0) {
         m_statusBar->setText(tr("Click a cell to select  ·  Shift+click or Ctrl+click for multi-select  ·  Enter or type to edit"));
     } else if (n == 1) {
         auto *it = m_table->currentItem();
-        if (it && it->column() < cols)
+        if (it && isVisualCell(it->row(), it->column()))
             m_statusBar->setText(tr("1 cell selected  [row %1, col %2]  ·  Enter or type to edit  ·  Ctrl+Z undo")
                 .arg(it->row()).arg(it->column()));
     } else {

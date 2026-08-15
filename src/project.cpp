@@ -263,7 +263,7 @@ static void cborWriteCompuMethodFull(QCborStreamWriter &w, const CompuMethod &cm
 
 static void cborWriteAxisInfoFull(QCborStreamWriter &w, const AxisInfo &ax)
 {
-    w.startMap(9);
+    w.startMap(11);
     w.append(QLatin1String("inputName"));    w.append(ax.inputName);
     w.append(QLatin1String("hasScaling"));   w.append(ax.hasScaling);
     w.append(QLatin1String("scaling"));      cborWriteCompuMethodFull(w, ax.scaling);
@@ -272,6 +272,8 @@ static void cborWriteAxisInfoFull(QCborStreamWriter &w, const AxisInfo &ax)
     w.append(QLatin1String("ptsCount"));     w.append(ax.ptsCount);
     w.append(QLatin1String("ptsDSize"));     w.append(ax.ptsDataSize);
     w.append(QLatin1String("ptsSigned"));    w.append(ax.ptsSigned);
+    w.append(QLatin1String("ptsDType"));     w.append(static_cast<qint64>(ax.ptsDataType));
+    w.append(QLatin1String("ptsBigEndian")); w.append(ax.ptsBigEndian);
     w.append(QLatin1String("fixedValues"));
     w.startArray(static_cast<quint64>(ax.fixedValues.size()));
     for (double v : ax.fixedValues)
@@ -282,7 +284,7 @@ static void cborWriteAxisInfoFull(QCborStreamWriter &w, const AxisInfo &ax)
 
 static void cborWriteMapInfo(QCborStreamWriter &w, const MapInfo &m)
 {
-    w.startMap(20);
+    w.startMap(22);
     w.append(QLatin1String("name"));        w.append(m.name);
     w.append(QLatin1String("id"));          w.append(m.id);
     w.append(QLatin1String("desc"));        w.append(m.description);
@@ -294,6 +296,8 @@ static void cborWriteMapInfo(QCborStreamWriter &w, const MapInfo &m)
     w.append(QLatin1String("dy"));          w.append(m.dimensions.y);
     w.append(QLatin1String("dsize"));       w.append(m.dataSize);
     w.append(QLatin1String("dataSigned"));  w.append(m.dataSigned);
+    w.append(QLatin1String("cellDType"));   w.append(static_cast<qint64>(m.cellDataType));
+    w.append(QLatin1String("cellBigEndian")); w.append(m.cellBigEndian);
     w.append(QLatin1String("hasScaling"));  w.append(m.hasScaling);
     w.append(QLatin1String("scaling"));     cborWriteCompuMethodFull(w, m.scaling);
     w.append(QLatin1String("xAxis"));       cborWriteAxisInfoFull(w, m.xAxis);
@@ -816,6 +820,8 @@ static AxisInfo decodeAxisInfo(const QCborMap &m)
     ax.ptsCount     = static_cast<int>(m[QLatin1String("ptsCount")].toInteger());
     ax.ptsDataSize  = static_cast<int>(m[QLatin1String("ptsDSize")].toInteger(2));
     ax.ptsSigned    = m[QLatin1String("ptsSigned")].toBool();
+    ax.ptsDataType  = static_cast<uint32_t>(m[QLatin1String("ptsDType")].toInteger());
+    ax.ptsBigEndian = m[QLatin1String("ptsBigEndian")].toBool();
 
     const QCborArray fv = m[QLatin1String("fixedValues")].toArray();
     for (const auto &v : fv)
@@ -838,6 +844,8 @@ static MapInfo decodeMapInfo(const QCborMap &m)
                           static_cast<int>(m[QLatin1String("dy")].toInteger(1)) };
     mi.dataSize       = static_cast<int>(m[QLatin1String("dsize")].toInteger(2));
     mi.dataSigned     = m[QLatin1String("dataSigned")].toBool();
+    mi.cellDataType   = static_cast<uint32_t>(m[QLatin1String("cellDType")].toInteger());
+    mi.cellBigEndian  = m[QLatin1String("cellBigEndian")].toBool();
     mi.hasScaling     = m[QLatin1String("hasScaling")].toBool();
     mi.scaling        = decodeCompuMethod(m[QLatin1String("scaling")].toMap());
     mi.xAxis          = decodeAxisInfo(m[QLatin1String("xAxis")].toMap());
@@ -1211,6 +1219,9 @@ static QJsonObject saveAxisInfo(const AxisInfo &ax)
     o["ptsAddr"]      = QString("0x%1").arg(ax.ptsAddress, 0, 16);
     o["ptsCount"]     = ax.ptsCount;
     o["ptsDSize"]     = ax.ptsDataSize;
+    o["ptsSigned"]    = ax.ptsSigned;
+    o["ptsDType"]     = static_cast<int>(ax.ptsDataType);
+    o["ptsBigEndian"] = ax.ptsBigEndian;
     QJsonArray fv;
     for (double v : ax.fixedValues) fv.append(v);
     o["fixedValues"]  = fv;
@@ -1227,6 +1238,9 @@ static AxisInfo loadAxisInfo(const QJsonObject &o)
     ax.ptsAddress   = o["ptsAddr"].toString().toUInt(nullptr, 0);
     ax.ptsCount     = o["ptsCount"].toInt();
     ax.ptsDataSize  = o["ptsDSize"].toInt(2);
+    ax.ptsSigned    = o["ptsSigned"].toBool(false);
+    ax.ptsDataType  = static_cast<uint32_t>(o["ptsDType"].toInt());
+    ax.ptsBigEndian = o["ptsBigEndian"].toBool(false);
     for (const auto &v : o["fixedValues"].toArray())
         ax.fixedValues.append(v.toDouble());
     return ax;
@@ -1243,6 +1257,8 @@ static QJsonObject saveMapInfo(const MapInfo &m)
     o["raw"]        = QString("0x%1").arg(m.rawAddress, 0, 16);
     o["len"]        = m.length;
     o["dsize"]      = m.dataSize;
+    o["cellDType"]  = static_cast<int>(m.cellDataType);
+    o["cellBigEndian"] = m.cellBigEndian;
     o["dx"]         = m.dimensions.x;
     o["dy"]         = m.dimensions.y;
     o["dataOff"]    = (int)m.mapDataOffset;
@@ -1272,6 +1288,8 @@ static MapInfo loadMapInfo(const QJsonObject &o)
     m.rawAddress     = o["raw"].toString().toUInt(nullptr, 0);
     m.length         = o["len"].toInt();
     m.dataSize       = o["dsize"].toInt(2);
+    m.cellDataType   = static_cast<uint32_t>(o["cellDType"].toInt());
+    m.cellBigEndian  = o["cellBigEndian"].toBool(false);
     m.dimensions     = { o["dx"].toInt(1), o["dy"].toInt(1) };
     m.mapDataOffset  = (uint32_t)o["dataOff"].toInt(0);
     m.hasScaling     = o["hasScaling"].toBool();

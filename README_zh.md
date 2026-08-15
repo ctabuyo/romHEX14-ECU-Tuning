@@ -106,6 +106,13 @@
 | Qt | 6.5（Core、Gui、Widgets、Concurrent、Network、LinguistTools） |
 | C++编译器 | 需要C++17支持 |
 | zlib | 任意版本 |
+| Qt Advanced Docking System | 5.0.0 — 由 CMake 自动获取 |
+
+### 工作区依赖
+
+romHEX 使用 [Qt Advanced Docking System](https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System)
+实现可标签化、分割、浮动和重新停靠的十六进制及地图编辑器窗口。首次配置时，CMake
+会获取固定的 ADS 5.0.0 发布提交；无需检出子模块。
 
 ### 快速构建
 
@@ -160,6 +167,7 @@ romHEX14-community/
 ├── resources/           图标、样式表、Qt资源文件
 ├── translations/        Qt Linguist翻译文件
 ├── third_party/blake3/  BLAKE3哈希库（可移植C实现）
+├── build/_deps/         CMake 获取的构建依赖（自动生成）
 ├── docs/                文档源文件
 └── CMakeLists.txt       构建配置
 ```

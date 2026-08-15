@@ -252,7 +252,6 @@ ProjectView::ProjectView(QWidget *parent)
     connect(s2, &QShortcut::activated, this, [this]() { switchView(1); });
     auto *s3 = new QShortcut(QKeySequence(tr("Ctrl+3")), this);
     connect(s3, &QShortcut::activated, this, [this]() { switchView(2); });
-
     // ── Escape: clear selection in active view ───────────────────────
     auto *sEsc = new QShortcut(QKeySequence(Qt::Key_Escape), this);
     connect(sEsc, &QShortcut::activated, this, [this]() {

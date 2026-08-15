@@ -11,7 +11,7 @@ Everything in romHEX 14 lives inside a **project**, which stores your ROM, its m
 3. romHEX 14 inspects the file and pre-fills what it can — the ECU type is auto-detected from the ROM bytes, and the software number is scanned from the first 64 KB. Review and complete the **Vehicle / ECU Information** fields (Brand, Model, Engine, ECU Type, and so on). All fields are optional and editable.
 4. Click **Create Project**. The button stays disabled until a ROM file is selected.
 
-The project opens in its own window inside the main workspace, and — unless you turned it off — a background scan begins looking for maps in the ROM (watch the amber "Scanning ROM for maps…" indicator in the status bar).
+The project opens as a Hex document in the main workspace, and — unless you turned it off — a background scan begins looking for maps in the ROM (watch the amber "Scanning ROM for maps…" indicator in the status bar). Hex and map documents can be tabbed, split, floated, and re-docked.
 
 ## Step 2 — Import an A2L + HEX
 

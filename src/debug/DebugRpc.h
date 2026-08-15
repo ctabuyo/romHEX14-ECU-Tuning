@@ -77,5 +77,4 @@ private:
     quint16     m_port   = 0;
     QHash<QTcpSocket *, QByteArray> m_buffers;
 };
-
 #endif // RX14_DEBUG_RPC

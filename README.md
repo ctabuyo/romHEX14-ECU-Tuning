@@ -106,6 +106,14 @@
 | Qt | 6.5 (Core, Gui, Widgets, Concurrent, Network, LinguistTools) |
 | C++ compiler | C++17 required |
 | zlib | Any |
+| Qt Advanced Docking System | 5.0.0 — fetched automatically by CMake |
+
+### Workspace dependency
+
+romHEX uses [Qt Advanced Docking System](https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System)
+for tabbed, split, floating, and re-dockable Hex and map-editor windows. CMake
+fetches the exact ADS 5.0.0 release commit on the first configure; no submodule
+checkout is required.
 
 ### Quick Build
 
@@ -160,6 +168,7 @@ romHEX14-community/
 ├── resources/           Icons, stylesheets, Qt resources
 ├── translations/        Qt Linguist translation files
 ├── third_party/blake3/  BLAKE3 hash library (portable C)
+├── build/_deps/         CMake-fetched build dependencies (generated)
 ├── docs/                Documentation source
 └── CMakeLists.txt       Build configuration
 ```
