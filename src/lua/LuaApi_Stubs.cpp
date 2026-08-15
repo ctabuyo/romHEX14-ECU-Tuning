@@ -34,8 +34,6 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QRegularExpression>
-#include <QMdiArea>
-#include <QMdiSubWindow>
 #include <QCryptographicHash>
 
 namespace lua {
@@ -1069,20 +1067,12 @@ void bindStubApi(sol::state &L, LuaEngine *engine)
         });
     });
 
-    // ── §5.4 Window context — REAL via QMdiArea ──
+    // ── §5.4 Window context — Hex docks in the unified workspace ──
     L.set_function("windowGetActive", [engine]() -> qint64 {
         return engine->callOnGui([&]() -> qint64 {
         if (!engine || !engine->mainWindow()) return 0;
-        // Walk subWindowList for a stable session-local index (1-based).
-        // QMdiArea::activeSubWindow() returns the focused child.
-        QMdiArea *mdi = engine->mainWindow()->findChild<QMdiArea *>();
-        if (!mdi) return 0;
-        auto *active = mdi->activeSubWindow();
-        if (!active) return 0;
-        const auto list = mdi->subWindowList();
-        for (int i = 0; i < list.size(); ++i)
-            if (list[i] == active) return qint64(i + 1);
-        return 0;
+        const int index = engine->mainWindow()->luaActiveWindowIndex();
+        return index >= 0 ? qint64(index + 1) : 0;
         });
     });
     L.set_function("windowSetActive", [engine](qint64 id) -> bool {
@@ -1091,17 +1081,13 @@ void bindStubApi(sol::state &L, LuaEngine *engine)
             if (engine) engine->setLastError("no main window");
             return false;
         }
-        QMdiArea *mdi = engine->mainWindow()->findChild<QMdiArea *>();
-        if (!mdi) { engine->setLastError("no MDI area"); return false; }
-        const auto list = mdi->subWindowList();
         int idx = int(id) - 1;
-        if (idx < 0 || idx >= list.size()) {
+        if (idx < 0 || idx >= engine->mainWindow()->luaWindowCount()) {
             engine->setLastError(QStringLiteral(
                 "windowSetActive: index %1 out of range").arg(id));
             return false;
         }
-        mdi->setActiveSubWindow(list[idx]);
-        return true;
+        return engine->mainWindow()->luaActivateWindow(idx);
         });
     });
     // Iter 10.7: map selector helper used by both window*MapProperties

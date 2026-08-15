@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <QDialog>
+#include <QWidget>
 #include <QComboBox>
 #include <QLineEdit>
 #include <QToolButton>
@@ -22,21 +22,24 @@
 #include "map3dwidget.h"
 #include "map3dsimwidget.h"
 
-class WaveformEditor;
 class Project;
 
 struct CellEdit {
-    uint32_t offset;
-    uint32_t oldRaw;
-    uint32_t newRaw;
+    uint32_t offset = 0;
+    QByteArray oldBytes;
+    QByteArray newBytes;
 };
 using EditBatch = QVector<CellEdit>;
 
-class MapOverlay : public QDialog {
+// The editor content intentionally has no window policy of its own.  A
+// QDockWidget (or another host) decides whether it is docked, tabified,
+// split, or floating; this avoids the modal/focus behaviour of the former
+// QDialog-based map overlay.
+class MapEditorView : public QWidget {
     Q_OBJECT
 
 public:
-    explicit MapOverlay(QWidget *parent = nullptr);
+    explicit MapEditorView(QWidget *parent = nullptr);
 
     void showMap(const QByteArray &romData,
                  const MapInfo   &map,
@@ -47,16 +50,28 @@ public:
     void retranslateUi();
     bool displaysMap(const MapInfo &map) const;
     Project *targetProject() const { return m_syncProject; }
+    // Called by the ADS workspace host after selecting this editor tab.
+    void focusEditor();
+
+    // Entry point for the application's Edit menu. It uses the grid selection
+    // and the same WinOLS-compatible quantisation path as a +/- key press.
+    // Returning true prevents a selected but saturated cell from falling
+    // through to MainWindow's whole-map fallback.
+    bool incrementGridSelectionFromMenu(int delta);
 
     Q_SLOT void previewScalingFormat(const QString &format);
     void previewMapUpdate(const MapInfo &preview);
 
-    // Share the owning ProjectView's editor so this dialog's edits land on
-    // the SAME undo stack as the hex / waveform / 3D views (and vice-versa).
-    // Passing nullptr reverts to the dialog-local undo stack (standalone use).
-    void setSharedEditor(WaveformEditor *editor, Project *project);
+    // Bind to the project-owned ROM document. Passing nullptr reverts to the
+    // dialog-local data/undo stack (standalone use).
+    void setProject(Project *project);
 
 signals:
+    void activated(MapEditorView *editor);
+    // The ADS host owns the lifetime; the editor only requests closure.
+    void closeRequested();
+    void floatToggleRequested();
+    void redockRequested();
     void romPatchReady(uint32_t offset, QByteArray bytes);
     void editBatchDone();
     void addressCorrected(const QString &mapName, uint32_t newAddress);
@@ -67,6 +82,7 @@ signals:
     void editOpRequested(int opCode);
 
 protected:
+    bool event(QEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *ev) override;
 
 private slots:
@@ -79,15 +95,21 @@ private slots:
 private:
     // Grid display mode — plain values, or numeric difference vs the
     // original ROM (absolute delta or percentage).
-    enum class DisplayMode { Values = 0, DeltaAbs = 1, DeltaPct = 2 };
+    enum class DisplayMode { Values = 0, RawHex = 1, RawDec = 2,
+                             DeltaAbs = 3, DeltaPct = 4 };
 
-    void autoResize();
     CellEdit writeCell(int row, int col, double newPhys);
+    CellEdit writeCellBytes(int row, int col, const QByteArray &newBytes);
+    // Write an already quantized storage value.  This is used by keyboard
+    // stepping after it has selected the correct neighbouring raw count.
+    CellEdit writeRawCell(int row, int col, uint32_t newRaw);
     // Commit a batch of cell edits as ONE undo step — routed to the shared
-    // editor when one is set, otherwise to the dialog-local undo stack.
+    // project document when one is set, otherwise to the dialog-local stack.
     void commitBatch(const EditBatch &batch);
-    // Reload m_data from the shared project after an external edit/undo.
+    // Reload m_data from the shared project after an external edit/undo while
+    // retaining the grid selection and current cell.
     void reloadFromProject();
+    void rebuildTablePreservingGridState();
     // Current physical value of one cell (respects scaling/sign/byte order).
     double cellPhys(int row, int col) const;
     // True when the grid is a read-only view (showing original, or a
@@ -114,6 +136,9 @@ private:
     void deleteSelectedCells();
     void copySelectionToClipboard();
     void pasteFromClipboard();
+    int displayColumns() const;
+    bool isVisualCell(int row, int col) const;
+    uint32_t visualCellOffset(int row, int col) const;
 
     // ── Data ────────────────────────────────────────────────────────────────
     QByteArray m_data;
@@ -127,14 +152,13 @@ private:
     bool       m_heatEnabled     = true;
     int        m_fontSize        = 9;
     DisplayMode m_displayMode    = DisplayMode::Values;
+    int        m_displayColumns  = 0; // 0 = native X dimension; never serialized into MapInfo
 
     QVector<EditBatch> m_undoStack;
     QVector<EditBatch> m_redoStack;
 
-    // Shared-undo wiring (null when running standalone → local stack used)
-    WaveformEditor *m_undoEditor    = nullptr;
-    Project        *m_syncProject   = nullptr;
-    bool            m_committingSelf = false;   // guards reload re-entrancy
+    // Project document (null when running standalone → local stack used).
+    Project *m_syncProject = nullptr;
 
     // Inline editor state
     bool m_editOpen = false;
@@ -155,6 +179,7 @@ private:
     QPushButton *m_btnTranslate   = nullptr;
     QPushButton *m_btnAIExplain  = nullptr;
     QSpinBox    *m_fontSpin       = nullptr;
+    QSpinBox    *m_displayColumnsSpin = nullptr;
 
     // Operation bar
     QWidget     *m_opBarWidget = nullptr; // entire operation bar row

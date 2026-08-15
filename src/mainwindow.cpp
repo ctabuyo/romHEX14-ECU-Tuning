@@ -23,6 +23,9 @@
 #include "savepoints/SavepointsPanel.h"
 #include "debug/DebugLog.h"
 #include <QDockWidget>
+#include "DockManager.h"
+#include "DockWidget.h"
+#include "DockAreaWidget.h"
 #include <QElapsedTimer>
 #include <QScrollBar>
 #ifdef RX14_DEBUG_RPC
@@ -126,6 +129,7 @@
 #include <QLocale>
 #include <QDateTime>
 #include <QScrollArea>
+#include <QSignalBlocker>
 #include <QGraphicsDropShadowEffect>
 #include <QRadialGradient>
 #include <QLinearGradient>
@@ -134,6 +138,35 @@
 #include <numeric>
 
 static const int kTreeFolderRole = Qt::UserRole + 5;
+
+// ADS persists a layout by dock object name. QObject addresses are only valid
+// for one process, so derive names from project/map identities that survive a
+// normal close and re-open instead.
+static QString workspaceProjectKey(const Project *project)
+{
+    if (!project)
+        return QStringLiteral("no-project");
+
+    QFileInfo projectFile(project->filePath);
+    const QString identity = !project->filePath.isEmpty()
+        ? (projectFile.canonicalFilePath().isEmpty()
+               ? projectFile.absoluteFilePath()
+               : projectFile.canonicalFilePath())
+        : QStringLiteral("%1|%2")
+              .arg(project->name,
+                   project->createdAt.toString(Qt::ISODateWithMs));
+    const QByteArray digest = QCryptographicHash::hash(
+        identity.toUtf8(), QCryptographicHash::Sha256).toHex();
+    return QString::fromLatin1(digest.left(16));
+}
+
+static QString mapTreeKey(const Project *project, const MapInfo &map)
+{
+    return QStringLiteral("%1:%2:%3")
+        .arg(workspaceProjectKey(project))
+        .arg(map.cellDataStart(), 0, 16)
+        .arg(map.id.isEmpty() ? map.name : map.id);
+}
 
 // ── Icon factory ──────────────────────────────────────────────────────────────
 // Creates a 22×22 icon by rendering a short symbol string in the given colour.
@@ -289,25 +322,64 @@ static QString fmtSize(qint64 b)
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    // Keep the application side panels flexible. Document docking itself is
+    // handled by the ADS workspace below.
+    setDockOptions(dockOptions() | QMainWindow::AllowNestedDocks
+                   | QMainWindow::AllowTabbedDocks
+                   | QMainWindow::GroupedDragging);
     setAcceptDrops(true);
 
     m_parser  = new A2LParser(this);
 
-    // ── Central: left panel | MDI ─────────────────────────────────────
+    // ── Central: left panel | unified document dock host ───────────────
     m_mainSplitter = new QSplitter(Qt::Horizontal);
     m_mainSplitter->setHandleWidth(3);
 
     buildLeftPanel();
     m_mainSplitter->addWidget(m_leftPanel);
 
-    m_mdi = new QMdiArea();
-    m_mdi->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_mdi->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_mdi->setBackground(QBrush(QColor(0x08, 0x0b, 0x10)));
-    m_mainSplitter->addWidget(m_mdi);
+    // ADS gives document windows proper tab/split/float/re-dock behaviour
+    // without reserving geometry for an inert central widget.
+#ifdef Q_OS_MACOS
+    // macOS compositing handles live (opaque) undocking poorly — flicker and
+    // stuck drags when a panel is torn out. Use the non-opaque drag preview.
+    ads::CDockManager::setConfigFlags(
+        ads::CDockManager::DefaultNonOpaqueConfig
+        | ads::CDockManager::AllTabsHaveCloseButton
+        | ads::CDockManager::FocusHighlighting);
+#else
+    ads::CDockManager::setConfigFlags(
+        ads::CDockManager::DefaultOpaqueConfig
+        | ads::CDockManager::AllTabsHaveCloseButton
+        | ads::CDockManager::FocusHighlighting);
+#endif
+    m_dockManager = new ads::CDockManager();
+    m_dockManager->setObjectName(QStringLiteral("workspaceDockManager"));
+    m_dockManager->setColorSchemeMode(ads::CDockManager::ColorSchemeMode::Dark);
+    // ADS's default_dark.css paints the active tab with a palette(window)->palette(dark)
+    // gradient; this app themes via stylesheet so its QPalette stays light and that
+    // gradient renders white->grey. Flatten the dock chrome with explicit dark colors.
+    m_dockManager->setStyleSheet(m_dockManager->styleSheet() + QStringLiteral(
+        "\nads--CDockWidgetTab { background:#0d1117; border-right:1px solid #21262d; }"
+        "\nads--CDockWidgetTab[activeTab=\"true\"] { background:#161b22; }"
+        "\nads--CDockWidgetTab QLabel { color:#7d8590; }"
+        "\nads--CDockWidgetTab[activeTab=\"true\"] QLabel { color:#e7eefc; }"
+        "\nads--CDockAreaTitleBar { background:#0d1117; border-bottom:1px solid #21262d; }"
+        "\nads--CDockWidget { background:#0d1117; border-top:1px solid #21262d; }"
+        "\nads--CDockContainerWidget { background:#0d1117; }"
+        "\nads--CDockAreaWidget { background:#0d1117; }"));
+    connect(m_dockManager, &ads::CDockManager::focusedDockWidgetChanged, this,
+            [this](ads::CDockWidget *, ads::CDockWidget *current) {
+        if (!current)
+            return;
+        m_activeWorkspaceDock = current;
+        onWorkspaceDockActivated();
+        updateMapTreeEditorAccents();
+    });
+    m_mainSplitter->addWidget(m_dockManager);
 
     // Sprint L Iter 1 — initialize embedded Lua engine.
-    // Safe to call here: MDI exists, MainWindow itself is `this`.
+    // Safe to call here: the workspace host exists, MainWindow itself is `this`.
     lua::LuaEngine::instance().initialize(this);
 
     // Lua scripts run on a worker thread; keep destructive project UI gated
@@ -338,16 +410,10 @@ MainWindow::MainWindow(QWidget *parent)
     m_mainSplitter->setSizes({360, 1040, 0});
 
     connect(m_aiAssistant, &AIAssistant::projectModified, this, [this]() {
-        // Don't gate refresh on activeProject(): when the AI panel has focus,
-        // QMdiArea::activeSubWindow() returns null and the modified-map filter
-        // was silently keeping its stale UserRole+3 values. Refresh the tree
-        // unconditionally and nudge every open project view so each one recomputes
-        // its per-map "changed" state against originalData.
-        for (auto *sw : m_mdi->subWindowList()) {
-            if (auto *pv = qobject_cast<ProjectView *>(sw->widget()))
-                if (auto *p = pv->project())
-                    emit p->dataChanged();
-        }
+        // A dock/menu may own focus, so refresh every live project view rather
+        // than relying on the currently active dock.
+        for (auto *pv : projectViews())
+            if (auto *p = pv->project()) emit p->dataChanged();
         refreshProjectTree();
     });
 
@@ -362,9 +428,6 @@ MainWindow::MainWindow(QWidget *parent)
             m_menuMisc->addAction(m_actPreferences);
         }
     });
-
-    connect(m_mdi, &QMdiArea::subWindowActivated,
-            this,  &MainWindow::onSubWindowActivated);
 
     connect(m_parser, &A2LParser::progress, this, [this](const QString &msg, int pct) {
         statusBar()->showMessage(
@@ -437,13 +500,11 @@ MainWindow::MainWindow(QWidget *parent)
             m_centralStack->insertWidget(0, m_welcomePage);
             m_centralStack->setCurrentIndex(prevIdx);
         }
-        // Close and reopen all MDI subwindows so they reconstruct
-        // with fresh AppConfig color reads
-        QList<QMdiSubWindow*> subs = m_mdi->subWindowList();
-        for (auto *sub : subs) {
-            if (sub->widget())
-                sub->widget()->update();
-            for (auto *child : sub->widget()->findChildren<QWidget*>())
+        // Refresh every document dock and its descendants with the new palette.
+        for (const auto &record : std::as_const(m_workspaceViews)) {
+            if (!record.content) continue;
+            record.content->update();
+            for (auto *child : record.content->findChildren<QWidget*>())
                 child->update();
         }
     });
@@ -510,7 +571,7 @@ MainWindow::MainWindow(QWidget *parent)
     cwLay->setSpacing(0);
     cwLay->addWidget(m_updateBar);
 
-    // Stack: [0] welcome page, [1] MDI workspace with sidebars
+    // Stack: [0] welcome page, [1] unified document workspace with sidebars
     m_centralStack = new QStackedWidget();
     buildWelcomePage();
     m_centralStack->addWidget(m_welcomePage);  // page 0
@@ -858,8 +919,8 @@ void MainWindow::loadLanguage(const QString &lang)
     qApp->removeTranslator(&m_qtTr);
     qApp->removeTranslator(&m_appTr);
 
-    m_qtTr.load("qt_" + lang,
-                QLibraryInfo::path(QLibraryInfo::TranslationsPath));
+    const bool qtOk = m_qtTr.load("qt_" + lang,
+                                  QLibraryInfo::path(QLibraryInfo::TranslationsPath));
     // Try resource first, then filesystem next to exe, then source dir
     bool appOk = m_appTr.load(":/i18n/rx14_" + lang + ".qm");
     if (!appOk) {
@@ -870,7 +931,8 @@ void MainWindow::loadLanguage(const QString &lang)
         appOk = m_appTr.load(QCoreApplication::applicationDirPath()
                              + "/../../translations/rx14_" + lang + ".qm");
     }
-    qWarning() << "loadLanguage:" << lang << "loaded:" << appOk;
+    qWarning() << "loadLanguage:" << lang
+               << "app loaded:" << appOk << "Qt loaded:" << qtOk;
 
     qApp->installTranslator(&m_qtTr);
     qApp->installTranslator(&m_appTr);
@@ -879,13 +941,10 @@ void MainWindow::loadLanguage(const QString &lang)
 
     retranslateUi();
 
-    // Also retranslate any open ProjectViews
-    for (auto *sw : m_mdi->subWindowList()) {
-        if (auto *pv = qobject_cast<ProjectView *>(sw->widget()))
-            pv->retranslateUi();
-    }
-    for (auto &ov : std::as_const(m_overlays))
-        if (ov) ov->retranslateUi();
+    // Also retranslate any open ProjectViews.
+    for (auto *pv : projectViews()) pv->retranslateUi();
+    for (auto *editor : mapEditorViews())
+        editor->retranslateUi();
     if (m_accountWidget)
         m_accountWidget->retranslateUi();
     if (m_aiAssistant)
@@ -1505,38 +1564,40 @@ void MainWindow::buildLeftPanel()
     // Single-click on a map leaf → select its byte range in the hex viewer.
     connect(m_projectTree, &QTreeWidget::itemClicked,
             this,          &MainWindow::onTreeItemClicked);
+    // Arrow-key navigation changes the current item but does not emit
+    // itemClicked.  Keep keyboard and mouse map navigation identical.
+    connect(m_projectTree, &QTreeWidget::currentItemChanged,
+            this, [this](QTreeWidgetItem *current, QTreeWidgetItem *) {
+        if (current && current->data(0, Qt::UserRole + 2).isValid())
+            activateTreeMapItem(current);
+    });
 
-    // Double-click handling
-    connect(m_projectTree, &QTreeWidget::itemDoubleClicked,
+    // Item activation is emitted for both double-click and Enter.  Keeping
+    // one path ensures keyboard and mouse open the same project-backed map
+    // viewer window without duplicating the activation on a double-click.
+    connect(m_projectTree, &QTreeWidget::itemActivated,
             this, [this](QTreeWidgetItem *item, int col) {
         Q_UNUSED(col);
 
-        // Project root → collapse/expand only if its window is currently visible
+        // Project root → restore/focus its Hex workspace. Expansion remains
+        // available through the disclosure arrow; activation is document
+        // navigation, matching WinOLS' one-click project-frame reopening.
         auto projRootVar = item->data(0, Qt::UserRole);
         auto mapVar      = item->data(0, Qt::UserRole + 2);
         if (projRootVar.isValid() && !mapVar.isValid()) {
             auto *proj = static_cast<Project *>(projRootVar.value<void *>());
-            if (!proj) return;
-            bool windowOpen = false;
-            for (auto *sub : m_mdi->subWindowList()) {
-                auto *pv = qobject_cast<ProjectView *>(sub->widget());
-                if (pv && pv->project() == proj && sub->isVisible()) {
-                    windowOpen = true; break;
-                }
-            }
-            if (windowOpen)
-                item->setExpanded(!item->isExpanded());
+            if (proj) openProject(proj);
             return;
         }
 
-        // Map leaf → open a new editable map window. Single-click has already
-        // selected the corresponding byte range in the hex viewer.
+        // Map leaf → open a new editable map window.
         if (!mapVar.isValid()) return;
         auto map = mapVar.value<MapInfo>();
         auto *proj = static_cast<Project*>(item->data(0, Qt::UserRole + 1).value<void*>());
         if (!proj) return;
-        openProject(proj);
-        if (auto *pv = activeView()) pv->showMap(map);
+        if (hasVisibleProjectView(proj)) {
+            if (auto *pv = activeView()) pv->showMap(map);
+        }
         onMapActivated(map, proj);
         openMapViewer(proj, map);
     });
@@ -1837,20 +1898,14 @@ void MainWindow::buildLeftPanel()
         if (actCloseMapViews && chosen == actCloseMapViews && menuMapProject) {
             QSet<Project *> projects;
             for (const auto &entry : selectedMapEntries) projects.insert(entry.project);
-            for (auto ov : m_overlays)
-                if (ov && projects.contains(ov->targetProject())) ov->close();
-            m_overlays.removeAll(QPointer<MapOverlay>());
+            for (Project *project : projects)
+                closeMapEditors(project);
             return;
         }
 
         if (actCloseSelectedMapViews && chosen == actCloseSelectedMapViews) {
-            for (const auto &entry : selectedMapEntries) {
-                for (auto ov : m_overlays) {
-                    if (ov && ov->targetProject() == entry.project
-                        && ov->displaysMap(entry.map)) ov->close();
-                }
-            }
-            m_overlays.removeAll(QPointer<MapOverlay>());
+            for (const auto &entry : selectedMapEntries)
+                closeMapEditors(entry.project, &entry.map);
             return;
         }
 
@@ -2001,8 +2056,8 @@ void MainWindow::buildLeftPanel()
             MapPropertiesDialog dlg(map, proj->byteOrder, this);
 
             // Live preview: update overlay display & project tree as properties change
-            MapOverlay *targetOv = nullptr;
-            for (auto ov : m_overlays) {
+            MapEditorView *targetOv = nullptr;
+            for (auto *ov : mapEditorViews(proj)) {
                 if (ov && ov->displaysMap(map)) {
                     targetOv = ov;
                     break;
@@ -2015,6 +2070,7 @@ void MainWindow::buildLeftPanel()
                 const auto it = std::find(proj->maps.begin(), proj->maps.end(), map);
                 if (it != proj->maps.end()) {
                     *it = preview;
+                    updateMapEditorKey(proj, targetOv, *it);
                     refreshProjectTreeNow();
                 }
             });
@@ -2024,6 +2080,7 @@ void MainWindow::buildLeftPanel()
                 const auto it = std::find(proj->maps.begin(), proj->maps.end(), map);
                 if (it != proj->maps.end()) {
                     *it = savedMap;
+                    updateMapEditorKey(proj, targetOv, *it);
                     refreshProjectTreeNow();
                 }
                 if (targetOv) targetOv->previewMapUpdate(savedMap);
@@ -2035,6 +2092,7 @@ void MainWindow::buildLeftPanel()
             MapInfo updated = dlg.result();
             updated.cellBigEndian = dlg.byteOrder() == ByteOrder::BigEndian;
             *it = updated;
+            updateMapEditorKey(proj, targetOv, *it);
             proj->modified = true;
             emit proj->dataChanged();
             refreshProjectTreeNow();
@@ -2055,9 +2113,7 @@ void MainWindow::buildLeftPanel()
 
             QSet<Project *> changedProjects;
             for (const auto &entry : selectedMapEntries) {
-                for (auto ov : m_overlays)
-                    if (ov && ov->targetProject() == entry.project
-                        && ov->displaysMap(entry.map)) ov->close();
+                closeMapEditors(entry.project, &entry.map);
                 const auto it = std::find(entry.project->maps.begin(),
                     entry.project->maps.end(), entry.map);
                 if (it == entry.project->maps.end()) continue;
@@ -2065,7 +2121,6 @@ void MainWindow::buildLeftPanel()
                 entry.project->modified = true;
                 changedProjects.insert(entry.project);
             }
-            m_overlays.removeAll(QPointer<MapOverlay>());
             for (Project *project : changedProjects)
                 emit project->dataChanged();
             refreshProjectTree();
@@ -2101,7 +2156,7 @@ void MainWindow::buildLeftPanel()
                     if (v.name == oldName) v.name = newName;
                 emit renameTarget->versionsChanged();
             }
-            emit renameTarget->dataChanged();   // triggers MDI title + tree refresh
+            emit renameTarget->dataChanged();   // refreshes document title + tree
             refreshProjectTree();
             return;
         }
@@ -2443,9 +2498,26 @@ void MainWindow::buildActions()
     m_actPatchEditor->setToolTip(tr("Open a .rxpatch script file in the patch editor"));
 
     // Window
-    m_actTile    = new QAction(tr("Tile Windows"),      this);
-    m_actCascade = new QAction(tr("Cascade Windows"),   this);
-    m_actCompare = new QAction(tr("Compare Projects…"), this);
+    m_actTile        = new QAction(tr("Restore Workspace Layout"), this);
+    m_actCascade     = new QAction(tr("Save Workspace Layout…"),   this);
+    m_actCompare     = new QAction(tr("Compare Projects…"), this);
+    m_actFloatWindow = new QAction(tr("Float / Re-dock Active Window"), this);
+    m_actLoadWorkspaceLayout = new QAction(tr("Load Workspace Layout…"), this);
+    m_actTile->setShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F4));
+    m_actCascade->setShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F5));
+    m_actFloatWindow->setShortcut(QKeySequence(Qt::ALT | Qt::Key_F5));
+    m_actTile->setShortcutContext(Qt::ApplicationShortcut);
+    m_actCascade->setShortcutContext(Qt::ApplicationShortcut);
+    m_actFloatWindow->setShortcutContext(Qt::ApplicationShortcut);
+    m_actTile->setToolTip(tr("Restore the default per-project tab layout  (Shift+F4)"));
+    m_actCascade->setToolTip(tr("Save the current dock arrangement as a named layout  (Shift+F5)"));
+    m_actFloatWindow->setToolTip(
+        tr("Float or re-dock the active document  (Alt+F5)"));
+    m_actLoadWorkspaceLayout->setToolTip(tr("Restore a saved workspace layout"));
+    this->addAction(m_actTile);
+    this->addAction(m_actCascade);
+    this->addAction(m_actFloatWindow);
+    this->addAction(m_actLoadWorkspaceLayout);
 
     // Navigation
     m_actPrevMap     = new QAction(this);
@@ -2478,16 +2550,16 @@ void MainWindow::buildActions()
             if (m_aiAssistant) {
                 m_aiAssistant->loadSettings();
             }
-            for (auto *sub : m_mdi->subWindowList())
-                sub->widget()->update();
+            for (const auto &record : std::as_const(m_workspaceViews))
+                if (record.content) record.content->update();
         });
         dlg.exec();
         refreshProjectTree();
         if (m_aiAssistant) {
             m_aiAssistant->loadSettings();
         }
-        for (auto *sub : m_mdi->subWindowList())
-            sub->widget()->update();
+        for (const auto &record : std::as_const(m_workspaceViews))
+            if (record.content) record.content->update();
     });
 
     m_actToggleAI = new QAction(tr("AI Assistant"), this);
@@ -2509,7 +2581,7 @@ void MainWindow::buildActions()
             if (proj) m_aiAssistant->setProject(proj);
             m_aiAssistant->setAllProjects(m_projects);
         }
-        // Retile after splitter settles so windows fill the new MDI area exactly
+        // Reset the document arrangement after the splitter settles.
         QTimer::singleShot(50, this, [this]() { retileWindows(); });
     });
 
@@ -2632,12 +2704,12 @@ void MainWindow::buildActions()
             this, &MainWindow::onDeleteComment);
 
     m_actNextMarker = new QAction(tr("Next marker"), this);
-    m_actNextMarker->setShortcut(QKeySequence(Qt::Key_F5));
+    m_actNextMarker->setShortcut(QKeySequence(Qt::Key_F6));
     connect(m_actNextMarker, &QAction::triggered,
             this, [this]() { onJumpMarker(true); });
 
     m_actPrevMarker = new QAction(tr("Previous marker"), this);
-    m_actPrevMarker->setShortcut(QKeySequence("Shift+F5"));
+    m_actPrevMarker->setShortcut(QKeySequence("Shift+F6"));
     connect(m_actPrevMarker, &QAction::triggered,
             this, [this]() { onJumpMarker(false); });
 
@@ -2650,6 +2722,22 @@ void MainWindow::buildActions()
            "switch back, compare trials"));
 
     // ── Selection / map editing operations (Sprint A) ──────────────────
+    // These are project-level actions rather than per-widget actions. Every
+    // editable view writes through Project's shared ROM transaction stack, so
+    // the menu history matches the Ctrl+Z/Ctrl+Y history in every view.
+    m_actUndoRom = new QAction(this);
+    m_actUndoRom->setShortcut(QKeySequence::Undo);
+    m_actUndoRom->setEnabled(false);
+    connect(m_actUndoRom, &QAction::triggered, this, [this]() {
+        if (auto *project = activeProject()) project->undoRomEdit();
+    });
+    m_actRedoRom = new QAction(this);
+    m_actRedoRom->setShortcut(QKeySequence::Redo);
+    m_actRedoRom->setEnabled(false);
+    connect(m_actRedoRom, &QAction::triggered, this, [this]() {
+        if (auto *project = activeProject()) project->redoRomEdit();
+    });
+
     m_actValPlus1     = new QAction(tr("Value +1"), this);
     m_actValPlus1->setShortcut(QKeySequence(Qt::Key_Plus));
     m_actValMinus1    = new QAction(tr("Value −1"), this);
@@ -2778,13 +2866,20 @@ void MainWindow::buildActions()
     connect(m_actTile,       &QAction::triggered, this, &MainWindow::actTileWindows);
     connect(m_actCascade,    &QAction::triggered, this, &MainWindow::actCascadeWindows);
     connect(m_actCompare,    &QAction::triggered, this, &MainWindow::actCompareProjects);
+    connect(m_actFloatWindow, &QAction::triggered, this, [this]() {
+        if (!m_activeWorkspaceDock) return;
+        if (m_activeWorkspaceDock->isFloating())
+            redockWorkspaceDock(m_activeWorkspaceDock);
+        else
+            m_activeWorkspaceDock->setFloating();
+    });
+    connect(m_actLoadWorkspaceLayout, &QAction::triggered,
+            this, &MainWindow::actLoadWorkspacePerspective);
     connect(m_actPrevMap,    &QAction::triggered, this, &MainWindow::actPrevMap);
     connect(m_actNextMap,    &QAction::triggered, this, &MainWindow::actNextMap);
     connect(m_actSyncCursors, &QAction::toggled, this, [this](bool on) {
         // Re-wire every open view when sync is toggled
-        for (auto *sub : m_mdi->subWindowList()) {
-            auto *pv = qobject_cast<ProjectView *>(sub->widget());
-            if (!pv) continue;
+        for (auto *pv : projectViews()) {
             auto *ww = pv->waveformWidget();
             auto *hw = pv->hexWidget();
             if (on) {
@@ -2814,9 +2909,7 @@ void MainWindow::buildActions()
                 const int hexOff  = activeHW
                     ? activeHW->verticalScrollBar()->value() * activeHW->bytesPerRow()
                     : 0;
-                for (auto *sub : m_mdi->subWindowList()) {
-                    auto *pv = qobject_cast<ProjectView *>(sub->widget());
-                    if (!pv) continue;
+                for (auto *pv : projectViews()) {
                     auto *ww = pv->waveformWidget();
                     auto *hw = pv->hexWidget();
                     if (activeWW && ww && ww != activeWW)
@@ -2855,8 +2948,21 @@ void MainWindow::buildMenuBar()
     m_menuDatalog = menuBar()->addMenu("");
     m_menuWindow  = menuBar()->addMenu("");
     m_menuHelp    = menuBar()->addMenu("&?");
+    // The active document can change while a menu has focus. Refreshing here
+    // keeps Edit → Undo/Redo accurate in that case as well.
+    connect(m_menuEdit, &QMenu::aboutToShow,
+            this, &MainWindow::updateRomUndoActions);
     // Add Preferences immediately so it's always in the menu
     if (m_actPreferences) m_menuMisc->addAction(m_actPreferences);
+}
+
+void MainWindow::updateRomUndoActions()
+{
+    const Project *project = activeProject();
+    if (m_actUndoRom)
+        m_actUndoRom->setEnabled(project && project->canUndoRomEdit());
+    if (m_actRedoRom)
+        m_actRedoRom->setEnabled(project && project->canRedoRomEdit());
 }
 
 // ── retranslateUi — rebuilds all menus and updates all translatable strings ───
@@ -2895,9 +3001,32 @@ void MainWindow::retranslateUi()
     m_actCorrectChecksum->setText(tr("Correct Checksum…"));
     if (m_actCmdPalette) m_actCmdPalette->setText(tr("Command Palette\u2026"));
     if (m_actPreferences) m_actPreferences->setText(tr("Settings\u2026"));
-    m_actTile->setText(tr("Tile Windows"));
-    m_actCascade->setText(tr("Cascade Windows"));
+    m_actTile->setText(tr("Restore Workspace Layout"));
+    m_actCascade->setText(tr("Save Workspace Layout…"));
+    if (m_actLoadWorkspaceLayout)
+        m_actLoadWorkspaceLayout->setText(tr("Load Workspace Layout…"));
+    if (m_actFloatWindow)
+        m_actFloatWindow->setText(tr("Float / Re-dock Active Window"));
     m_actCompare->setText(tr("Compare Projects…"));
+    if (m_actUndoRom)         m_actUndoRom->setText(tr("Undo"));
+    if (m_actRedoRom)         m_actRedoRom->setText(tr("Redo"));
+    m_actPrevMap->setText(tr("Previous Map"));
+    m_actNextMap->setText(tr("Next Map"));
+    m_actSyncCursors->setText(tr("Synchronize Cursors"));
+    m_act8bit->setText(tr("8-bit"));
+    m_act16bit->setText(tr("16-bit"));
+    m_act32bit->setText(tr("32-bit"));
+    m_actFloat->setText(tr("32-bit Float"));
+    m_actLo->setText(tr("Little Endian"));
+    m_actHi->setText(tr("Big Endian"));
+    m_actSigned->setText(tr("Signed"));
+    m_actUnsigned->setText(tr("Unsigned"));
+    m_actDec->setText(tr("Decimal"));
+    m_actHex->setText(tr("Hexadecimal"));
+    m_actBin->setText(tr("Binary"));
+    m_actPct->setText(tr("Percentage"));
+    m_actDifference->setText(tr("Show Difference"));
+    m_actHeightColors->setText(tr("Height Colours"));
     m_actPrevMap->setToolTip(tr("Move cursor to previous map  (Ctrl+←)"));
     m_actNextMap->setToolTip(tr("Move cursor to next map  (Ctrl+→)"));
     m_actSyncCursors->setToolTip(tr("Sync 2D view scroll across all open projects"));
@@ -3049,12 +3178,26 @@ void MainWindow::retranslateUi()
 
     // ── Edit menu ─────────────────────────────────────────────────────
     m_menuEdit->clear();
-    m_menuEdit->addAction(m_actPrevMap);
-    m_menuEdit->addAction(m_actNextMap);
+    m_menuEdit->addAction(m_actUndoRom);
+    m_menuEdit->addAction(m_actRedoRom);
     m_menuEdit->addSeparator();
-    m_menuEdit->addAction(tr("&Find Map…"), QKeySequence::Find, this, [this]() {
-        if (m_filterEdit) { m_filterEdit->setFocus(); m_filterEdit->selectAll(); }
-    });
+    // WinOLS keeps value transforms in Edit. All of these route through the
+    // shared Project transaction stream: one operation, one history entry,
+    // and one synchronized refresh for hex, waveform and map views.
+    m_menuEdit->addAction(m_actValPlus1);
+    m_menuEdit->addAction(m_actValMinus1);
+    m_menuEdit->addSeparator();
+    m_menuEdit->addAction(m_actChangeAbs);
+    m_menuEdit->addAction(m_actChangeRel);
+    m_menuEdit->addAction(m_actChangeSlider);
+    m_menuEdit->addAction(m_actRoundLimit);
+    m_menuEdit->addAction(m_actOriginalVal);
+    m_menuEdit->addSeparator();
+    m_menuEdit->addAction(m_actInterpolate);
+    m_menuEdit->addAction(m_actSmooth);
+    m_menuEdit->addAction(m_actFlatten);
+    m_menuEdit->addSeparator();
+    m_menuEdit->addAction(m_actAgain);
 
     // ── View menu ─────────────────────────────────────────────────────
     m_menuView->clear();
@@ -3064,6 +3207,30 @@ void MainWindow::retranslateUi()
         if (auto *v = activeView()) v->switchView(1); });
     m_menuView->addAction(tr("&3D Map"), this, [this]() {
         if (auto *v = activeView()) v->switchView(2); });
+    m_menuView->addSeparator();
+    {
+        QMenu *widthMenu = m_menuView->addMenu(tr("Data &Width"));
+        widthMenu->addAction(m_act8bit);
+        widthMenu->addAction(m_act16bit);
+        widthMenu->addAction(m_act32bit);
+        widthMenu->addAction(m_actFloat);
+
+        QMenu *byteOrderMenu = m_menuView->addMenu(tr("Byte &Order"));
+        byteOrderMenu->addAction(m_actLo);
+        byteOrderMenu->addAction(m_actHi);
+
+        QMenu *signMenu = m_menuView->addMenu(tr("&Sign"));
+        signMenu->addAction(m_actSigned);
+        signMenu->addAction(m_actUnsigned);
+
+        QMenu *numberMenu = m_menuView->addMenu(tr("Number &Format"));
+        numberMenu->addAction(m_actDec);
+        numberMenu->addAction(m_actHex);
+        numberMenu->addAction(m_actBin);
+        numberMenu->addAction(m_actPct);
+    }
+    m_menuView->addAction(m_actDifference);
+    m_menuView->addAction(m_actHeightColors);
     m_menuView->addSeparator();
     m_menuView->addAction(m_actToggleAI);
     if (m_actToggleDiff)
@@ -3077,18 +3244,14 @@ void MainWindow::retranslateUi()
         if (m_fontSize < 24 && m_fontSizeLabel) {
             ++m_fontSize;
             m_fontSizeLabel->setText(QString("%1pt").arg(m_fontSize));
-            for (auto *sub : m_mdi->subWindowList())
-                if (auto *pv = qobject_cast<ProjectView *>(sub->widget()))
-                    pv->setFontSize(m_fontSize);
+            for (auto *pv : projectViews()) pv->setFontSize(m_fontSize);
         }
     });
     m_menuView->addAction(tr("Zoom &Out"), QKeySequence::ZoomOut, this, [this]() {
         if (m_fontSize > 7 && m_fontSizeLabel) {
             --m_fontSize;
             m_fontSizeLabel->setText(QString("%1pt").arg(m_fontSize));
-            for (auto *sub : m_mdi->subWindowList())
-                if (auto *pv = qobject_cast<ProjectView *>(sub->widget()))
-                    pv->setFontSize(m_fontSize);
+            for (auto *pv : projectViews()) pv->setFontSize(m_fontSize);
         }
     });
 
@@ -3096,22 +3259,8 @@ void MainWindow::retranslateUi()
     m_menuSel->clear();
     m_menuSel->addAction(m_actSyncCursors);
     m_menuSel->addSeparator();
-    m_menuSel->addAction(m_actCompare);
-    m_menuSel->addSeparator();
-    // Sprint A — map editing operations.  All entries operate on the
-    // active view's selection (waveform / hex) or whole-map (3D).
-    m_menuSel->addAction(m_actValPlus1);
-    m_menuSel->addAction(m_actValMinus1);
-    m_menuSel->addAction(m_actChangeAbs);
-    m_menuSel->addAction(m_actChangeRel);
-    m_menuSel->addAction(m_actChangeSlider);
-    m_menuSel->addAction(m_actRoundLimit);
-    m_menuSel->addAction(m_actOriginalVal);
-    m_menuSel->addAction(m_actInterpolate);
-    m_menuSel->addAction(m_actSmooth);
-    m_menuSel->addAction(m_actFlatten);
-    m_menuSel->addSeparator();
-    m_menuSel->addAction(m_actAgain);
+    m_menuSel->addAction(m_actPrevMap);
+    m_menuSel->addAction(m_actNextMap);
 
     // ── Find menu ─────────────────────────────────────────────────────
     m_menuFind->clear();
@@ -3128,6 +3277,9 @@ void MainWindow::retranslateUi()
         v->goToAddress(addr);
     });
     m_menuFind->addAction(tr("Find &Value…"), this, &MainWindow::actFindValue);
+    m_menuFind->addAction(tr("Find &Map…"), QKeySequence::Find, this, [this]() {
+        if (m_filterEdit) { m_filterEdit->setFocus(); m_filterEdit->selectAll(); }
+    });
 
     // Sprint C — annotations / markers
     m_menuFind->addSeparator();
@@ -3184,11 +3336,8 @@ void MainWindow::retranslateUi()
             // skip the view refresh (the data write to p->currentData already
             // happened correctly).
             ProjectView *pv = nullptr;
-            for (auto *sub : m_mdi->subWindowList()) {
-                if (auto *cand = qobject_cast<ProjectView *>(sub->widget())) {
-                    if (cand->project() == p) { pv = cand; break; }
-                }
-            }
+            for (auto *cand : projectViews())
+                if (cand->project() == p) { pv = cand; break; }
             WaveformWidget *ww = pv ? pv->waveformWidget() : nullptr;
             WaveformEditor *ed = ww ? ww->editor() : nullptr;
 
@@ -3228,7 +3377,6 @@ void MainWindow::retranslateUi()
     m_menuMisc->addAction(tr("Project &Info…"), this, &MainWindow::editProjectInfo);
     m_menuMisc->addSeparator();
     m_menuMisc->addAction(m_actAddVersion);
-    m_menuMisc->addAction(m_actOptimize);
     m_menuMisc->addSeparator();
     // ── Auto-detect Maps (WinOLS-style scanner) ────────────────────────
     // NOTE: parallel agents may also add items to this menu (e.g.
@@ -3296,6 +3444,7 @@ void MainWindow::retranslateUi()
     struct LangEntry { QString code; QString label; };
     const LangEntry langs[] = {
         { "en",    "English"                                         },
+        { "nl",    "Nederlands (Dutch)"                             },
         { "zh_CN", "\u7B80\u4F53\u4E2D\u6587 (Chinese Simplified)"  },
         { "es",    "Espa\u00F1ol (Spanish)"                          },
         { "th",    "\u0E20\u0E32\u0E29\u0E32\u0E44\u0E17\u0E22 (Thai)" },
@@ -3320,8 +3469,10 @@ void MainWindow::retranslateUi()
     m_menuWindow->clear();
     m_menuWindow->addAction(m_actTile);
     m_menuWindow->addAction(m_actCascade);
+    m_menuWindow->addAction(m_actLoadWorkspaceLayout);
     m_menuWindow->addSeparator();
     m_menuWindow->addAction(m_actCompare);
+    m_menuWindow->addAction(m_actFloatWindow);
 
     // ── Help menu ─────────────────────────────────────────────────────
     m_menuHelp->clear();
@@ -3599,53 +3750,51 @@ void MainWindow::buildToolBars()
     connect(fontSpin, &QSpinBox::valueChanged, this, [this, fontSpin](int val) {
         m_fontSize = val;
         m_fontSizeLabel->setText(QString("%1pt").arg(val));
-        for (auto *sub : m_mdi->subWindowList())
-            if (auto *pv = qobject_cast<ProjectView *>(sub->widget()))
-                pv->setFontSize(m_fontSize);
+        for (auto *pv : projectViews())
+            pv->setFontSize(m_fontSize);
     });
 }
 
 // ── Project management ────────────────────────────────────────────────────────
 
-QMdiSubWindow *MainWindow::openProject(Project *project)
+ads::CDockWidget *MainWindow::openProject(Project *project)
 {
     QElapsedTimer __op_t; __op_t.start();
     auto __step = [&__op_t](const char *what) {
         qCInfo(catFind) << "  openProject:" << what << __op_t.restart() << "ms";
     };
-    // Re-show existing window if project already loaded
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (pv && pv->project() == project) {
-            sub->show();
-            m_mdi->setActiveSubWindow(sub);
-            return sub;
-        }
+    // Re-show the sole Hex/2D/3D dock for this project if it already exists.
+    if (auto *existing = projectDock(project)) {
+        existing->toggleView(true);
+        existing->setAsCurrentTab();
+        existing->raise();
+        m_activeWorkspaceDock = existing;
+        onWorkspaceDockActivated();
+        return existing;
     }
 
     if (!m_projects.contains(project))
         m_projects.append(project);
 
-    // Make the QMdiArea page visible BEFORE adding+showing the subwindow.
-    // On the 0->1 transition the central stack is still on the placeholder
-    // page, so the QMdiArea is hidden and zero-sized; adding+show()ing a
-    // subwindow into it and only then flipping the stack triggers a resize
-    // storm on a freshly-shown subwindow that has crashed inside
-    // QMdiArea::resizeEvent.  Switching the page first gives the area a real
-    // geometry up front.
     updateCentralPage();
 
     auto *view = new ProjectView();
     view->loadProject(project);
     __step("loadProject");
 
-    auto *sw = m_mdi->addSubWindow(view);
-    sw->setAttribute(Qt::WA_DeleteOnClose, false);
-    sw->installEventFilter(this);
-    sw->setWindowTitle(project->fullTitle());
-    sw->resize(920, 640);
-    sw->show();
-    __step("addSubWindow+show");
+    auto *dock = new ads::CDockWidget(m_dockManager, project->fullTitle());
+    dock->setObjectName(QStringLiteral("hex_%1").arg(workspaceProjectKey(project)));
+    dock->setFeatures(ads::CDockWidget::DefaultDockWidgetFeatures
+                      | ads::CDockWidget::DockWidgetDeleteOnClose
+                      | ads::CDockWidget::CustomCloseHandling);
+    dock->setWidget(view, ads::CDockWidget::ForceNoScrollArea);
+    m_dockManager->addDockWidget(ads::CenterDockWidgetArea, dock);
+
+    registerWorkspaceDock(project, dock, view, WorkspaceViewRecord::Kind::HexView, {});
+    dock->toggleView(true);
+    dock->raise();
+    m_activeWorkspaceDock = dock;
+    __step("addDock+show");
 
     connect(view, &ProjectView::mapActivated,
             this, &MainWindow::onMapActivated);
@@ -3653,14 +3802,28 @@ QMdiSubWindow *MainWindow::openProject(Project *project)
             this, &MainWindow::onStatusMessage);
     connect(view, &ProjectView::cloneVersionRequested,
             this, &MainWindow::onCloneVersionRequested);
-    QPointer<QMdiSubWindow> safeSw(sw);
+    QPointer<ads::CDockWidget> safeDock(dock);
     QPointer<Project> safeProject(project);
-    connect(project, &Project::dataChanged, sw, [this, safeSw, safeProject]() {
-        if (!safeSw || !safeProject) return;
-        safeSw->setWindowTitle(safeProject->modified
+    connect(project, &Project::romPatched, this,
+            [this, project](int, int) {
+        m_projectsWithPendingRomPatch.insert(project);
+    });
+    connect(project, &Project::romUndoStateChanged, this, [this]() {
+        updateRomUndoActions();
+    });
+    connect(project, &QObject::destroyed, this, [this, project]() {
+        m_projectsWithPendingRomPatch.remove(project);
+    });
+    connect(project, &Project::dataChanged, dock, [this, safeDock, safeProject]() {
+        const bool isRomPatch = m_projectsWithPendingRomPatch.remove(safeProject.data());
+        if (!safeDock || !safeProject) return;
+        safeDock->setWindowTitle(safeProject->modified
             ? safeProject->fullTitle() + "  *"
             : safeProject->fullTitle());
-        refreshProjectTree();
+        // romPatched() has already refreshed the byte-level views. Rebuilding
+        // the tree here destroys/reselects items and scrolls it on every +/-.
+        if (!isRomPatch)
+            refreshProjectTree();
     });
 
     // Debounced autosave on any mutation (data edits, version snapshots,
@@ -3684,7 +3847,7 @@ QMdiSubWindow *MainWindow::openProject(Project *project)
     //
     // No Qt::UniqueConnection — Qt forbids that flag with lambda slots
     // (asserts in debug). The early-return at the top of openProject() that
-    // re-shows existing subwindows prevents this branch from running twice
+    // re-shows an existing dock prevents this branch from running twice
     // for the same project, so duplicate connections aren't possible.
     if (project->isLinkedRom && project->parentProject
         && project->parentLinkedIndex >= 0) {
@@ -3749,18 +3912,16 @@ QMdiSubWindow *MainWindow::openProject(Project *project)
         m_expandAllOnNextBuild.insert(project);
 
     // When opening a parent project that has previously-saved linked ROMs,
-    // auto-spawn each one as its own MDI subwindow so the user sees the same
+    // auto-spawn each one as its own Hex dock so the user sees the same
     // workspace they had when they last saved. Skip if this IS a linked ROM
     // (recursive linking is not a concept here) or if any spawned linked ROM
-    // is already open in a sibling subwindow.
+    // is already open in a sibling document dock.
     if (!project->isLinkedRom && !project->linkedRoms.isEmpty()) {
-        // Defer to next event loop iteration so the parent's subwindow is
-        // fully shown before we tile + resize.
+        // Defer until the parent's dock is fully registered before arranging.
         QTimer::singleShot(0, this, [this, project]() {
             spawnLinkedRomSubwindowsFor(project);
-            // After children are added, retile so all subwindows fill the MDI
-            // area side-by-side (mirrors the behavior of actLinkRom). A second
-            // singleShot lets all addSubWindow / show calls flush first.
+            // After children are added, reset them to a predictable side-by-side
+            // arrangement. A second singleShot lets dock insertion flush first.
             QTimer::singleShot(0, this, [this]() {
                 retileWindows();
                 if (m_actSyncCursors && !m_actSyncCursors->isChecked())
@@ -3769,7 +3930,8 @@ QMdiSubWindow *MainWindow::openProject(Project *project)
         });
     }
 
-    return sw;
+    onWorkspaceDockActivated();
+    return dock;
 }
 
 void MainWindow::spawnLinkedRomSubwindowsFor(Project *parent)
@@ -3837,11 +3999,8 @@ void MainWindow::spawnLinkedRomSubwindowsFor(Project *parent)
 
 void MainWindow::broadcastAvailableProjects()
 {
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (pv)
-            pv->setAvailableProjects(m_projects);
-    }
+    for (auto *pv : projectViews())
+        pv->setAvailableProjects(m_projects);
     if (m_diffPanel)
         m_diffPanel->setProjects(m_projects);
 }
@@ -4059,7 +4218,7 @@ void MainWindow::runMapAutoDetectOnImport(Project *project)
     if (m_mapScanWatchers.contains(project)) return;
 
     // FULLY ASYNC: kick off the scan on a background thread and return
-    // immediately. The ROM and MDI window open right away; when the
+    // immediately. The ROM and Hex dock open right away; when the
     // QFutureWatcher fires `finished()`, onMapScanFinished applies the
     // results to project->autoDetectedMaps and refreshes the tree. If an
     // A2L is imported before the scan completes, loadA2LIntoProject cancels
@@ -4540,9 +4699,8 @@ void MainWindow::loadA2LIntoProject(Project *project, const QString &a2lPath)
         m_actHi->setChecked(m_byteOrder == ByteOrder::BigEndian);
 
         qDebug() << "Loading maps into project view...";
-        for (auto *sub : m_mdi->subWindowList()) {
-            auto *pv = qobject_cast<ProjectView *>(sub->widget());
-            if (pv && pv->project() == project) {
+        for (auto *pv : projectViews()) {
+            if (pv->project() == project) {
                 pv->loadProject(project);
                 break;
             }
@@ -4561,9 +4719,8 @@ void MainWindow::loadA2LIntoProject(Project *project, const QString &a2lPath)
             expandAll(m_projectTree->topLevelItem(i));
 
         // Switch project view to 2D mode and center on first map
-        for (auto *sub : m_mdi->subWindowList()) {
-            auto *pv = qobject_cast<ProjectView *>(sub->widget());
-            if (pv && pv->project() == project) {
+        for (auto *pv : projectViews()) {
+            if (pv->project() == project) {
                 pv->switchToView(1); // 1 = 2D waveform view
                 if (!project->maps.isEmpty()) {
                     // Center on the first MAP-type entry, or first map if no MAPs
@@ -5138,8 +5295,8 @@ void MainWindow::buildWelcomePage()
             ConfigDialog dlg(this);
             dlg.exec();
         refreshProjectTree();
-        for (auto *sub : m_mdi->subWindowList())
-                sub->widget()->update();
+        for (const auto &record : std::as_const(m_workspaceViews))
+                if (record.content) record.content->update();
         });
     topLay->addWidget(prefsBtn);
 
@@ -6053,8 +6210,12 @@ void MainWindow::refreshProjectTreeNow()
     if (auto *cur = m_projectTree->currentItem())
         currentPath = pathOf(cur);
 
+    // Rebuilding restores the current item.  Suppress currentItemChanged so
+    // that restoration cannot be mistaken for a user map-navigation event.
+    const QSignalBlocker treeSignalBlocker(m_projectTree);
     m_projectTree->setUpdatesEnabled(false);
     m_projectTree->clear();
+    m_mapTreeItems.clear();
 
     const int headerSize = m_treeFontSize;
     const int leafSize   = m_treeFontSize;
@@ -6076,7 +6237,7 @@ void MainWindow::refreshProjectTreeNow()
     // Render "My maps (N)" tree for any Project under the given tree item.
     // Shared by top-level projects AND sub-projects (multi-Version .ols
     // imports), so the 6000+ maps that live on each child are visible in
-    // the tree without having to open every MDI window manually.
+    // the tree without having to open every document dock manually.
     auto renderMapsFor = [&](Project *p, QTreeWidgetItem *under) {
         if (!p || !under) return;
         const bool isLargeProject = p->maps.size() > 5000;
@@ -6113,6 +6274,10 @@ void MainWindow::refreshProjectTreeNow()
             if (!m.userNotes.isEmpty()) displayName.prepend("\u270e ");
             if (starred)                displayName.prepend("\u2605 ");
             mi->setText(0, displayName);
+            // Keep an unadorned label so the open/active editor marker can
+            // be applied and removed without disturbing modified/star/note
+            // prefixes or translated names.
+            mi->setData(0, Qt::UserRole + 15, displayName);
             mi->setText(1, QStringLiteral("0x%1")
                 .arg(m.address, 8, 16, QChar('0')).toUpper());
             mi->setText(2, mapIdentifier);
@@ -6148,6 +6313,7 @@ void MainWindow::refreshProjectTreeNow()
             mi->setData(0, Qt::UserRole + 1,
                         QVariant::fromValue(static_cast<void *>(p)));
             mi->setData(0, Qt::UserRole + 2, QVariant::fromValue(m));
+            m_mapTreeItems.insert(mapTreeKey(p, m), mi);
         };
 
         const bool hasFolderPaths = std::any_of(
@@ -6454,12 +6620,63 @@ void MainWindow::refreshProjectTreeNow()
 
     m_projectTree->setUpdatesEnabled(true);
     m_projectTree->doItemsLayout();                // recalc scroll range after bulk add
+    updateMapTreeEditorAccents();
     applyTreeFilter();
 
     // Consume the auto-expand intent — only expand on the FIRST rebuild after
     // openProject(); subsequent rebuilds preserve whatever the user has done.
     m_expandAllOnNextBuild.clear();
     qCInfo(catFind) << "refreshProjectTreeNow done in" << __rpt.elapsed() << "ms";
+}
+
+void MainWindow::updateMapTreeEditorAccents()
+{
+    if (!m_projectTree) return;
+
+    // Use opaque tints rather than translucent brushes: several platform
+    // styles discard an item's alpha channel under QTreeWidget's stylesheet,
+    // making the former marker effectively invisible.
+    const QColor openTint(QStringLiteral("#153a55"));
+    const QColor activeTint(QStringLiteral("#1f5f84"));
+
+    for (auto it = m_mapTreeItems.cbegin(); it != m_mapTreeItems.cend(); ++it) {
+        QTreeWidgetItem *item = it.value();
+        if (!item) continue;
+        const auto mapVar = item->data(0, Qt::UserRole + 2);
+        auto *project = static_cast<Project *>(
+            item->data(0, Qt::UserRole + 1).value<void *>());
+        if (!project || !mapVar.isValid()) continue;
+
+        const MapInfo map = mapVar.value<MapInfo>();
+        bool isOpen = false;
+        bool isActive = false;
+        const MapEditorKey key = mapEditorKey(map);
+        for (const auto &record : m_workspaceViews) {
+            if (record.project != project
+                || record.kind != WorkspaceViewRecord::Kind::MapEditor
+                || !(record.mapKey == key) || !record.dock) {
+                continue;
+            }
+            isOpen = true;
+            isActive = record.dock == m_activeWorkspaceDock;
+            break;
+        }
+
+        const QBrush tint = isActive ? QBrush(activeTint)
+                            : isOpen ? QBrush(openTint) : QBrush();
+        for (int column = 0; column < item->columnCount(); ++column)
+            item->setBackground(column, tint);
+        const QString baseLabel = item->data(0, Qt::UserRole + 15).toString();
+        item->setText(0, isActive ? QStringLiteral("▶  ") + baseLabel
+                       : isOpen ? QStringLiteral("▸  ") + baseLabel
+                                : baseLabel);
+        QFont font = item->font(0);
+        font.setBold(isActive);
+        item->setFont(0, font);
+        item->setData(0, Qt::UserRole + 14,
+                      isActive ? 2 : isOpen ? 1 : 0);
+    }
+    m_projectTree->viewport()->update();
 }
 
 void MainWindow::applyTreeFilter()
@@ -6758,22 +6975,24 @@ void MainWindow::actGoHome()
     }
 
     // All prompts answered — close everything.
-    // 1. Close + remove all overlays
-    for (auto ov : m_overlays)
-        if (ov) ov->close();
-    m_overlays.clear();
+    // The prompts above already made the save/discard decision. Suppress the
+    // per-document close policy while the selected project docks are removed.
+    for (Project *proj : projects)
+        m_forceProjectClose.insert(proj);
 
-    // 2. Close all MDI subwindows
-    for (auto *sw : m_mdi->subWindowList()) {
-        sw->removeEventFilter(this);   // prevent our eventFilter re-prompting
-        sw->setAttribute(Qt::WA_DeleteOnClose, true);
-        sw->close();
-    }
+    // 1. Close every map-editor dock before the project documents disappear.
+    closeMapEditors(nullptr);
+
+    // 2. Close all document docks. The project list was already save-checked.
+    const auto records = m_workspaceViews;
+    for (const auto &record : records)
+        if (record.dock) record.dock->closeDockWidget();
 
     // 3. Clean up project objects
     for (Project *proj : projects)
         proj->deleteLater();
     m_projects.clear();
+    m_forceProjectClose.clear();
     m_recentMaps.clear();
     m_translations.clear();
     if (m_savepoints)
@@ -6786,11 +7005,8 @@ void MainWindow::actGoHome()
 
 void MainWindow::actCloseProject()
 {
-    auto *sw = m_mdi->activeSubWindow();
-    if (!sw) return;
-    auto *pv = qobject_cast<ProjectView *>(sw->widget());
-    if (!pv) return;
-    auto *proj = pv->project();
+    auto *proj = activeProject();
+    if (!proj) return;
 
     if (proj && proj->modified) {
         QMessageBox mb(this);
@@ -6808,30 +7024,9 @@ void MainWindow::actCloseProject()
         if (mb.clickedButton() == btnSave) actSaveProject();
     }
 
-    m_projects.removeAll(proj);
-    // Drop recent-map entries tied to this project (m_recentMaps is keyed by
-    // Project*, so stale pointers would dangle after deleteLater()).
-    if (proj) {
-        m_recentMaps.removeIf([proj](const QPair<Project*, QString> &p){
-            return p.first == proj;
-        });
-
-        // Map overlays are parented by MainWindow and can target this project;
-        // close all of them before the project is destroyed.
-        for (auto ov : m_overlays)
-            if (ov && ov->targetProject() == proj) ov->close();
-        m_overlays.removeAll(QPointer<MapOverlay>());
-    }
-    if (proj) {
-        if (m_savepoints && m_savepoints->project() == proj)
-            m_savepoints->attachTo(nullptr);
-        proj->deleteLater();
-    }
-    sw->close();
-    m_translations.clear();
-    refreshProjectTree();
-    refreshRecentMapsStrip();
-    broadcastAvailableProjects();
+    // File → Close Project is the explicit document-close command. Unlike
+    // closing a Hex view, it tears down every dependent map editor too.
+    requestProjectFinalization(proj, CloseIntent::ExplicitProjectClose);
 }
 
 void MainWindow::actImportA2L(const QString &droppedPath)
@@ -7028,47 +7223,121 @@ void MainWindow::actExportOlsProject()
 
 // ── Window slots ───────────────────────────────────────────────────────────────
 
-void MainWindow::actTileWindows()    { m_mdi->tileSubWindows(); }
-void MainWindow::actCascadeWindows() { m_mdi->cascadeSubWindows(); }
+void MainWindow::actTileWindows() { retileWindows(); }
 
-// Retile all visible project sub-windows to fill the MDI viewport perfectly.
-// Called after AI assistant is shown/hidden so windows always use all available space.
+void MainWindow::actCascadeWindows()
+{
+    actSaveWorkspacePerspective();
+}
+
+void MainWindow::actSaveWorkspacePerspective()
+{
+    if (!m_dockManager) return;
+    const QString name = QInputDialog::getText(this, tr("Save Workspace Layout"),
+                                               tr("Layout name:"));
+    if (name.trimmed().isEmpty()) return;
+    saveWorkspacePerspective(name.trimmed());
+}
+
 void MainWindow::retileWindows()
 {
-    QList<QMdiSubWindow *> visible;
-    for (auto *sub : m_mdi->subWindowList())
-        if (sub->isVisible()) visible.append(sub);
-    if (visible.isEmpty()) return;
+    if (!m_dockManager) return;
+    // A predictable recovery layout: one tab group per project, rooted in
+    // its Hex view.  Unlike restoring a stale serialized ADS state, this
+    // keeps dynamically opened maps alive and safely re-docks floating views.
+    for (const auto &record : m_workspaceViews) {
+        if (record.kind != WorkspaceViewRecord::Kind::HexView || !record.dock)
+            continue;
+        record.dock->toggleView(true);
+    }
+    for (const auto &record : m_workspaceViews) {
+        if (record.kind != WorkspaceViewRecord::Kind::MapEditor || !record.dock)
+            continue;
+        if (auto *hex = projectDock(record.project))
+            m_dockManager->addDockWidget(ads::CenterDockWidgetArea, record.dock,
+                                         hex->dockAreaWidget());
+        else
+            m_dockManager->addDockWidget(ads::CenterDockWidgetArea, record.dock);
+        record.dock->toggleView(true);
+    }
+    if (m_activeWorkspaceDock) m_activeWorkspaceDock->raise();
+}
 
-    const QSize vp = m_mdi->viewport()->size();
-    const int w    = vp.width();
-    const int h    = vp.height();
-    const int n    = visible.size();
+void MainWindow::actRestoreWorkspaceLayout()
+{
+    retileWindows();
+}
 
-    // Stack vertically: each window gets full width, equal slice of height
-    for (int i = 0; i < n; ++i) {
-        int y0 = (h * i)     / n;
-        int y1 = (h * (i+1)) / n;
-        visible[i]->showNormal();
-        visible[i]->setGeometry(0, y0, w, y1 - y0);
+void MainWindow::actLoadWorkspacePerspective()
+{
+    const QSettings &settings = rx14::appSettings();
+    QStringList names;
+    const QString prefix = QStringLiteral("workspace/perspective/");
+    for (const QString &key : settings.allKeys()) {
+        if (key.startsWith(prefix)) names.append(key.mid(prefix.size()));
+    }
+    names.removeDuplicates();
+    std::sort(names.begin(), names.end(), [](const QString &a, const QString &b) {
+        return a.localeAwareCompare(b) < 0;
+    });
+    if (names.isEmpty()) {
+        statusBar()->showMessage(tr("No saved workspace layouts."), 2500);
+        return;
+    }
+    bool accepted = false;
+    const QString name = QInputDialog::getItem(this, tr("Load Workspace Layout"),
+                                                tr("Layout:"), names, 0, false,
+                                                &accepted);
+    if (accepted) restoreWorkspacePerspective(name);
+}
+
+void MainWindow::saveWorkspacePerspective(const QString &name)
+{
+    if (!m_dockManager || name.isEmpty()) return;
+    m_dockManager->addPerspective(name);
+    rx14::appSettings().setValue(QStringLiteral("workspace/perspective/%1").arg(name),
+                                 m_dockManager->saveState());
+    if (!rx14::appSettings().contains(QStringLiteral("workspace/perspective/Default")))
+        rx14::appSettings().setValue(QStringLiteral("workspace/perspective/Default"),
+                                     m_dockManager->saveState());
+    statusBar()->showMessage(tr("Saved workspace layout ‘%1’").arg(name), 2500);
+}
+
+void MainWindow::restoreWorkspacePerspective(const QString &name)
+{
+    if (!m_dockManager) return;
+    const QByteArray state = rx14::appSettings()
+        .value(QStringLiteral("workspace/perspective/%1").arg(name)).toByteArray();
+    if (!state.isEmpty() && m_dockManager->restoreState(state)) {
+        statusBar()->showMessage(tr("Restored workspace layout ‘%1’").arg(name), 2500);
+        return;
+    }
+    // A default state might predate newly-opened dynamic editors. Do not
+    // discard them: simply bring the active document forward.
+    if (m_activeWorkspaceDock) {
+        m_activeWorkspaceDock->toggleView(true);
+        m_activeWorkspaceDock->raise();
     }
 }
 
 void MainWindow::actCompareProjects()
 {
-    auto windows = m_mdi->subWindowList();
-    if (windows.size() < 2) {
+    const auto views = projectViews();
+    if (views.size() < 2) {
         QMessageBox::information(this, tr("Compare"),
             tr("Open at least two projects to compare."));
         return;
     }
-    auto *w1 = windows[windows.size() - 2];
-    auto *w2 = windows[windows.size() - 1];
-    QRect area = m_mdi->contentsRect();
-    int half = area.width() / 2;
-    w1->setGeometry(area.x(),          area.y(), half - 1, area.height());
-    w2->setGeometry(area.x() + half + 1, area.y(), area.width() - half - 1, area.height());
-    w1->show(); w2->show();
+    auto *w1 = projectDock(views[views.size() - 2]->project());
+    auto *w2 = projectDock(views[views.size() - 1]->project());
+    if (w1 && w2) {
+        m_dockManager->addDockWidget(ads::RightDockWidgetArea, w2,
+                                     w1->dockAreaWidget());
+        w1->toggleView(true);
+        w2->toggleView(true);
+        w1->raise();
+        w2->raise();
+    }
 
     // Compare implies "I want them moving together" — auto-enable Sync
     // Cursors so dragging a scrollbar in one window slides the other.
@@ -7116,32 +7385,27 @@ void MainWindow::actNextMap()
 // translate the source-side address into the target-side address; fall
 // back to identity if either project is outside the alignment.
 
-static Project *projectOfWaveform(WaveformWidget *w, QMdiArea *mdi) {
-    if (!w || !mdi) return nullptr;
-    for (auto *sub : mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
+static Project *projectOfWaveform(WaveformWidget *w, const QList<ProjectView *> &views) {
+    if (!w) return nullptr;
+    for (auto *pv : views)
         if (pv && pv->waveformWidget() == w) return pv->project();
-    }
     return nullptr;
 }
 
-static Project *projectOfHex(HexWidget *h, QMdiArea *mdi) {
-    if (!h || !mdi) return nullptr;
-    for (auto *sub : mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
+static Project *projectOfHex(HexWidget *h, const QList<ProjectView *> &views) {
+    if (!h) return nullptr;
+    for (auto *pv : views)
         if (pv && pv->hexWidget() == h) return pv->project();
-    }
     return nullptr;
 }
 
 void MainWindow::onWaveSyncScroll(int scrollOffset)
 {
     auto *source = qobject_cast<WaveformWidget *>(sender());
-    Project *srcProj = projectOfWaveform(source, m_mdi);
+    const auto views = projectViews();
+    Project *srcProj = projectOfWaveform(source, views);
 
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (!pv) continue;
+    for (auto *pv : views) {
         auto *ww = pv->waveformWidget();
         if (!ww || ww == source) continue;
 
@@ -7157,11 +7421,10 @@ void MainWindow::onWaveSyncScroll(int scrollOffset)
 void MainWindow::onHexSyncScroll(int byteOffset)
 {
     auto *source = qobject_cast<HexWidget *>(sender());
-    Project *srcProj = projectOfHex(source, m_mdi);
+    const auto views = projectViews();
+    Project *srcProj = projectOfHex(source, views);
 
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (!pv) continue;
+    for (auto *pv : views) {
         auto *hw = pv->hexWidget();
         if (!hw || hw == source) continue;
 
@@ -7181,9 +7444,7 @@ void MainWindow::onWaveSyncZoom(int sliderValue)
     // same scale (otherwise the shapes drift apart visually as the user
     // zooms only one window).
     auto *source = qobject_cast<WaveformWidget *>(sender());
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (!pv) continue;
+    for (auto *pv : projectViews()) {
         auto *ww = pv->waveformWidget();
         if (ww && ww != source) ww->syncZoomTo(sliderValue);
     }
@@ -7193,9 +7454,8 @@ void MainWindow::onSyncViewSwitch(int index)
 {
     // Fan out the view change to every other open ProjectView (skip the sender)
     auto *source = qobject_cast<ProjectView *>(sender());
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (!pv || pv == source) continue;
+    for (auto *pv : projectViews()) {
+        if (pv == source) continue;
         pv->switchView(index);
     }
 }
@@ -7246,9 +7506,7 @@ void MainWindow::onDiffComparisonChanged()
     QByteArray cmpForA = shiftedCopy(pB->currentData,  deltaB, pA->currentData.size());
     QByteArray cmpForB = shiftedCopy(pA->currentData, -deltaB, pB->currentData.size());
 
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (!pv) continue;
+    for (auto *pv : projectViews()) {
         Project *p = pv->project();
         if (p == pA) {
             if (auto *ww = pv->waveformWidget()) ww->setComparisonData(cmpForA);
@@ -7275,10 +7533,8 @@ void MainWindow::onDiffAlignmentChanged()
     if (!pA) return;
     // Locate A's ProjectView
     ProjectView *vA = nullptr;
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (pv && pv->project() == pA) { vA = pv; break; }
-    }
+    for (auto *pv : projectViews())
+        if (pv->project() == pA) { vA = pv; break; }
     if (!vA) return;
 
     // For each other view, translate A's current position via the
@@ -7292,9 +7548,8 @@ void MainWindow::onDiffAlignmentChanged()
         ? hexA->verticalScrollBar()->value() * hexA->bytesPerRow()
         : 0;
 
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (!pv || pv == vA) continue;
+    for (auto *pv : projectViews()) {
+        if (pv == vA) continue;
         Project *pT = pv->project();
         if (!pT) continue;
         if (auto *ww = pv->waveformWidget()) {
@@ -7323,9 +7578,7 @@ void MainWindow::onDiffRowActivated(quint32 addressA)
     const qint64 addrB = m_diffPanel->mapAtoB(addrA);
     const qint64 addrC = m_diffPanel->mapAtoC(addrA);
 
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (!pv) continue;
+    for (auto *pv : projectViews()) {
         Project *p = pv->project();
         qint64 target = -1;
         if      (p == pA) target = addrA;
@@ -7375,15 +7628,12 @@ void MainWindow::applyDisplayFormat()
 {
     // Hex editor always shows hex — only cell grouping and byte order apply to it.
     // Dec/Hex/Bin/Signed format buttons are for the map overlay only.
-    for (auto *sub : m_mdi->subWindowList()) {
-        if (auto *pv = qobject_cast<ProjectView *>(sub->widget()))
-            pv->setDisplayParams(m_dataSize, m_byteOrder, 0 /* hex */, false);
-    }
+    for (auto *pv : projectViews())
+        pv->setDisplayParams(m_dataSize, m_byteOrder, 0 /* hex */, false);
 
     // Push full format params to open overlays
-    for (auto &ov : std::as_const(m_overlays))
-        if (ov && ov->isVisible())
-            ov->setDisplayParams(m_dataSize, m_byteOrder, m_heightColors);
+    for (auto *editor : mapEditorViews())
+        editor->setDisplayParams(m_dataSize, m_byteOrder, m_heightColors);
 
     if (m_diffPanel)
         m_diffPanel->setDisplayParams(m_dataSize, m_byteOrder,
@@ -7392,15 +7642,18 @@ void MainWindow::applyDisplayFormat()
 
 // ── Event handlers ─────────────────────────────────────────────────────────────
 
-void MainWindow::onSubWindowActivated(QMdiSubWindow *sw)
+void MainWindow::onWorkspaceDockActivated()
 {
-    // Auto-save mode: onFocusChange — fire when the active sub-window changes.
+    updateRomUndoActions();
+    // Auto-save mode: onFocusChange — fire when the active dock changes.
     if (rx14::appSettings().value("autoSaveMode", "afterDelay")
             .toString() == "onFocusChange") {
         autoSaveAll();
     }
-    if (!sw) {
-        // Last subwindow closed — reset to bare app title with version
+    auto *pv = activeProjectView();
+    Project *project = activeProject();
+    if (!project) {
+        // Last workspace dock closed — reset to bare app title with version.
 #ifdef RX14_PRO_BUILD
         setWindowTitle(QStringLiteral("romHEX 14  \u2014  v") + qApp->applicationVersion());
 #else
@@ -7410,29 +7663,25 @@ void MainWindow::onSubWindowActivated(QMdiSubWindow *sw)
             m_savepoints->attachTo(nullptr);
         return;
     }
-    auto *pv = qobject_cast<ProjectView *>(sw->widget());
-    if (!pv) return;
-
     // Refresh the control-module (BCM) dock for the newly-active project so it
     // auto-reveals when the active project holds a recognized module dump.
     refreshModulePanel();
 
     // Sync byte-order toolbar to this project
-    if (pv->project()) {
-        m_byteOrder = pv->project()->byteOrder;
+    {
+        m_byteOrder = project->byteOrder;
         m_actLo->blockSignals(true); m_actHi->blockSignals(true);
         m_actLo->setChecked(m_byteOrder == ByteOrder::LittleEndian);
         m_actHi->setChecked(m_byteOrder == ByteOrder::BigEndian);
         m_actLo->blockSignals(false); m_actHi->blockSignals(false);
     }
 
-    setWindowTitle(pv->project()
-        ? pv->project()->fullTitle() + QStringLiteral("  —  romHEX 14 v") + qApp->applicationVersion()
-        : QStringLiteral("romHEX 14  —  v") + qApp->applicationVersion());
+    setWindowTitle(project->fullTitle() + QStringLiteral("  —  romHEX 14 v")
+                   + qApp->applicationVersion());
 
     // Update AI assistant project context
-    if (m_aiAssistant && pv->project()) {
-        m_aiAssistant->setProject(pv->project());
+    if (m_aiAssistant) {
+        m_aiAssistant->setProject(project);
         m_aiAssistant->setAllProjects(m_projects);
     }
 
@@ -7440,17 +7689,23 @@ void MainWindow::onSubWindowActivated(QMdiSubWindow *sw)
     // Tuning Branches panel always reflects the project the user is
     // editing.  Sidecar JSON for the previous project is auto-saved
     // by SavepointManager::attachTo().
-    if (m_savepoints && pv->project())
-        m_savepoints->attachTo(pv->project());
+    if (m_savepoints)
+        m_savepoints->attachTo(project);
 
     // Apply current toolbar display params and font size to the newly activated view
     applyDisplayFormat();
     if (auto *v = activeView()) v->setFontSize(m_fontSize);
 }
 
-void MainWindow::showMapOverlay(const QByteArray &romData, const MapInfo &map,
-                                ByteOrder byteOrder, Project *project)
+void MainWindow::openMapEditor(const QByteArray &romData, const MapInfo &map,
+                               ByteOrder byteOrder, Project *project)
 {
+    // A map is represented by one editor per project. Reusing its existing
+    // dock keeps edits, undo context, and 3D/text state together instead of
+    // creating competing windows for the same ROM cells.
+    if (project && activateMapEditor(project, map))
+        return;
+
     // Unresolvable 1×1 VALUE: neighbours disagreed, address is a pure guess.
     // Showing the overlay would display data from a likely-wrong address — be honest instead.
     const bool isValue      = (map.type == "VALUE" ||
@@ -7492,40 +7747,25 @@ void MainWindow::showMapOverlay(const QByteArray &romData, const MapInfo &map,
         return;
     }
 
-    // Each activation gets its own tool window. This deliberately does not
-    // reuse a map-name keyed dialog: tuners often need several maps visible
-    // at once, including two views of the same map.
-    auto *ov = new MapOverlay(this);
-    m_overlays.append(ov);
-    connect(ov, &QObject::destroyed, this, [this]() {
-        m_overlays.removeAll(QPointer<MapOverlay>());
+    // MapEditorView owns only editor content. ADS owns the document frame,
+    // drag targets, floating container and re-docking behaviour.
+    auto *ov = new MapEditorView(this);
+    connect(ov, &MapEditorView::activated, this, [this](MapEditorView *overlay) {
+        if (auto *dock = mapEditorDock(overlay))
+            m_activeWorkspaceDock = dock;
+        onWorkspaceDockActivated();
+        updateMapTreeEditorAccents();
     });
 
-    // Wire ROM patch write-back.
+    // Project-backed overlays submit their byte transactions directly to the
+    // shared Project ROM document.  The document broadcasts the repaint and
+    // dirty-state notifications to every bound view.
     if (project) {
         QPointer<Project> projPtr(project);
 
-        // romPatchReady fires once PER CELL — patch silently, no tree rebuild
-        connect(ov, &MapOverlay::romPatchReady,
-                this, [projPtr](uint32_t offset, QByteArray bytes) {
-            if (!projPtr) return;
-            if ((int)(offset + bytes.size()) > projPtr->currentData.size()) return;
-            auto *dst = reinterpret_cast<uint8_t*>(projPtr->currentData.data());
-            std::memcpy(dst + offset, bytes.constData(), bytes.size());
-            projPtr->modified = true;
-            // NOTE: do NOT emit dataChanged here — editBatchDone does it once
-        });
-
-        // editBatchDone fires ONCE per user action (applyDelta / undo / redo)
-        connect(ov, &MapOverlay::editBatchDone,
-                this, [projPtr, this]() {
-            if (!projPtr) return;
-            emit projPtr->dataChanged();   // triggers exactly one refreshProjectTree
-        });
-
         // addressCorrected — user manually confirmed the correct address
-        connect(ov, &MapOverlay::addressCorrected,
-                this, [projPtr, this](const QString &mapName, uint32_t newAddress) {
+        connect(ov, &MapEditorView::addressCorrected,
+                this, [projPtr, this, ov](const QString &mapName, uint32_t newAddress) {
             if (!projPtr) return;
             // Update the map in the project and persist the confidence override
             for (auto &m : projPtr->maps) {
@@ -7533,34 +7773,27 @@ void MainWindow::showMapOverlay(const QByteArray &romData, const MapInfo &map,
                     m.address         = newAddress;
                     m.linkConfidence  = 95;
                     projPtr->modified = true;
+                    updateMapEditorKey(projPtr, ov, m);
                     break;
                 }
             }
             refreshProjectTree();
         });
 
-        // Share this project's view editor so overlay edits land on the
-        // same undo stack as the hex / waveform / 3D views, and route the
-        // overlay's embedded 3D "Edit map" menu through the shared path.
-        WaveformEditor *sharedEd = nullptr;
-        for (auto *sub : m_mdi->subWindowList()) {
-            auto *pv = qobject_cast<ProjectView *>(sub->widget());
-            if (pv && pv->project() == project && pv->waveformWidget()) {
-                sharedEd = pv->waveformWidget()->editor();
-                break;
-            }
-        }
-        ov->setSharedEditor(sharedEd, project);
-        connect(ov, &MapOverlay::editOpRequested,
+        // The overlay reads/writes the same project ROM transaction stream as
+        // every other view; it does not borrow a widget-local editor.
+        ov->setProject(project);
+        connect(ov, &MapEditorView::editOpRequested,
                 this, &MainWindow::onEditOpRequestedFromView);
         // Propagate map property changes back to the project
-        auto applyMapUpdate = [projPtr, this](const MapInfo &updated, bool isFinal) {
+        auto applyMapUpdate = [projPtr, this, ov](const MapInfo &updated, bool isFinal) {
             if (!projPtr) return;
             for (auto &m : projPtr->maps) {
                 if ((m.address > 0 && m.address == updated.address)
                     || (!m.id.isEmpty() && !updated.id.isEmpty() && m.id == updated.id)
                     || m.name == updated.name) {
                     m = updated;
+                    updateMapEditorKey(projPtr, ov, m);
                     if (isFinal) {
                         projPtr->modified = true;
                         emit projPtr->dataChanged();
@@ -7570,11 +7803,11 @@ void MainWindow::showMapOverlay(const QByteArray &romData, const MapInfo &map,
                 }
             }
         };
-        connect(ov, &MapOverlay::mapInfoPreview,
+        connect(ov, &MapEditorView::mapInfoPreview,
                 this, [applyMapUpdate](const MapInfo &preview) {
             applyMapUpdate(preview, false);
         });
-        connect(ov, &MapOverlay::mapInfoChanged,
+        connect(ov, &MapEditorView::mapInfoChanged,
                 this, [applyMapUpdate](const MapInfo &updated, ByteOrder) {
             applyMapUpdate(updated, true);
         });
@@ -7598,7 +7831,106 @@ void MainWindow::showMapOverlay(const QByteArray &romData, const MapInfo &map,
                           : displayMap.name + QStringLiteral("  \u2014  ") + desc;
         ov->setWindowTitle(title);
     }
+
+    auto *dock = new ads::CDockWidget(m_dockManager, ov->windowTitle());
+    dock->setObjectName(QStringLiteral("mapEditor_%1")
+                            .arg(mapTreeKey(project, map)));
+    dock->setFeatures(ads::CDockWidget::DefaultDockWidgetFeatures
+                      | ads::CDockWidget::DockWidgetDeleteOnClose
+                      | ads::CDockWidget::CustomCloseHandling);
+    dock->setMinimumSize(480, 320);
+    dock->setWidget(ov, ads::CDockWidget::ForceNoScrollArea);
+    connect(ov, &QWidget::windowTitleChanged,
+            dock, &ads::CDockWidget::setWindowTitle);
+    connect(ov, &MapEditorView::closeRequested,
+            dock, &ads::CDockWidget::requestCloseDockWidget);
+    connect(ov, &MapEditorView::floatToggleRequested,
+            dock, &ads::CDockWidget::setFloating);
+    connect(ov, &MapEditorView::redockRequested, this, [this, dock]() {
+        redockWorkspaceDock(dock);
+    });
+
+    ads::CDockAreaWidget *tabArea = nullptr;
+    if (auto *hex = project ? projectDock(project) : nullptr)
+        tabArea = hex->dockAreaWidget();
+    for (const auto &record : m_workspaceViews) {
+        if (record.project == project
+            && record.kind == WorkspaceViewRecord::Kind::MapEditor
+            && record.dock) {
+            tabArea = record.dock->dockAreaWidget();
+            break;
+        }
+    }
+    if (tabArea)
+        m_dockManager->addDockWidget(ads::CenterDockWidgetArea, dock, tabArea);
+    else
+        m_dockManager->addDockWidget(ads::CenterDockWidgetArea, dock);
+
+    registerWorkspaceDock(project, dock, ov, WorkspaceViewRecord::Kind::MapEditor,
+                          mapEditorKey(map));
+
+    dock->toggleView(true);
+    dock->raise();
+    ov->focusEditor();
+    m_activeWorkspaceDock = dock;
+    updateMapTreeEditorAccents();
 }
+
+ads::CDockWidget *MainWindow::mapEditorDock(const MapEditorView *editor) const
+{
+    if (!editor) return nullptr;
+    for (const auto &record : m_workspaceViews) {
+        if (record.kind == WorkspaceViewRecord::Kind::MapEditor
+            && record.content.data() == editor && record.dock) {
+            return record.dock.data();
+        }
+    }
+    return nullptr;
+}
+
+bool MainWindow::activateMapEditor(Project *project, const MapInfo &map)
+{
+    if (!project) return false;
+    for (auto *editor : mapEditorViews(project)) {
+        if (editor->targetProject() != project
+            || !editor->displaysMap(map)) {
+            continue;
+        }
+        if (auto *dock = mapEditorDock(editor)) {
+            dock->show();
+            dock->raise();
+        }
+        editor->focusEditor();
+        m_activeWorkspaceDock = mapEditorDock(editor);
+        updateMapTreeEditorAccents();
+        return true;
+    }
+    return false;
+}
+
+void MainWindow::closeMapEditor(MapEditorView *editor)
+{
+    if (!editor) return;
+    if (auto *dock = mapEditorDock(editor)) {
+        closeWorkspaceDock(dock);
+        return;
+    }
+    editor->deleteLater();
+}
+
+void MainWindow::closeMapEditors(Project *project, const MapInfo *map)
+{
+    const auto editors = mapEditorViews();
+    for (auto *editor : editors) {
+        if ((project && editor->targetProject() != project)
+            || (map && !editor->displaysMap(*map))) {
+            continue;
+        }
+        closeMapEditor(editor);
+    }
+}
+
+
 
 void MainWindow::onMapActivated(const MapInfo &map, Project *project)
 {
@@ -7648,6 +7980,19 @@ void MainWindow::onMapActivated(const MapInfo &map, Project *project)
 
     // Feed selected map context to AI assistant
     if (m_aiAssistant) m_aiAssistant->setSelectedMap(map);
+
+    // Sync the tree directly through the cache built with its leaves; this
+    // avoids an O(all map nodes) search after every hex/tree activation.
+    if (m_projectTree && project) {
+        if (auto *item = m_mapTreeItems.value(mapTreeKey(project, map))) {
+            QSignalBlocker blocker(m_projectTree);
+            for (QTreeWidgetItem *parent = item->parent(); parent;
+                 parent = parent->parent())
+                parent->setExpanded(true);
+            m_projectTree->setCurrentItem(item);
+            m_projectTree->scrollToItem(item);
+        }
+    }
 }
 
 void MainWindow::openMapViewer(Project *project, const MapInfo &map)
@@ -7664,7 +8009,7 @@ void MainWindow::openMapViewer(Project *project, const MapInfo &map)
                 .arg(map.name).arg(map.address, 0, 16).toUpper(), 5000);
         return;
     }
-    showMapOverlay(project->currentData, map, project->byteOrder, project);
+    openMapEditor(project->currentData, map, project->byteOrder, project);
 }
 
 // Rebuild the "Recent Maps" chip strip above the project tree from
@@ -7940,10 +8285,9 @@ void MainWindow::actFindSimilarFiles()
         // Auto-pop HexCompareDlg with the active project on the left and
         // the newly-opened file on the right.
         if (justOpened) {
-            // Defer the HexCompareDlg creation until after the MDI cascade
-            // from openProject() above settles.  Showing a top-level dialog
-            // mid-cascade has crashed in QMdiArea::resizeEvent on some
-            // builds (likely a QPointer-into-deleted-subwindow race).
+            // Defer the HexCompareDlg until dock insertion from openProject()
+            // settles. Showing a top-level dialog during document creation
+            // used to trigger re-entrant layout work on some builds.
             QPointer<MainWindow> self = this;
             QPointer<Project>    rightP = justOpened;
             QTimer::singleShot(0, this, [self, rightP]() {
@@ -8037,7 +8381,7 @@ void MainWindow::onCloneVersionRequested(Project *parent, int versionIndex)
 void MainWindow::onTreeItemClicked(QTreeWidgetItem *item, int)
 {
     // Version-snapshot click → ask to restore that version in the owning
-    // project's MDI window. UserRole+4 holds the snapshot index.
+    // project's Hex dock. UserRole+4 holds the snapshot index.
     auto versionVar = item->data(0, Qt::UserRole + 4);
     auto projRootVar = item->data(0, Qt::UserRole);
     auto mapVar      = item->data(0, Qt::UserRole + 2);
@@ -8045,7 +8389,7 @@ void MainWindow::onTreeItemClicked(QTreeWidgetItem *item, int)
         auto *proj = static_cast<Project *>(projRootVar.value<void *>());
         const int vIdx = versionVar.toInt();
         if (proj && vIdx >= 0 && vIdx < proj->versions.size()) {
-            // Raise the project's MDI window first so any confirmation
+            // Raise the project's Hex dock first so any confirmation
             // dialog is centered on the right window.
             openProject(proj);
             const QString vname = proj->versions[vIdx].name;
@@ -8063,7 +8407,7 @@ void MainWindow::onTreeItemClicked(QTreeWidgetItem *item, int)
         return;
     }
 
-    // Project root click → show or reopen its MDI window
+    // Project root click → show or reopen its Hex dock
     if (projRootVar.isValid() && !mapVar.isValid()) {
         auto *proj = static_cast<Project *>(projRootVar.value<void *>());
         if (proj) openProject(proj);   // openProject already handles re-show
@@ -8079,17 +8423,25 @@ void MainWindow::onTreeItemClicked(QTreeWidgetItem *item, int)
         return;
     }
 
-    auto map   = mapVar.value<MapInfo>();
-    auto *proj = static_cast<Project *>(
-                     item->data(0, Qt::UserRole + 1).value<void *>());
-    if (!proj) return;
+    // Map leaves are handled by currentItemChanged, which also covers
+    // keyboard navigation without duplicating mouse activation.
+}
 
-    // Selecting a sidebar map only navigates and highlights the corresponding
-    // hex range. Opening the editable map window is a double-click action.
-    openProject(proj);
-    if (auto *pv = activeView()) pv->showMap(map);
-    m_currentMapIdx = proj->maps.indexOf(map);
-    onMapActivated(map, proj);
+void MainWindow::activateTreeMapItem(QTreeWidgetItem *item)
+{
+    if (!item) return;
+    const auto mapVar = item->data(0, Qt::UserRole + 2);
+    if (!mapVar.isValid()) return;
+    const auto map = mapVar.value<MapInfo>();
+    auto *project = static_cast<Project *>(
+        item->data(0, Qt::UserRole + 1).value<void *>());
+    if (!project) return;
+
+    m_currentMapIdx = project->maps.indexOf(map);
+    onMapActivated(map, project);
+    // Tree navigation must not create a new editor. It only focuses the
+    // already-open one; Enter/double-click still opens a missing editor.
+    activateMapEditor(project, map);
 }
 
 // ── Misc ───────────────────────────────────────────────────────────────────────
@@ -8298,15 +8650,282 @@ void MainWindow::actAutoDetectMaps()
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-// Cleanup helper invoked AFTER Qt's close-event flow has unwound.
-// Doing model mutation (m_projects.removeAll, refreshProjectTree, ...) inside
-// the event filter left MDI in an inconsistent state during its post-close
-// resize/relayout pass — signals fired with widgets we'd already cut from
-// m_projects, producing access violations.  Deferring via QTimer::singleShot(0)
-// puts this work on the next event-loop turn, after MDI is done.
+MainWindow::MapEditorKey MainWindow::mapEditorKey(const MapInfo &map)
+{
+    return {map.id.trimmed(), map.cellDataStart()};
+}
+
+ads::CDockWidget *MainWindow::projectDock(Project *project) const
+{
+    return project ? m_projectDocks.value(project).data() : nullptr;
+}
+
+QList<ProjectView *> MainWindow::projectViews() const
+{
+    QList<ProjectView *> views;
+    for (const auto &record : m_workspaceViews) {
+        if (record.kind != WorkspaceViewRecord::Kind::HexView || !record.content)
+            continue;
+        if (auto *view = qobject_cast<ProjectView *>(record.content.data()))
+            views.append(view);
+    }
+    return views;
+}
+
+ProjectView *MainWindow::projectViewAt(int index) const
+{
+    const auto views = projectViews();
+    return index >= 0 && index < views.size() ? views.at(index) : nullptr;
+}
+
+ProjectView *MainWindow::activeProjectView() const
+{
+    if (m_activeWorkspaceDock) {
+        for (const auto &record : m_workspaceViews) {
+            if (record.dock != m_activeWorkspaceDock) {
+                continue;
+            }
+            if (record.kind == WorkspaceViewRecord::Kind::HexView) {
+                if (auto *view = qobject_cast<ProjectView *>(record.content.data()))
+                    return view;
+            }
+            for (const auto &hexRecord : m_workspaceViews) {
+                if (hexRecord.project != record.project
+                    || hexRecord.kind != WorkspaceViewRecord::Kind::HexView) {
+                    continue;
+                }
+                if (auto *view = qobject_cast<ProjectView *>(hexRecord.content.data()))
+                    return view;
+            }
+            return nullptr;
+        }
+    }
+    const auto views = projectViews();
+    return views.isEmpty() ? nullptr : views.constLast();
+}
+
+QList<MapEditorView *> MainWindow::mapEditorViews(Project *project) const
+{
+    QList<MapEditorView *> editors;
+    for (const auto &record : m_workspaceViews) {
+        if (record.kind != WorkspaceViewRecord::Kind::MapEditor
+            || (project && record.project != project) || !record.content) {
+            continue;
+        }
+        if (auto *editor = qobject_cast<MapEditorView *>(record.content.data()))
+            editors.append(editor);
+    }
+    return editors;
+}
+
+MapEditorView *MainWindow::activeMapEditor() const
+{
+    if (!m_activeWorkspaceDock) return nullptr;
+    for (const auto &record : m_workspaceViews) {
+        if (record.dock != m_activeWorkspaceDock
+            || record.kind != WorkspaceViewRecord::Kind::MapEditor) {
+            continue;
+        }
+        return qobject_cast<MapEditorView *>(record.content.data());
+    }
+    return nullptr;
+}
+
+ads::CDockWidget *MainWindow::findMapEditorDock(Project *project, const MapInfo &map) const
+{
+    const MapEditorKey key = mapEditorKey(map);
+    for (const auto &record : m_workspaceViews) {
+        if (record.project == project && record.kind == WorkspaceViewRecord::Kind::MapEditor
+            && record.mapKey == key && record.dock) {
+            return record.dock.data();
+        }
+    }
+    return nullptr;
+}
+
+void MainWindow::updateMapEditorKey(Project *project, MapEditorView *editor,
+                                    const MapInfo &map)
+{
+    for (auto &record : m_workspaceViews) {
+        if (record.project == project
+            && record.kind == WorkspaceViewRecord::Kind::MapEditor
+            && record.content == editor) {
+            record.mapKey = mapEditorKey(map);
+            return;
+        }
+    }
+}
+
+void MainWindow::registerWorkspaceDock(Project *project, ads::CDockWidget *dock,
+                                       QWidget *content, WorkspaceViewRecord::Kind kind,
+                                       const MapEditorKey &key)
+{
+    if (!project || !dock || !content) return;
+    dock->installEventFilter(this);
+    m_workspaceViews.append({project, dock, content, kind, key});
+    if (kind == WorkspaceViewRecord::Kind::HexView)
+        m_projectDocks.insert(project, dock);
+
+    connect(dock, &ads::CDockWidget::viewToggled, this,
+            [this, dock](bool open) {
+        if (!open) return;
+        m_activeWorkspaceDock = dock;
+        onWorkspaceDockActivated();
+        updateMapTreeEditorAccents();
+    });
+    connect(dock, &ads::CDockWidget::closeRequested, this, [this, dock]() {
+        closeWorkspaceDock(dock);
+    });
+    connect(dock, &QObject::destroyed, this, [this, project, dock, kind]() {
+        unregisterWorkspaceDock(dock);
+        if (kind == WorkspaceViewRecord::Kind::HexView
+            && m_projectDocks.value(project) == dock) {
+            m_projectDocks.remove(project);
+        }
+        if (m_activeWorkspaceDock == dock)
+            m_activeWorkspaceDock = nullptr;
+        requestProjectFinalization(project, CloseIntent::UnreferencedViewClose);
+        updateMapTreeEditorAccents();
+    });
+}
+
+void MainWindow::unregisterWorkspaceDock(ads::CDockWidget *dock)
+{
+    m_workspaceViews.removeIf([dock](const WorkspaceViewRecord &record) {
+        return record.dock.data() == dock || !record.dock;
+    });
+}
+
+void MainWindow::redockWorkspaceDock(ads::CDockWidget *dock)
+{
+    if (!m_dockManager || !dock || !dock->isFloating())
+        return;
+
+    const WorkspaceViewRecord *source = nullptr;
+    for (const auto &record : m_workspaceViews) {
+        if (record.dock == dock) {
+            source = &record;
+            break;
+        }
+    }
+    if (!source)
+        return;
+
+    // Prefer an existing document of the same project. This returns a map to
+    // its Hex tab group and keeps cross-project arrangements independent.
+    ads::CDockAreaWidget *targetArea = nullptr;
+    if (auto *hex = projectDock(source->project); hex && hex != dock
+        && !hex->isFloating()) {
+        targetArea = hex->dockAreaWidget();
+    }
+    if (!targetArea) {
+        for (const auto &record : m_workspaceViews) {
+            if (record.project == source->project && record.dock
+                && record.dock != dock && !record.dock->isFloating()) {
+                targetArea = record.dock->dockAreaWidget();
+                break;
+            }
+        }
+    }
+
+    if (targetArea)
+        m_dockManager->addDockWidget(ads::CenterDockWidgetArea, dock, targetArea);
+    else
+        m_dockManager->addDockWidget(ads::CenterDockWidgetArea, dock);
+
+    dock->toggleView(true);
+    dock->raise();
+    m_activeWorkspaceDock = dock;
+    onWorkspaceDockActivated();
+    updateMapTreeEditorAccents();
+}
+
+bool MainWindow::closeWorkspaceDock(ads::CDockWidget *dock)
+{
+    if (!dock)
+        return false;
+
+    Project *project = nullptr;
+    for (const auto &record : m_workspaceViews) {
+        if (record.dock == dock)
+            project = record.project;
+    }
+    if (!project)
+        return false;
+
+    int liveViewCount = 0;
+    for (const auto &record : m_workspaceViews)
+        if (record.project == project && record.dock)
+            ++liveViewCount;
+
+    const bool forceDocumentClose = m_forceProjectClose.contains(project);
+    if (!forceDocumentClose && liveViewCount <= 1 && project->modified
+        && qgetenv("RX14_LUA_TEST") != "1") {
+        QMessageBox messageBox(this);
+        messageBox.setWindowTitle(tr("Close Project"));
+        messageBox.setText(QString("<b>%1</b>").arg(project->fullTitle()));
+        messageBox.setInformativeText(tr("This project has unsaved changes."));
+        auto *save = messageBox.addButton(tr("Save & Close"), QMessageBox::AcceptRole);
+        auto *discard = messageBox.addButton(tr("Close without saving"),
+                                             QMessageBox::DestructiveRole);
+        auto *cancel = messageBox.addButton(QMessageBox::Cancel);
+        messageBox.exec();
+
+        if (messageBox.clickedButton() == cancel)
+            return false;
+        if (messageBox.clickedButton() == save) {
+            bool saved = false;
+            if (project->filePath.isEmpty()) {
+                const QString path = QFileDialog::getSaveFileName(
+                    this, tr("Save Project As"),
+                    ProjectRegistry::defaultProjectDir() + "/"
+                        + suggestedProjectBasename(project) + ".rx14proj",
+                    tr("RX14 Projects (*.rx14proj);;All Files (*)"));
+                if (!path.isEmpty()) {
+                    saved = project->saveAs(path);
+                    if (saved)
+                        ProjectRegistry::instance().registerProject(path, project);
+                }
+            } else {
+                saved = project->save();
+                if (saved)
+                    ProjectRegistry::instance().registerProject(project->filePath, project);
+            }
+            if (!saved)
+                return false;
+        } else if (messageBox.clickedButton() != discard) {
+            return false;
+        }
+    }
+
+    // Force-close bypasses ADS's CustomCloseHandling guard after the above
+    // policy has allowed it. Destruction unregisters the record and schedules
+    // document finalization if this was the final visible document.
+    dock->closeDockWidget();
+    return true;
+}
+
+void MainWindow::requestProjectFinalization(Project *project, CloseIntent intent)
+{
+    if (!project || !m_projects.contains(project)) return;
+    if (intent == CloseIntent::ExplicitProjectClose) {
+        m_forceProjectClose.insert(project);
+        const auto records = m_workspaceViews;
+        for (const auto &record : records)
+            if (record.project == project && record.dock)
+                record.dock->closeDockWidget();
+    }
+    finalizeProjectWhenUnreferenced(project);
+}
+
+// Cleanup helper invoked after ADS dock destruction has unwound.  Mutating
+// document ownership during a dock close causes re-entrant relayout/close
+// work, so model teardown remains deferred to the next event-loop turn.
 void MainWindow::finalizeClosedProject(Project *p)
 {
     if (!p) return;
+    m_finalizationScheduled.remove(p);
+    m_forceProjectClose.remove(p);
     qCInfo(catFind) << "finalizeClosedProject:" << p->name;
     cancelMapScan(p);
     luaClearLastCreatedMap(p);
@@ -8316,10 +8935,12 @@ void MainWindow::finalizeClosedProject(Project *p)
     m_recentMaps.removeIf([p](const QPair<Project *, QString> &e) {
         return e.first == p;
     });
-    // Close every independent map window backed by this project.
-    for (auto ov : m_overlays)
-        if (ov && ov->targetProject() == p) ov->close();
-    m_overlays.removeAll(QPointer<MapOverlay>());
+    // Explicit finalization owns every remaining dock. Normally this list is
+    // empty; it is non-empty for a forced project close or linked children.
+    const auto records = m_workspaceViews;
+    for (const auto &record : records)
+        if (record.project == p && record.dock)
+            record.dock->closeDockWidget();
     // If this is a parent, also close any still-open linked-ROM children
     if (!p->isLinkedRom) {
         QVector<Project *> children;
@@ -8332,14 +8953,10 @@ void MainWindow::finalizeClosedProject(Project *p)
             if (m_savepoints && m_savepoints->project() == c)
                 m_savepoints->attachTo(nullptr);
             m_projects.removeAll(c);
-            for (auto *csw : m_mdi->subWindowList()) {
-                auto *cpv = qobject_cast<ProjectView *>(csw->widget());
-                if (cpv && cpv->project() == c) {
-                    csw->removeEventFilter(this);
-                    csw->setAttribute(Qt::WA_DeleteOnClose, true);
-                    csw->close();
-                }
-            }
+            const auto childRecords = m_workspaceViews;
+            for (const auto &record : childRecords)
+                if (record.project == c && record.dock)
+                    record.dock->closeDockWidget();
             c->deleteLater();
         }
     }
@@ -8351,97 +8968,67 @@ void MainWindow::finalizeClosedProject(Project *p)
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *ev)
 {
-    if (ev->type() != QEvent::Close)
-        return QMainWindow::eventFilter(obj, ev);
-    auto *sw = qobject_cast<QMdiSubWindow *>(obj);
-    if (!sw)
-        return QMainWindow::eventFilter(obj, ev);
-    auto *pv = qobject_cast<ProjectView *>(sw->widget());
-    Project *proj = pv ? pv->project() : nullptr;
-    qCInfo(catFind) << "subwindow close: project="
-                    << (proj ? proj->name : QStringLiteral("(none)"))
-                    << " modified="
-                    << (proj ? proj->modified : false)
-                    << " openCount=" << m_projects.size();
-    if (!proj)
-        return QMainWindow::eventFilter(obj, ev);
+    ads::CDockWidget *dock = qobject_cast<ads::CDockWidget *>(obj);
+    if (!dock && obj) dock = qobject_cast<ads::CDockWidget *>(obj->parent());
 
-    // Modified project → ask the user before letting Qt close the window.
-    // The save / discard / cancel dialog is synchronous; everything below
-    // deferred to a singleShot.
-    //
-    // Iter 8.2 v2: under RX14_LUA_TEST=1 (the headless RPC test harness)
-    // we MUST NOT show modals — they block the Qt event loop forever
-    // because nobody is on the keyboard.  Treat modified as "discard" so
-    // close proceeds non-interactively.
-    if (proj->modified && qgetenv("RX14_LUA_TEST") != "1") {
-        QMessageBox mb(this);
-        mb.setWindowTitle(tr("Close Project"));
-        mb.setText(QString("<b>%1</b>").arg(proj->fullTitle()));
-        mb.setInformativeText(tr("This project has unsaved changes."));
-        auto *btnSave    = mb.addButton(tr("Save & Close"),         QMessageBox::AcceptRole);
-        auto *btnDiscard = mb.addButton(tr("Close without saving"), QMessageBox::DestructiveRole);
-        auto *btnCancel  = mb.addButton(QMessageBox::Cancel);
-        mb.exec();
-
-        if (mb.clickedButton() == btnCancel) {
-            ev->ignore();   // user cancelled — keep the window open
-            return true;
-        }
-        if (mb.clickedButton() == btnSave) {
-            if (proj->filePath.isEmpty()) {
-                QString path = QFileDialog::getSaveFileName(
-                    this, tr("Save Project As"),
-                    ProjectRegistry::defaultProjectDir() + "/" +
-                        suggestedProjectBasename(proj) + ".rx14proj",
-                    tr("RX14 Projects (*.rx14proj);;All Files (*)"));
-                if (path.isEmpty()) { ev->ignore(); return true; }
-                proj->saveAs(path);
-                ProjectRegistry::instance().registerProject(path, proj);
-            } else {
-                proj->save();
-                ProjectRegistry::instance().registerProject(proj->filePath, proj);
-            }
-        }
-        // btnDiscard or post-save: fall through to deferred close
+    if (dock && (ev->type() == QEvent::FocusIn || ev->type() == QEvent::WindowActivate)) {
+        m_activeWorkspaceDock = dock;
+        onWorkspaceDockActivated();
+        updateMapTreeEditorAccents();
     }
-
-    // Detach from this subwindow so we don't re-enter once Qt resumes
-    // delivering the close event.  WA_DeleteOnClose makes Qt destroy the
-    // subwindow when its close completes.
-    sw->removeEventFilter(this);
-    sw->setAttribute(Qt::WA_DeleteOnClose, true);
-
-    // Defer model cleanup to the next event-loop turn — see comment on
-    // finalizeClosedProject().  QPointer guards against the project being
-    // taken down by some other path before our timer fires.
-    QPointer<Project> projPtr(proj);
-    QTimer::singleShot(0, this, [this, projPtr]() {
-        if (projPtr)
-            finalizeClosedProject(projPtr.data());
-    });
-
-    return false;  // pass-through: let Qt actually close the subwindow
+    return QMainWindow::eventFilter(obj, ev);
 }
 
 ProjectView *MainWindow::activeView() const
 {
-    auto *sw = m_mdi->activeSubWindow();
-    if (!sw) {
-        // The MDI area transiently reports no active subwindow — e.g. during a
-        // drag-and-drop from another app, or when focus is on a dock/menu. Fall
-        // back to the most-recently-active project window so actions like
-        // "import KP/A2L/XDF" still target the project the user has open.
-        const auto history = m_mdi->subWindowList(QMdiArea::ActivationHistoryOrder);
-        if (!history.isEmpty()) sw = history.last();
-    }
-    return sw ? qobject_cast<ProjectView *>(sw->widget()) : nullptr;
+    return activeProjectView();
 }
 
 Project *MainWindow::activeProject() const
 {
+    if (m_activeWorkspaceDock) {
+        for (const auto &record : m_workspaceViews) {
+            if (record.dock == m_activeWorkspaceDock && record.project)
+                return record.project;
+        }
+    }
     auto *v = activeView();
     return v ? v->project() : nullptr;
+}
+
+bool MainWindow::hasOpenMapEditors(Project *project) const
+{
+    for (const auto &record : m_workspaceViews)
+        if (record.project == project && record.kind == WorkspaceViewRecord::Kind::MapEditor
+            && record.dock) return true;
+    return false;
+}
+
+bool MainWindow::hasVisibleProjectView(Project *project) const
+{
+    return projectDock(project) != nullptr;
+}
+
+void MainWindow::finalizeProjectWhenUnreferenced(Project *project)
+{
+    if (!project || !m_projects.contains(project)
+        || hasOpenMapEditors(project) || hasVisibleProjectView(project)
+        || m_finalizationScheduled.contains(project)) {
+        return;
+    }
+
+    m_finalizationScheduled.insert(project);
+    const QPointer<Project> projectGuard(project);
+    QTimer::singleShot(0, this, [this, projectGuard]() {
+        if (!projectGuard) return;
+        Project *project = projectGuard.data();
+        m_finalizationScheduled.remove(project);
+        if (!m_projects.contains(project) || hasOpenMapEditors(project)
+            || hasVisibleProjectView(project)) {
+            return;
+        }
+        finalizeClosedProject(project);
+    });
 }
 
 // ── Drag & drop ───────────────────────────────────────────────────────────────
@@ -8529,8 +9116,22 @@ void MainWindow::applyUiTheme()
     }
     qApp->setStyleSheet(qss);
 
-    // MDI area background
-    m_mdi->setBackground(QBrush(c.uiBg));
+    // ADS owns its theme stylesheet. FollowPalette keeps its tab, splitter and
+    // drag-overlay assets coherent with the application palette; replacing the
+    // manager stylesheet here would discard those assets.
+    if (m_dockManager) {
+        m_dockManager->setColorSchemeMode(ads::CDockManager::ColorSchemeMode::Dark);
+        // Re-apply the flat dark dock chrome — setColorSchemeMode reloads ADS's CSS.
+        m_dockManager->setStyleSheet(m_dockManager->styleSheet() + QStringLiteral(
+            "\nads--CDockWidgetTab { background:#0d1117; border-right:1px solid #21262d; }"
+            "\nads--CDockWidgetTab[activeTab=\"true\"] { background:#161b22; }"
+            "\nads--CDockWidgetTab QLabel { color:#7d8590; }"
+            "\nads--CDockWidgetTab[activeTab=\"true\"] QLabel { color:#e7eefc; }"
+            "\nads--CDockAreaTitleBar { background:#0d1117; border-bottom:1px solid #21262d; }"
+            "\nads--CDockWidget { background:#0d1117; border-top:1px solid #21262d; }"
+            "\nads--CDockContainerWidget { background:#0d1117; }"
+            "\nads--CDockAreaWidget { background:#0d1117; }"));
+    }
 
     // Left panel & tree
     auto hex = [](const QColor &col) { return col.name(); };
@@ -8569,12 +9170,12 @@ void MainWindow::applyUiTheme()
     // Force full repaint on all open views — schedule a deferred
     // repaint so the stylesheet changes have fully propagated.
     QTimer::singleShot(0, this, [this]() {
-        for (auto *sub : m_mdi->subWindowList()) {
-            if (!sub->widget()) continue;
-            sub->widget()->setStyleSheet(sub->widget()->styleSheet());
-            sub->widget()->update();
+        for (const auto &record : std::as_const(m_workspaceViews)) {
+            if (!record.content) continue;
+            record.content->setStyleSheet(record.content->styleSheet());
+            record.content->update();
             // Recurse into child widgets (waveform, hex, overlay)
-            for (auto *child : sub->widget()->findChildren<QWidget*>())
+            for (auto *child : record.content->findChildren<QWidget*>())
                 child->update();
         }
         // Also repaint the welcome page if visible
@@ -8810,7 +9411,7 @@ void MainWindow::actLinkRom()
     // openProject() wires the parent-sync connection via wireLinkedRomSync()
     // — see MainWindow::openProject().
 
-    // Tile all visible windows to fill the MDI area (respects AI assistant panel)
+    // Reset visible documents to the standard dock arrangement.
     QTimer::singleShot(0, this, [this, proj]() {
         retileWindows();
 
@@ -8830,9 +9431,8 @@ void MainWindow::actLinkRom()
 
         // Step 2: Set up ALL views (load ROM, set maps, switch to 2D) WITHOUT navigating
         QVector<WaveformWidget*> allWaves;
-        for (auto *sub : m_mdi->subWindowList()) {
-            auto *pv = qobject_cast<ProjectView *>(sub->widget());
-            if (!pv || !pv->project()) continue;
+        for (auto *pv : projectViews()) {
+            if (!pv->project()) continue;
             auto *ww = pv->waveformWidget();
             if (!pv->project()->currentData.isEmpty())
                 ww->showROM(pv->project()->currentData, pv->hexWidget()->getOriginalData());
@@ -9053,12 +9653,11 @@ void MainWindow::autoSaveAll()
     if (saved > 0) {
         m_lastAutoSaveTime = QDateTime::currentDateTime();
         updateAutoSaveStatus();
-        // Refresh every subwindow title so the dirty-dot indicator is removed.
-        for (auto *sw : m_mdi->subWindowList()) {
-            auto *pv = qobject_cast<ProjectView *>(sw->widget());
-            if (pv && pv->project() && !pv->project()->modified)
-                sw->setWindowTitle(pv->project()->fullTitle());
-        }
+        // Refresh every Hex dock title so the dirty indicator is removed.
+        for (auto *pv : projectViews())
+            if (pv->project() && !pv->project()->modified)
+                if (auto *dock = projectDock(pv->project()))
+                    dock->setWindowTitle(pv->project()->fullTitle());
     }
     // First-time-only Save As prompt for unsaved projects. Once the user
     // either saves or cancels, this won't be re-triggered for that
@@ -9468,8 +10067,8 @@ void MainWindow::actShowCommandPalette()
                     openProject(proj);   // ensure window exists & is active
                     for (const MapInfo &m : proj->maps) {
                         if (m.name == chosen.mapName) {
-                            showMapOverlay(proj->currentData, m,
-                                           proj->byteOrder, proj);
+                            openMapEditor(proj->currentData, m,
+                                          proj->byteOrder, proj);
                             break;
                         }
                     }
@@ -9505,8 +10104,8 @@ void MainWindow::actShowCommandPalette()
                         ConfigDialog dlg(this);
                         dlg.exec();
         refreshProjectTree();
-        for (auto *sub : m_mdi->subWindowList())
-                            sub->widget()->update();
+        for (const auto &record : std::as_const(m_workspaceViews))
+                            if (record.content) record.content->update();
                     }
                     break;
                 }
@@ -9587,11 +10186,7 @@ void MainWindow::onToggleDiffOriginal(bool on)
     rx14::appSettings().setValue("view/showOriginalDiff", on);
     // Propagate to every open ProjectView so hex / waveform / 3D each
     // pick up the flag and repaint.
-    for (auto *sub : m_mdi->subWindowList()) {
-        auto *pv = qobject_cast<ProjectView *>(sub->widget());
-        if (!pv) continue;
-        pv->setShowOriginalDiffOverlay(on);
-    }
+    for (auto *pv : projectViews()) pv->setShowOriginalDiffOverlay(on);
 }
 
 // ── Sprint C: annotation slots ─────────────────────────────────────────────
@@ -9600,10 +10195,10 @@ MainWindow::AnnoCtx MainWindow::resolveAnnoCtx()
 {
     AnnoCtx c;
     auto *v = activeView();
-    if (m_mdi) {
-        const auto subs = m_mdi->subWindowList();
+    {
+        const auto views = projectViews();
         // If the active view (or first if no active) has no annotations
-        // but another subwindow does, prefer that one — it is what the
+        // but another document dock does, prefer that one — it is what the
         // user just edited.  Also covers the unfocused-RPC case where
         // activeView() is null.
         auto hasAnnos = [](ProjectView *pv) {
@@ -9611,19 +10206,14 @@ MainWindow::AnnoCtx MainWindow::resolveAnnoCtx()
                    && !pv->project()->annotations()->all().isEmpty();
         };
         if (!hasAnnos(v)) {
-            for (auto *sw : subs) {
-                auto *pv = qobject_cast<ProjectView *>(sw->widget());
+            for (auto *pv : views) {
                 if (hasAnnos(pv)) { v = pv; break; }
             }
         }
         // Final fallback: first ProjectView so F5 still works on a
         // project with no annotations yet.
         if (!v) {
-            for (auto *sw : subs) {
-                if (auto *pv = qobject_cast<ProjectView *>(sw->widget())) {
-                    v = pv; break;
-                }
-            }
+            if (!views.isEmpty()) v = views.first();
         }
     }
     if (!v || !v->project()) return c;
@@ -10007,6 +10597,18 @@ void MainWindow::onJumpMarker(bool forward)
 
 void MainWindow::onEditOpFromMenu(EditOp op)
 {
+    // The top-level Edit menu belongs to MainWindow, while a map grid is a
+    // separate tool window. Its selection survives opening the menu, but the
+    // generic ProjectView resolver cannot see it and would edit the full map.
+    // Let the active grid claim +/- first, using its keyboard-identical math.
+    if (auto *editor = activeMapEditor();
+        (op == EditOp::ValuePlus1 || op == EditOp::ValueMinus1)
+        && editor->targetProject() == activeProject()
+        && editor->incrementGridSelectionFromMenu(
+               op == EditOp::ValuePlus1 ? +1 : -1)) {
+        return;
+    }
+
     EditParams p;
     bool ok = false;
 
@@ -10280,16 +10882,41 @@ Project *MainWindow::luaActiveProject() const
     return activeProject();   // delegate to existing private impl
 }
 
+int MainWindow::luaWindowCount() const
+{
+    return projectViews().size();
+}
+
+int MainWindow::luaActiveWindowIndex() const
+{
+    const auto views = projectViews();
+    ProjectView *active = activeProjectView();
+    return active ? views.indexOf(active) : -1;
+}
+
+bool MainWindow::luaActivateWindow(int zeroBasedIndex)
+{
+    ProjectView *view = projectViewAt(zeroBasedIndex);
+    if (!view) return false;
+    ads::CDockWidget *dock = projectDock(view->project());
+    if (!dock) return false;
+    dock->show();
+    dock->raise();
+    m_activeWorkspaceDock = dock;
+    onWorkspaceDockActivated();
+    return true;
+}
+
 void MainWindow::luaNewProject()
 {
     // Headless equivalent of "File → New Project": create a Project,
-    // add it to MainWindow's project list, and open a sub-window for it.
+    // add it to MainWindow's project list, and open a Hex dock for it.
     // Lua's projectImport(file) then operates on this freshly created project.
     auto *p = new Project(this);
     p->name = QStringLiteral("LuaNewProject");
     p->createdAt = QDateTime::currentDateTime();
     p->changedAt = p->createdAt;
-    if (m_mdi) openProject(p);
+    openProject(p);
 }
 
 int MainWindow::luaSaveAllProjects()
@@ -10305,31 +10932,22 @@ int MainWindow::luaSaveAllProjects()
 
 int MainWindow::luaCloseAllProjects()
 {
-    if (!m_mdi) return 0;
-    int count = m_mdi->subWindowList().size();
-    m_mdi->closeAllSubWindows();
+    int count = m_workspaceViews.size();
+    const auto records = m_workspaceViews;
+    for (const auto &record : records)
+        if (record.dock) record.dock->closeDockWidget();
     return count;
 }
 
 bool MainWindow::luaCloseActiveProject(bool deleteFile)
 {
-    // Thin wrapper — does NOT touch m_projects directly.  Setting
-    // modified=false skips the "save?" modal in eventFilter(); sw->close()
-    // then triggers eventFilter which schedules finalizeClosedProject() via
-    // QTimer::singleShot(0).  All m_projects/recentMaps/overlays mutation
-    // happens deferred, after MDI's post-close relayout pass — see comment
-    // on finalizeClosedProject() for the race history.
-    if (!m_mdi) return false;
-    auto *sw = m_mdi->activeSubWindow();
-    if (!sw) return false;
-    auto *pv = qobject_cast<ProjectView *>(sw->widget());
-    if (!pv) return false;
-    auto *proj = pv->project();
+    // Non-interactive document close for the Lua harness.
+    auto *proj = activeProject();
     if (!proj) return false;
 
     const QString path = proj->filePath;
     proj->modified = false;
-    sw->close();
+    requestProjectFinalization(proj, CloseIntent::ExplicitProjectClose);
 
     if (deleteFile && !path.isEmpty()) {
         QTimer::singleShot(0, this, [path]{
@@ -10582,22 +11200,21 @@ QJsonObject MainWindow::debugStateSnapshot() const
     root.insert("projects", projects);
 
     QJsonArray subs;
-    if (m_mdi) {
-        const auto list = m_mdi->subWindowList();
-        for (int i = 0; i < list.size(); ++i) {
-            QMdiSubWindow *sw = list[i];
-            if (!sw) continue;
-            auto *pv = qobject_cast<ProjectView *>(sw->widget());
+    const auto views = projectViews();
+    for (int i = 0; i < views.size(); ++i) {
+            ProjectView *pv = views.at(i);
+            if (!pv) continue;
+            ads::CDockWidget *dock = projectDock(pv->project());
             QJsonObject sj;
             sj.insert("index",   i);
-            sj.insert("title",   sw->windowTitle());
-            sj.insert("active",  sw == m_mdi->activeSubWindow());
-            QRect g = sw->geometry();
+            sj.insert("title",   dock ? dock->windowTitle() : pv->windowTitle());
+            sj.insert("active",  pv == activeProjectView());
+            QRect g = dock ? dock->geometry() : pv->geometry();
             QJsonObject geom;
             geom.insert("x", g.x()); geom.insert("y", g.y());
             geom.insert("w", g.width()); geom.insert("h", g.height());
             sj.insert("geometry", geom);
-            if (pv) {
+            {
                 Project *p = pv->project();
                 sj.insert("projectPath", p ? p->filePath : QString());
                 if (auto *hw = pv->hexWidget()) {
@@ -10618,7 +11235,6 @@ QJsonObject MainWindow::debugStateSnapshot() const
                 }
             }
             subs.append(sj);
-        }
     }
     root.insert("subwindows", subs);
 
@@ -10644,14 +11260,12 @@ bool MainWindow::debugTakeScreenshot(const QString &target,
     if (target.isEmpty() || target == "main") {
         w = this;
     } else if (target == "active") {
-        w = m_mdi ? m_mdi->activeSubWindow() : nullptr;
+        w = m_activeWorkspaceDock ? m_activeWorkspaceDock.data() : nullptr;
     } else if (target.startsWith("subwindow:")) {
         bool ok = false;
         int idx = target.mid(QStringLiteral("subwindow:").size()).toInt(&ok);
-        if (ok && m_mdi) {
-            const auto list = m_mdi->subWindowList();
-            if (idx >= 0 && idx < list.size()) w = list[idx];
-        }
+        if (ok)
+            if (auto *view = projectViewAt(idx)) w = projectDock(view->project());
     }
     if (!w) {
         if (outErr) *outErr = QStringLiteral("widget not found for target '%1'")
@@ -10736,19 +11350,10 @@ bool MainWindow::debugTriggerAction(const QString &name,
 bool MainWindow::debugSetScroll(const QString &target, int subIdx, int value,
                                 QString *outErr)
 {
-    if (!m_mdi) {
-        if (outErr) *outErr = "no MDI area";
-        return false;
-    }
-    const auto list = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= list.size()) {
+    ProjectView *pv = projectViewAt(subIdx);
+    if (!pv) {
         if (outErr) *outErr = QStringLiteral("sub index out of range: %1")
                                   .arg(subIdx);
-        return false;
-    }
-    auto *pv = qobject_cast<ProjectView *>(list[subIdx]->widget());
-    if (!pv) {
-        if (outErr) *outErr = "subwindow has no ProjectView";
         return false;
     }
     if (target == "hex") {
@@ -10793,7 +11398,7 @@ bool MainWindow::debugLoadRom(const QString &romPath, QString *outErr)
     }
 
     // Skip ProjectPropertiesDialog (modal — would block RPC).  Auto-save
-    // to the standard project dir, register, open MDI subwindow.
+    // to the standard project dir, register, and open its Hex dock.
     QString name = project->displayName();
     if (name.isEmpty()) name = fi.baseName();
     QString dir = ProjectRegistry::defaultProjectDir();
@@ -10815,14 +11420,11 @@ bool MainWindow::debugLoadRom(const QString &romPath, QString *outErr)
 bool MainWindow::debugApplyEdit(int subIdx, int op, int start, int end,
                                 double value, QString *outErr)
 {
-    if (!m_mdi) { if (outErr) *outErr = "no MDI"; return false; }
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) {
+    auto *pv = projectViewAt(subIdx);
+    if (!pv) {
         if (outErr) *outErr = QStringLiteral("sub index %1 out of range").arg(subIdx);
         return false;
     }
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
-    if (!pv) { if (outErr) *outErr = "no ProjectView"; return false; }
     auto *ww = pv->waveformWidget();
     auto *ed = ww ? ww->editor() : nullptr;
     if (!ed) { if (outErr) *outErr = "no editor"; return false; }
@@ -10850,13 +11452,11 @@ bool MainWindow::debugAddAnnotation(int subIdx, qint64 addr,
                                     const QString &text, qint64 length,
                                     QString *outErr)
 {
-    if (!m_mdi) { if (outErr) *outErr = "no MDI"; return false; }
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) {
+    auto *pv = projectViewAt(subIdx);
+    if (!pv) {
         if (outErr) *outErr = QStringLiteral("sub index out of range: %1").arg(subIdx);
         return false;
     }
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
     if (!pv || !pv->project()) {
         if (outErr) *outErr = "no project"; return false;
     }
@@ -10869,10 +11469,7 @@ bool MainWindow::debugAddAnnotation(int subIdx, qint64 addr,
 QJsonArray MainWindow::debugAnnotationList(int subIdx) const
 {
     QJsonArray arr;
-    if (!m_mdi) return arr;
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) return arr;
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
+    auto *pv = projectViewAt(subIdx);
     if (!pv || !pv->project()) return arr;
     auto *store = pv->project()->annotations();
     if (!store) return arr;
@@ -10890,13 +11487,11 @@ QJsonArray MainWindow::debugAnnotationList(int subIdx) const
 bool MainWindow::debugExportMapList(int subIdx, bool csv,
                                     const QString &path, QString *outErr)
 {
-    if (!m_mdi) { if (outErr) *outErr = "no MDI"; return false; }
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) {
+    auto *pv = projectViewAt(subIdx);
+    if (!pv) {
         if (outErr) *outErr = "sub idx out of range";
         return false;
     }
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
     if (!pv || !pv->project()) {
         if (outErr) *outErr = "no project"; return false;
     }
@@ -10908,10 +11503,7 @@ QJsonArray MainWindow::debugFindSimilar(int subIdx, const QString &refName,
                                         double threshold) const
 {
     QJsonArray arr;
-    if (!m_mdi) return arr;
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) return arr;
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
+    auto *pv = projectViewAt(subIdx);
     if (!pv || !pv->project()) return arr;
     const Project *p = pv->project();
     const MapInfo *ref = nullptr;
@@ -10941,10 +11533,7 @@ QJsonArray MainWindow::debugFindSimilar(int subIdx, const QString &refName,
 
 QString MainWindow::debugReadBytes(int subIdx, qint64 addr, int len) const
 {
-    if (!m_mdi) return {};
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) return {};
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
+    auto *pv = projectViewAt(subIdx);
     if (!pv || !pv->project()) return {};
     const auto &d = pv->project()->currentData;
     len = qBound(1, len, 256);
@@ -10955,12 +11544,10 @@ QString MainWindow::debugReadBytes(int subIdx, qint64 addr, int len) const
 bool MainWindow::debugBulkEdit(int subIdx, const QStringList &mapNames,
                                int op, double v, QString *outErr)
 {
-    if (!m_mdi) { if (outErr) *outErr = "no MDI"; return false; }
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) {
+    auto *pv = projectViewAt(subIdx);
+    if (!pv) {
         if (outErr) *outErr = "sub idx out of range"; return false;
     }
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
     if (!pv || !pv->project()) { if (outErr) *outErr = "no project"; return false; }
     auto *ed = pv->waveformWidget() ? pv->waveformWidget()->editor() : nullptr;
     if (!ed) { if (outErr) *outErr = "no editor"; return false; }
@@ -10996,27 +11583,21 @@ bool MainWindow::debugBulkEdit(int subIdx, const QStringList &mapNames,
 
 bool MainWindow::debugUndo(int subIdx, QString *outErr)
 {
-    if (!m_mdi) { if (outErr) *outErr = "no MDI"; return false; }
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) {
+    auto *pv = projectViewAt(subIdx);
+    if (!pv) {
         if (outErr) *outErr = "sub idx out of range"; return false;
     }
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
-    if (!pv) { if (outErr) *outErr = "no view"; return false; }
-    auto *ed = pv->waveformWidget() ? pv->waveformWidget()->editor() : nullptr;
-    if (!ed) { if (outErr) *outErr = "no editor"; return false; }
-    ed->undo();
+    if (!pv->project()) { if (outErr) *outErr = "no project"; return false; }
+    pv->project()->undoRomEdit();
     return true;
 }
 
 bool MainWindow::debugRemoveAnnotation(int subIdx, qint64 addr, QString *outErr)
 {
-    if (!m_mdi) { if (outErr) *outErr = "no MDI"; return false; }
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) {
+    auto *pv = projectViewAt(subIdx);
+    if (!pv) {
         if (outErr) *outErr = "sub idx out of range"; return false;
     }
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
     if (!pv || !pv->project()) { if (outErr) *outErr = "no project"; return false; }
     auto *st = pv->project()->annotations();
     if (!st) { if (outErr) *outErr = "no store"; return false; }
@@ -11038,10 +11619,7 @@ bool MainWindow::debugOpenProject(const QString &path, QString *outErr)
 QJsonArray MainWindow::debugMapList(int subIdx, int limit) const
 {
     QJsonArray arr;
-    if (!m_mdi) return arr;
-    const auto subs = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= subs.size()) return arr;
-    auto *pv = qobject_cast<ProjectView *>(subs[subIdx]->widget());
+    auto *pv = projectViewAt(subIdx);
     if (!pv || !pv->project()) return arr;
     const auto &maps = pv->project()->maps;
     const int n = (limit > 0) ? qMin(limit, int(maps.size())) : maps.size();
@@ -11063,14 +11641,11 @@ QJsonArray MainWindow::debugMapList(int subIdx, int limit) const
 
 bool MainWindow::debugSwitchView(int subIdx, int viewIdx, QString *outErr)
 {
-    if (!m_mdi) { if (outErr) *outErr = "no MDI area"; return false; }
-    const auto list = m_mdi->subWindowList();
-    if (subIdx < 0 || subIdx >= list.size()) {
+    auto *pv = projectViewAt(subIdx);
+    if (!pv) {
         if (outErr) *outErr = QStringLiteral("sub index out of range: %1").arg(subIdx);
         return false;
     }
-    auto *pv = qobject_cast<ProjectView *>(list[subIdx]->widget());
-    if (!pv) { if (outErr) *outErr = "subwindow has no ProjectView"; return false; }
     pv->switchView(viewIdx);
     qCDebug(catRpc) << "switch_view sub" << subIdx << "->" << viewIdx;
     return true;

@@ -795,23 +795,21 @@ void DiffPanel::doCopy(bool selectedOnly)
     if (rowsA.isEmpty()) return;
 
     const int sz = wordSize();
-    int copied = 0;
+    QVector<QPair<int, QByteArray>> patches;
     for (qint64 addrA : rowsA) {
         qint64 srcAddr = srcIsB ? amap->mapAtoB(addrA) : addrA;
         qint64 dstAddr = amap->mapAtoC(addrA);
         if (srcAddr < 0 || dstAddr < 0) continue;
         if (srcAddr + sz > src->currentData.size())  continue;
         if (dstAddr + sz > dst->currentData.size())  continue;
-        std::memcpy(dst->currentData.data() + dstAddr,
-                    src->currentData.constData() + srcAddr,
-                    sz);
-        ++copied;
+        const QByteArray bytes = src->currentData.mid(int(srcAddr), sz);
+        patches.append({int(dstAddr), bytes});
     }
-    if (copied <= 0) return;
+    if (patches.isEmpty()) return;
 
-    dst->modified = true;
-    emit dst->dataChanged();
-    emit copyApplied(dst, copied);
+    dst->applyRomPatches(patches, selectedOnly ? tr("Apply selected diffs (%1 items)").arg(patches.size())
+                                               : tr("Apply all diffs (%1 items)").arg(patches.size()));
+    emit copyApplied(dst, patches.size());
 
     if (dst == projectA() || dst == projectB())
         recompute();

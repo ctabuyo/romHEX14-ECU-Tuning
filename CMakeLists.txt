@@ -16,6 +16,21 @@ set(RX14_VERSION_NUMERIC "${RX14_VERSION_MAJOR}.${RX14_VERSION_MINOR}.${RX14_VER
 
 project(RX14 VERSION ${RX14_VERSION_NUMERIC} LANGUAGES C CXX)
 
+# Fetch ADS 5.0.0 during configuration rather than requiring a nested Git
+# checkout. The immutable release commit keeps every developer and CI build on
+# the same code while avoiding an unreleased master snapshot.
+include(FetchContent)
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build ADS example applications" FORCE)
+FetchContent_Declare(
+    QtAdvancedDockingSystem
+    GIT_REPOSITORY https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System.git
+    # ADS 5.0.0 release commit
+    GIT_TAG 433b0c90b44d8f17d059204176ff6e0d6d3783e3
+    EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(QtAdvancedDockingSystem)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" CACHE PATH "" FORCE)
+
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/version.h"
@@ -116,7 +131,8 @@ set(SOURCES
     src/waveformeditor.cpp
     src/map3dwidget.cpp
     src/maplistwidget.cpp
-    src/mapoverlay.cpp
+    src/mapeditorview.cpp
+    src/mapvaluecodec.cpp
     src/project.cpp
     src/projectview.cpp
     src/newprojectdialog.cpp
@@ -257,7 +273,8 @@ set(HEADERS
     src/waveformeditor.h
     src/map3dwidget.h
     src/maplistwidget.h
-    src/mapoverlay.h
+    src/mapeditorview.h
+    src/mapvaluecodec.h
     src/romdata.h
     src/project.h
     src/projectview.h
@@ -414,6 +431,7 @@ set(TS_FILES
     translations/rx14_zh_CN.ts
     translations/rx14_es.ts
     translations/rx14_th.ts
+    translations/rx14_nl.ts
 )
 if(Qt6_VERSION VERSION_GREATER_EQUAL "6.7.0")
     qt_add_translations(rx14
@@ -440,6 +458,7 @@ target_include_directories(rx14 SYSTEM PRIVATE
 )
 
 target_link_libraries(rx14 PRIVATE
+    qtadvanceddocking-qt6
     blake3
     lua_static       # Sprint L §4 — embedded Lua 5.4
     Qt6::Core

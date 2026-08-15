@@ -107,86 +107,79 @@ double readAt(const Project *p, qint64 addr, int dtype)
 
 // Write a value of the given datatype at the given offset.
 // Returns false on out-of-range or unsupported dtype.
+int datatypeSize(int dtype);
+
 bool writeAt(Project *p, qint64 addr, double value, int dtype)
 {
     using namespace lua_ids;
     if (!p || addr < 0) return false;
     int n = p->currentData.size();
-    uint8_t *d = reinterpret_cast<uint8_t *>(p->currentData.data());
-    auto fits = [&](int cells) { return addr + cells <= n; };
+    const int sz = datatypeSize(dtype);
+    if (addr + sz > n) return false;
+
+    QByteArray bytes(sz, 0);
+    uint8_t *d = reinterpret_cast<uint8_t *>(bytes.data());
     auto v32 = uint32_t(value);
     switch (dtype) {
     case eByte:
-        if (!fits(1)) return false;
-        d[addr] = uint8_t(v32);
+        d[0] = uint8_t(v32);
         break;
     case eLoHi:
-        if (!fits(2)) return false;
-        d[addr]   = uint8_t(v32 & 0xFF);
-        d[addr+1] = uint8_t((v32 >> 8) & 0xFF);
+        d[0] = uint8_t(v32 & 0xFF);
+        d[1] = uint8_t((v32 >> 8) & 0xFF);
         break;
     case eHiLo:
-        if (!fits(2)) return false;
-        d[addr]   = uint8_t((v32 >> 8) & 0xFF);
-        d[addr+1] = uint8_t(v32 & 0xFF);
+        d[0] = uint8_t((v32 >> 8) & 0xFF);
+        d[1] = uint8_t(v32 & 0xFF);
         break;
     case eLoHiLoHi:
-        if (!fits(4)) return false;
-        d[addr]   = uint8_t( v32        & 0xFF);
-        d[addr+1] = uint8_t((v32 >> 8)  & 0xFF);
-        d[addr+2] = uint8_t((v32 >> 16) & 0xFF);
-        d[addr+3] = uint8_t((v32 >> 24) & 0xFF);
+        d[0] = uint8_t( v32        & 0xFF);
+        d[1] = uint8_t((v32 >> 8)  & 0xFF);
+        d[2] = uint8_t((v32 >> 16) & 0xFF);
+        d[3] = uint8_t((v32 >> 24) & 0xFF);
         break;
     case eHiLoHiLo:
-        if (!fits(4)) return false;
-        d[addr]   = uint8_t((v32 >> 24) & 0xFF);
-        d[addr+1] = uint8_t((v32 >> 16) & 0xFF);
-        d[addr+2] = uint8_t((v32 >> 8)  & 0xFF);
-        d[addr+3] = uint8_t( v32        & 0xFF);
+        d[0] = uint8_t((v32 >> 24) & 0xFF);
+        d[1] = uint8_t((v32 >> 16) & 0xFF);
+        d[2] = uint8_t((v32 >> 8)  & 0xFF);
+        d[3] = uint8_t( v32        & 0xFF);
         break;
     case eFloatLoHi: {
-        if (!fits(4)) return false;
         float f = float(value);
         uint32_t bits;
         std::memcpy(&bits, &f, sizeof(bits));
-        d[addr]   = uint8_t( bits        & 0xFF);
-        d[addr+1] = uint8_t((bits >> 8)  & 0xFF);
-        d[addr+2] = uint8_t((bits >> 16) & 0xFF);
-        d[addr+3] = uint8_t((bits >> 24) & 0xFF);
+        d[0] = uint8_t( bits        & 0xFF);
+        d[1] = uint8_t((bits >> 8)  & 0xFF);
+        d[2] = uint8_t((bits >> 16) & 0xFF);
+        d[3] = uint8_t((bits >> 24) & 0xFF);
         break;
     }
     case eFloatHiLo: {
-        if (!fits(4)) return false;
         float f = float(value);
         uint32_t bits;
         std::memcpy(&bits, &f, sizeof(bits));
-        d[addr]   = uint8_t((bits >> 24) & 0xFF);
-        d[addr+1] = uint8_t((bits >> 16) & 0xFF);
-        d[addr+2] = uint8_t((bits >> 8)  & 0xFF);
-        d[addr+3] = uint8_t( bits        & 0xFF);
+        d[0] = uint8_t((bits >> 24) & 0xFF);
+        d[1] = uint8_t((bits >> 16) & 0xFF);
+        d[2] = uint8_t((bits >> 8)  & 0xFF);
+        d[3] = uint8_t( bits        & 0xFF);
         break;
     }
     case eDoubleLoHi: {
-        // Iter 10.5: 8-byte IEEE754 double, little-endian.
-        if (!fits(8)) return false;
         uint64_t bits;
         std::memcpy(&bits, &value, sizeof(bits));
-        for (int i = 0; i < 8; ++i) d[addr+i] = uint8_t((bits >> (8*i)) & 0xFF);
+        for (int i = 0; i < 8; ++i) d[i] = uint8_t((bits >> (8*i)) & 0xFF);
         break;
     }
     case eDoubleHiLo: {
-        // Iter 10.5: 8-byte IEEE754 double, big-endian.
-        if (!fits(8)) return false;
         uint64_t bits;
         std::memcpy(&bits, &value, sizeof(bits));
-        for (int i = 0; i < 8; ++i) d[addr+i] = uint8_t((bits >> (8*(7-i))) & 0xFF);
+        for (int i = 0; i < 8; ++i) d[i] = uint8_t((bits >> (8*(7-i))) & 0xFF);
         break;
     }
     default:
         return false;
     }
-    p->modified = true;
-    emit p->dataChanged();
+    p->applyRomPatches({{int(addr), bytes}}, QObject::tr("Lua script write"));
     return true;
 }
 

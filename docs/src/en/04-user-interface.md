@@ -7,10 +7,10 @@ A guided tour of the panels, toolbars, menus and docks in the romHEX 14 main win
 The window is a horizontal split with three regions:
 
 - **Left — Map Selection panel:** the filterable list/tree of every map in the active project.
-- **Centre — workspace:** a multi-document area holding one window per open project. Each project window shows the **Text** (hex), **2d** (waveform) or **3d** view.
+- **Centre — workspace:** an ADS document workspace. Each project has a Hex document with **Text** (hex), **2d** (waveform), and **3d** views; map tables open as independent map-editor documents. Documents can be tabbed, split, floated, and dragged back into the workspace.
 - **Right — AI Assistant panel:** a chat panel, hidden until you open it.
 
-Two dockable panels — **Differences** and **Tuning Branches** — can be shown on the side as needed. The **Window** menu tiles or cascades the project windows.
+Two dockable panels — **Differences** and **Tuning Branches** — can be shown on the side as needed. The **Window** menu manages document layouts and workspace perspectives.
 
 ## Menu bar
 

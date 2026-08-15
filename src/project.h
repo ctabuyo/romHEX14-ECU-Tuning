@@ -12,6 +12,7 @@
 #include <QByteArray>
 #include <QVector>
 #include <QMap>
+#include <QPair>
 #include <QSet>
 #include <QDateTime>
 #include "romdata.h"
@@ -219,7 +220,7 @@ public:
     // and currentData are empty.  Children point back via parentProject.
     //
     // Sub-projects are SIBLINGS of the parent inside MainWindow::m_projects
-    // (so each gets its own MDI subwindow & ProjectView), but the project
+    // (so each gets its own Hex document dock & ProjectView), but the project
     // tree renders them nested under the parent. This re-uses the existing
     // openProject() / autosave / linked-ROM machinery instead of inventing
     // a new "child window" concept.
@@ -230,6 +231,17 @@ public:
     QVector<Project*> subProjects;       // non-owned; lifetimes managed by MainWindow
     bool              isSubProject = false;
     int               subProjectIndex = -1;   // index into parentProject->subProjects
+
+    // ── Shared ROM document ──────────────────────────────────────────────
+    // All editable views submit byte patches here. currentData remains public
+    // for read-only consumers, but this is the sole mutation + undo path.
+    bool applyRomPatches(const QVector<QPair<int, QByteArray>> &patches,
+                         const QString &description = {});
+    bool canUndoRomEdit() const;
+    bool canRedoRomEdit() const;
+    void undoRomEdit();
+    void redoRomEdit();
+    void clearRomUndo();
 
     // Versioning
     void snapshotVersion(const QString &versionName);
@@ -288,11 +300,30 @@ public:
     void    setLastError(const QString &msg) { m_lastError = msg; }
 
 signals:
+    /// A transaction changed [startOffset, endOffset). Views repaint from
+    /// currentData; they do not synchronize editable copies with each other.
+    void romPatched(int startOffset, int endOffset);
+    void romUndoStateChanged();
     void dataChanged();
     void versionsChanged();
     void linkedRomsChanged();
 
 private:
+    struct RomPatchItem {
+        int        offset = 0;
+        QByteArray before;
+        QByteArray after;
+    };
+    struct RomUndoEntry {
+        QString               description;
+        QVector<RomPatchItem> items;
+        int                   startOffset = 0;
+        int                   endOffset = 0;
+    };
+    QVector<RomUndoEntry> m_romUndo;
+    int                   m_romUndoIndex = -1;
+    static constexpr int  kMaxRomUndo = 200;
+
     class AnnotationStore *m_annotations = nullptr;
     mutable QString m_lastError;
 };

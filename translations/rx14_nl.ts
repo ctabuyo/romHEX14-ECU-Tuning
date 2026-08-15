@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
-<TS version="2.1" language="en" sourcelanguage="en">
+<TS version="2.1" language="nl" sourcelanguage="en">
 <context>
     <name>A2LImportDialog</name>
     <message>
         <location filename="../src/a2limportdialog.cpp" line="30" />
         <source>Import A2L – Select Maps</source>
-        <translation>Import A2L – Select Maps</translation>
+        <translation>A2L importeren – Select Maps</translation>
     </message>
     <message>
         <location filename="../src/a2limportdialog.cpp" line="39" />
@@ -35,17 +35,17 @@
     <message>
         <location filename="../src/a2limportdialog.cpp" line="58" />
         <source>Address</source>
-        <translation>Address</translation>
+        <translation>Adres</translation>
     </message>
     <message>
         <location filename="../src/a2limportdialog.cpp" line="58" />
         <source>Size</source>
-        <translation>Size</translation>
+        <translation>Grootte</translation>
     </message>
     <message>
         <location filename="../src/a2limportdialog.cpp" line="58" />
         <source>Description</source>
-        <translation>Description</translation>
+        <translation>Beschrijving</translation>
     </message>
     <message>
         <location filename="../src/a2limportdialog.cpp" line="80" />
@@ -172,7 +172,7 @@ Click to cycle → Ask</translation>
         <location filename="../src/aiassistant.cpp" line="1200" />
         <location filename="../src/aiassistant.cpp" line="1894" />
         <source>Tuning logbook &amp; dyno history…</source>
-        <translation>Tuning logbook &amp; dyno history…</translation>
+        <translation>Tuning-logboek &amp; vermogensbankhistorie…</translation>
     </message>
     <message>
         <location filename="../src/aiassistant.cpp" line="1201" />
@@ -220,7 +220,7 @@ Click to cycle → Ask</translation>
     <message>
         <location filename="../src/aiassistant.cpp" line="1624" />
         <source>Tuning Logbook</source>
-        <translation>Tuning Logbook</translation>
+        <translation>Tuning-logboek</translation>
     </message>
     <message>
         <location filename="../src/aiassistant.cpp" line="1657" />
@@ -339,7 +339,7 @@ Ask the AI to log a dyno result after a power run.</translation>
     <message>
         <location filename="../src/aiassistant.cpp" line="1822" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/aiassistant.cpp" line="1866" />
@@ -354,7 +354,7 @@ Ask the AI to log a dyno result after a power run.</translation>
     <message>
         <location filename="../src/aiassistant.cpp" line="1870" />
         <source>No project loaded</source>
-        <translation>No project loaded</translation>
+        <translation>Geen project geladen</translation>
     </message>
     <message>
         <location filename="../src/aiassistant.cpp" line="1938" />
@@ -375,7 +375,7 @@ Ask the AI to log a dyno result after a power run.</translation>
     <message>
         <location filename="../src/aiassistant.cpp" line="2456" />
         <source>No project loaded. Open a ROM file first.</source>
-        <translation>No project loaded. Open a ROM file first.</translation>
+        <translation>Geen project geladen. Open a ROM file first.</translation>
     </message>
     <message>
         <location filename="../src/aiassistant.cpp" line="2469" />
@@ -456,12 +456,12 @@ Ask the AI to log a dyno result after a power run.</translation>
     <message>
         <location filename="../src/aiassistant.cpp" line="2555" />
         <source>Searching for %1 maps...</source>
-        <translation>Searching for %1 maps...</translation>
+        <translation>Zoeken naar %1 mappen...</translation>
     </message>
     <message>
         <location filename="../src/aiassistant.cpp" line="2557" />
         <source>Searching...</source>
-        <translation>Searching...</translation>
+        <translation>Zoeken...</translation>
     </message>
     <message>
         <location filename="../src/aiassistant.cpp" line="2587" />
@@ -481,7 +481,7 @@ Ask the AI to log a dyno result after a power run.</translation>
     <message>
         <location filename="../src/aiassistant.cpp" line="2688" />
         <source>Main Project ROM</source>
-        <translation>Main Project ROM</translation>
+        <translation>Hoofdproject-ROM</translation>
     </message>
     <message>
         <location filename="../src/aiassistant.cpp" line="2706" />
@@ -601,7 +601,7 @@ Ask the AI to log a dyno result after a power run.</translation>
     <message>
         <location filename="../src/aiassistant.cpp" line="3005" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/aiassistant.cpp" line="3012" />
@@ -778,7 +778,7 @@ Version **%4** created — you can undo anytime from the version list.</translat
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="517" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="522" />
@@ -802,7 +802,7 @@ Version **%4** created — you can undo anytime from the version list.</translat
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="101" />
         <source>Select a function to search and modify ECU maps automatically</source>
-        <translation>Select a function to search and modify ECU maps automatically</translation>
+        <translation>Selecteer een functie om automatisch ECU-mappen te zoeken en te wijzigen</translation>
     </message>
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="112" />
@@ -856,7 +856,7 @@ Version **%4** created — you can undo anytime from the version list.</translat
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="204" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="215" />
@@ -941,7 +941,7 @@ Version **%4** created — you can undo anytime from the version list.</translat
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="387" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="337" />
@@ -966,7 +966,7 @@ Version **%4** created — you can undo anytime from the version list.</translat
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="375" />
         <source>Apply</source>
-        <translation>Apply</translation>
+        <translation>Toepassen</translation>
     </message>
     <message>
         <location filename="../src/aifunctionsdlg.cpp" line="383" />
@@ -1175,7 +1175,7 @@ Apply?</translation>
     <message>
         <location filename="../src/aitoolexecutor.cpp" line="3356" />
         <source>AI Set Axis Values</source>
-        <translation>AI Set Axis Values</translation>
+        <translation>AI aswaarden instellen</translation>
     </message>
     <message>
         <location filename="../src/aitoolexecutor.cpp" line="3357" />
@@ -1390,7 +1390,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/aboutdialog.cpp" line="421" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/aboutdialog.cpp" line="161" />
@@ -1496,7 +1496,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/datalog/ChannelTreeWidget.cpp" line="33" />
         <source>Clear</source>
-        <translation>Clear</translation>
+        <translation>Wissen</translation>
     </message>
     <message>
         <location filename="../src/datalog/ChannelTreeWidget.cpp" line="34" />
@@ -1511,7 +1511,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/datalog/ChannelTreeWidget.cpp" line="42" />
         <source>Unit</source>
-        <translation>Unit</translation>
+        <translation>Eenheid</translation>
     </message>
     <message>
         <location filename="../src/datalog/ChannelTreeWidget.cpp" line="169" />
@@ -1562,7 +1562,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="120" />
         <source>Hint from Project Properties → Producer: &lt;b&gt;%1&lt;/b&gt;</source>
-        <translation>Hint from Project Properties → Producer: &lt;b&gt;%1&lt;/b&gt;</translation>
+        <translation>Hint from Projecteigenschappen → Producer: &lt;b&gt;%1&lt;/b&gt;</translation>
     </message>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="133" />
@@ -1582,7 +1582,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="153" />
         <source>Clear</source>
-        <translation>Clear</translation>
+        <translation>Wissen</translation>
     </message>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="164" />
@@ -1602,7 +1602,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="164" />
         <source>Description</source>
-        <translation>Description</translation>
+        <translation>Beschrijving</translation>
     </message>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="180" />
@@ -1613,7 +1613,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="184" />
         <source>Disable selected → save patched ROM</source>
-        <translation>Disable selected → save patched ROM</translation>
+        <translation>Geselecteerde uitschakelen → gepatched ROM opslaan</translation>
     </message>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="191" />
@@ -1633,7 +1633,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="215" />
         <source>Apply selected → save patched ROM</source>
-        <translation>Apply selected → save patched ROM</translation>
+        <translation>Geselecteerde toepassen → gepatched ROM opslaan</translation>
     </message>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="222" />
@@ -1811,7 +1811,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="580" />
         <source>Patched ROM applied to the active project.  Save to persist.</source>
-        <translation>Patched ROM applied to the active project.  Save to persist.</translation>
+        <translation>Gepatched ROM toegepast op het actieve project. Sla op om te bewaren.</translation>
     </message>
     <message>
         <location filename="../src/cloud/CloudToolsDlg.cpp" line="589" />
@@ -1867,7 +1867,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/configdialog.cpp" line="56" />
         <source>Configuration</source>
-        <translation>Configuration</translation>
+        <translation>Configuratie</translation>
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="86" />
@@ -1897,18 +1897,18 @@ Proceed?</translation>
     <message>
         <location filename="../src/configdialog.cpp" line="849" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="98" />
         <source>Apply</source>
-        <translation>Apply</translation>
+        <translation>Toepassen</translation>
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="97" />
         <location filename="../src/configdialog.cpp" line="849" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="138" />
@@ -2078,7 +2078,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/configdialog.cpp" line="435" />
         <source>X axis header background</source>
-        <translation>X axis header background</translation>
+        <translation>X-as koptekstachtergrond</translation>
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="436" />
@@ -2088,7 +2088,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/configdialog.cpp" line="437" />
         <source>Y axis header background</source>
-        <translation>Y axis header background</translation>
+        <translation>Y-as koptekstachtergrond</translation>
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="438" />
@@ -2319,7 +2319,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/configdialog.cpp" line="649" />
         <source>AI Provider Configuration</source>
-        <translation>AI Provider Configuration</translation>
+        <translation>AI Provider Configuratie</translation>
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="653" />
@@ -2496,7 +2496,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/createmapdlg.cpp" line="125" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/createmapdlg.cpp" line="170" />
@@ -2597,7 +2597,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/diffpanel.cpp" line="203" />
         <source>Address</source>
-        <translation>Address</translation>
+        <translation>Adres</translation>
     </message>
     <message>
         <location filename="../src/diffpanel.cpp" line="203" />
@@ -2702,7 +2702,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/dtcdialog.cpp" line="86" />
         <source>Description</source>
-        <translation>Description</translation>
+        <translation>Beschrijving</translation>
     </message>
     <message>
         <location filename="../src/dtcdialog.cpp" line="113" />
@@ -2727,7 +2727,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/dtcdialog.cpp" line="150" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/dtcdialog.cpp" line="346" />
@@ -2752,9 +2752,8 @@ Proceed?</translation>
     <message numerus="yes">
         <location filename="../src/dtcdialog.cpp" line="488" />
         <source>Modify %n DTC(s)</source>
-        <translation>
-            <numerusform>Modify %n DTC(s)</numerusform>
-            <numerusform />
+        <translation><numerusform>Wijzig %n DTC</numerusform>
+            <numerusform>Wijzig %n DTC's</numerusform>
         </translation>
     </message>
     <message>
@@ -2765,7 +2764,7 @@ Proceed?</translation>
     <message>
         <location filename="../src/dtcdialog.cpp" line="498" />
         <source>Apply</source>
-        <translation>Apply</translation>
+        <translation>Toepassen</translation>
     </message>
     <message>
         <location filename="../src/dtcdialog.cpp" line="504" />
@@ -2807,7 +2806,7 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/edit/FindSimilarMapsDlg.cpp" line="54" />
         <source>Address</source>
-        <translation>Address</translation>
+        <translation>Adres</translation>
     </message>
     <message>
         <location filename="../src/edit/FindSimilarMapsDlg.cpp" line="54" />
@@ -2827,7 +2826,7 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/edit/FindSimilarMapsDlg.cpp" line="68" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/edit/FindSimilarMapsDlg.cpp" line="88" />
@@ -2943,12 +2942,12 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/frfimportdlg.cpp" line="105" />
         <source>Address</source>
-        <translation>Address</translation>
+        <translation>Adres</translation>
     </message>
     <message>
         <location filename="../src/frfimportdlg.cpp" line="105" />
         <source>Size</source>
-        <translation>Size</translation>
+        <translation>Grootte</translation>
     </message>
     <message>
         <location filename="../src/frfimportdlg.cpp" line="105" />
@@ -2968,7 +2967,7 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/frfimportdlg.cpp" line="130" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/frfimportdlg.cpp" line="141" />
@@ -3029,16 +3028,14 @@ Remember to save the project and export the ROM.</translation>
     <message numerus="yes">
         <location filename="../src/frfimportdlg.cpp" line="212" />
         <source>%n block(s) found</source>
-        <translation>
-            <numerusform>%n block(s) found</numerusform>
-            <numerusform>%n block(s) found</numerusform>
+        <translation><numerusform>%n block found</numerusform>
+            <numerusform>%n block's found</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <location filename="../src/frfimportdlg.cpp" line="213" />
         <source> · %n decoded</source>
-        <translation>
-            <numerusform> · %n decoded</numerusform>
+        <translation><numerusform> · %n decoded</numerusform>
             <numerusform> · %n decoded</numerusform>
         </translation>
     </message>
@@ -3124,7 +3121,7 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/hexcomparedlg.cpp" line="141" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/hexcomparedlg.cpp" line="226" />
@@ -3327,7 +3324,7 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/introwizard.cpp" line="341" />
         <source>Import A2L and DAMOS definition files to automatically detect maps, axes, scaling, and data types. Supports Bosch MED17, EDC17, ME7, Siemens, Continental, Denso and more.</source>
-        <translation>Import A2L and DAMOS definition files to automatically detect maps, axes, scaling, and data types. Supports Bosch MED17, EDC17, ME7, Siemens, Continental, Denso and more.</translation>
+        <translation>A2L importeren and DAMOS definition files to automatically detect maps, axes, scaling, and data types. Supports Bosch MED17, EDC17, ME7, Siemens, Continental, Denso and more.</translation>
     </message>
     <message>
         <location filename="../src/introwizard.cpp" line="344" />
@@ -3395,7 +3392,7 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="269" />
         <source>Import Map Pack</source>
-        <translation>Import Map Pack</translation>
+        <translation>Map Pack importeren</translation>
     </message>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="322" />
@@ -3502,7 +3499,7 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="462" />
         <source>Also maps for which no hexdump is available</source>
-        <translation>Also maps for which no hexdump is available</translation>
+        <translation>Ook mappen waarvoor geen hexdump beschikbaar is</translation>
     </message>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="464" />
@@ -3562,22 +3559,22 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="503" />
         <source>Address</source>
-        <translation>Address</translation>
+        <translation>Adres</translation>
     </message>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="503" />
         <source>Size</source>
-        <translation>Size</translation>
+        <translation>Grootte</translation>
     </message>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="503" />
         <source>Unit</source>
-        <translation>Unit</translation>
+        <translation>Eenheid</translation>
     </message>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="504" />
         <source>Description</source>
-        <translation>Description</translation>
+        <translation>Beschrijving</translation>
     </message>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="504" />
@@ -3617,7 +3614,7 @@ Remember to save the project and export the ROM.</translation>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="611" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/kpimportdlg.cpp" line="668" />
@@ -3643,7 +3640,7 @@ Remember to save the project and export the ROM.</translation>
         <location filename="../src/mainwindow.cpp" line="2398" />
         <location filename="../src/mainwindow.cpp" line="2901" />
         <source>Save</source>
-        <translation>Save</translation>
+        <translation>Opslaan</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2399" />
@@ -3664,7 +3661,7 @@ Remember to save the project and export the ROM.</translation>
         <location filename="../src/mainwindow.cpp" line="2402" />
         <location filename="../src/mainwindow.cpp" line="2905" />
         <source>Import A2L…</source>
-        <translation>Import A2L…</translation>
+        <translation>A2L importeren…</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2413" />
@@ -3721,7 +3718,7 @@ Remember to save the project and export the ROM.</translation>
         <location filename="../src/mainwindow.cpp" line="2428" />
         <location filename="../src/mainwindow.cpp" line="2917" />
         <source>Import Map Pack…</source>
-        <translation>Import Map Pack…</translation>
+        <translation>Map Pack importeren…</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="385" />
@@ -3789,7 +3786,7 @@ Remember to save the project and export the ROM.</translation>
         <location filename="../src/mainwindow.cpp" line="2235" />
         <location filename="../src/mainwindow.cpp" line="9232" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1062" />
@@ -4423,9 +4420,8 @@ This is a fallback while you haven't imported an A2L — once an A2L is loaded, 
     <message numerus="yes">
         <location filename="../src/mainwindow.cpp" line="4221" />
         <source>Auto-detected %n map(s) — visible in 2D view until an A2L is imported</source>
-        <translation>
-            <numerusform>Auto-detected %n map(s) — visible in 2D view until an A2L is imported</numerusform>
-            <numerusform>Auto-detected %n map(s) — visible in 2D view until an A2L is imported</numerusform>
+        <translation><numerusform>Auto-detected %n map — visible in 2D view until an A2L is imported</numerusform>
+            <numerusform>Auto-detected %n map's — visible in 2D view until an A2L is imported</numerusform>
         </translation>
     </message>
     <message>
@@ -4495,8 +4491,7 @@ This is a fallback while you haven't imported an A2L — once an A2L is loaded, 
     <message numerus="yes">
         <location filename="../src/mainwindow.cpp" line="5142" />
         <source>%n modules</source>
-        <translation>
-            <numerusform>%n module</numerusform>
+        <translation><numerusform>%n modules</numerusform>
             <numerusform>%n modules</numerusform>
         </translation>
     </message>
@@ -4524,7 +4519,7 @@ This is a fallback while you haven't imported an A2L — once an A2L is loaded, 
         <location filename="../src/mainwindow.cpp" line="5227" />
         <location filename="../src/mainwindow.cpp" line="5453" />
         <source>Preferences</source>
-        <translation>Preferences</translation>
+        <translation>Voorkeuren</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="5635" />
@@ -4659,7 +4654,7 @@ This is a fallback while you haven't imported an A2L — once an A2L is loaded, 
     <message>
         <location filename="../src/mainwindow.cpp" line="9502" />
         <source>Language</source>
-        <translation>Language</translation>
+        <translation>Taal</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="9503" />
@@ -4694,7 +4689,7 @@ This is a fallback while you haven't imported an A2L — once an A2L is loaded, 
     <message>
         <location filename="../src/mainwindow.cpp" line="9509" />
         <source>Open Preferences → Colors</source>
-        <translation>Open Preferences → Colors</translation>
+        <translation>Open Voorkeuren → Colors</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="4116" />
@@ -4804,7 +4799,7 @@ Size: %2 KB</translation>
         <location filename="../src/mainwindow.cpp" line="3445" />
         <location filename="../src/mainwindow.cpp" line="8287" />
         <source>Address</source>
-        <translation>Address</translation>
+        <translation>Adres</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="8287" />
@@ -4834,7 +4829,7 @@ Size: %2 KB</translation>
     <message>
         <location filename="../src/mainwindow.cpp" line="8330" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="8334" />
@@ -5081,7 +5076,7 @@ ECU: %1</translation>
         <location filename="../src/mainwindow.cpp" line="3454" />
         <location filename="../src/mainwindow.cpp" line="6382" />
         <source>Modified</source>
-        <translation>Modified</translation>
+        <translation>Gewijzigd</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1329" />
@@ -5099,7 +5094,7 @@ ECU: %1</translation>
         <location filename="../src/mainwindow.cpp" line="1339" />
         <location filename="../src/mainwindow.cpp" line="3457" />
         <source>Values</source>
-        <translation>Values</translation>
+        <translation>Waarden</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1341" />
@@ -5111,7 +5106,7 @@ ECU: %1</translation>
         <location filename="../src/mainwindow.cpp" line="1343" />
         <location filename="../src/mainwindow.cpp" line="3459" />
         <source>Maps</source>
-        <translation>Maps</translation>
+        <translation>Mappen</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="2493" />
@@ -5173,7 +5168,7 @@ ECU: %1</translation>
         <location filename="../src/mainwindow.cpp" line="9553" />
         <location filename="../src/mainwindow.cpp" line="10012" />
         <source>Error</source>
-        <translation>Error</translation>
+        <translation>Fout</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="3989" />
@@ -5273,7 +5268,7 @@ ECU: %1</translation>
         <location filename="../src/mainwindow.cpp" line="2973" />
         <location filename="../src/mainwindow.cpp" line="2992" />
         <source>Differences</source>
-        <translation>Differences</translation>
+        <translation>Verschillen</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="798" />
@@ -5823,7 +5818,7 @@ Convert it to A2L (ASAP2) first — e.g. with your OLS/DAMOS toolchain's "DAMOS/
         <location filename="../src/mainwindow.cpp" line="1594" />
         <location filename="../src/mainwindow.cpp" line="5445" />
         <source>Open</source>
-        <translation>Open</translation>
+        <translation>Openen</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1374" />
@@ -5835,12 +5830,12 @@ Convert it to A2L (ASAP2) first — e.g. with your OLS/DAMOS toolchain's "DAMOS/
         <location filename="../src/mainwindow.cpp" line="1375" />
         <location filename="../src/mainwindow.cpp" line="3446" />
         <source>Size</source>
-        <translation>Size</translation>
+        <translation>Grootte</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1595" />
         <source>View in hexdump</source>
-        <translation>View in hexdump</translation>
+        <translation>Weergeven in hexdump</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="1596" />
@@ -6147,7 +6142,7 @@ Convert it to A2L (ASAP2) first — e.g. with your OLS/DAMOS toolchain's "DAMOS/
     <message>
         <location filename="../src/mainwindow.cpp" line="5465" />
         <source>About</source>
-        <translation>About</translation>
+        <translation>Over</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="5649" />
@@ -6167,24 +6162,21 @@ Convert it to A2L (ASAP2) first — e.g. with your OLS/DAMOS toolchain's "DAMOS/
     <message numerus="yes">
         <location filename="../src/mainwindow.cpp" line="5689" />
         <source>%n days ago</source>
-        <translation>
-            <numerusform>%n day ago</numerusform>
+        <translation><numerusform>%n days ago</numerusform>
             <numerusform>%n days ago</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <location filename="../src/mainwindow.cpp" line="5692" />
         <source>%n weeks ago</source>
-        <translation>
-            <numerusform>%n week ago</numerusform>
+        <translation><numerusform>%n weeks ago</numerusform>
             <numerusform>%n weeks ago</numerusform>
         </translation>
     </message>
     <message numerus="yes">
         <location filename="../src/mainwindow.cpp" line="5695" />
         <source>%n months ago</source>
-        <translation>
-            <numerusform>%n month ago</numerusform>
+        <translation><numerusform>%n months ago</numerusform>
             <numerusform>%n months ago</numerusform>
         </translation>
     </message>
@@ -6216,7 +6208,7 @@ Convert it to A2L (ASAP2) first — e.g. with your OLS/DAMOS toolchain's "DAMOS/
     <message>
         <location filename="../src/mainwindow.cpp" line="6937" />
         <source>Import A2L / DAMOS File</source>
-        <translation>Import A2L / DAMOS File</translation>
+        <translation>A2L importeren / DAMOS File</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="6938" />
@@ -7423,7 +7415,7 @@ Workflow:
         <location filename="../src/mainwindow.cpp" line="9365" />
         <location filename="../src/mainwindow.cpp" line="9374" />
         <source>Correct Checksum</source>
-        <translation>Correct Checksum</translation>
+        <translation>Checksum corrigeren</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="9347" />
@@ -7562,7 +7554,7 @@ ECU: %1</translation>
     <message>
         <location filename="../src/map3dwidget.cpp" line="295" />
         <source>Wireframe</source>
-        <translation>Wireframe</translation>
+        <translation>Draadmodel</translation>
     </message>
 </context>
 <context>
@@ -7583,7 +7575,7 @@ ECU: %1</translation>
         <location filename="../src/maplistwidget.cpp" line="110" />
         <location filename="../src/maplistwidget.cpp" line="370" />
         <source>Description</source>
-        <translation>Description</translation>
+        <translation>Beschrijving</translation>
     </message>
     <message>
         <location filename="../src/maplistwidget.cpp" line="110" />
@@ -7595,7 +7587,7 @@ ECU: %1</translation>
         <location filename="../src/maplistwidget.cpp" line="110" />
         <location filename="../src/maplistwidget.cpp" line="370" />
         <source>Address</source>
-        <translation>Address</translation>
+        <translation>Adres</translation>
     </message>
     <message>
         <location filename="../src/maplistwidget.cpp" line="110" />
@@ -7710,7 +7702,7 @@ ECU: %1</translation>
         <location filename="../src/mapoverlay.cpp" line="374" />
         <location filename="../src/mapoverlay.cpp" line="1246" />
         <source>Values</source>
-        <translation>Values</translation>
+        <translation>Waarden</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="375" />
@@ -7792,7 +7784,7 @@ Please try again.</translation>
     <message>
         <location filename="../src/mapoverlay.cpp" line="628" />
         <source>Error</source>
-        <translation>Error</translation>
+        <translation>Fout</translation>
     </message>
     <message>
         <location filename="../src/mapoverlay.cpp" line="654" />
@@ -8067,7 +8059,7 @@ column is filled linearly between its ends. Select at least 3 cells.</translatio
     <message>
         <location filename="../src/mappackdlg.cpp" line="149" />
         <source>Size</source>
-        <translation>Size</translation>
+        <translation>Grootte</translation>
     </message>
     <message>
         <location filename="../src/mappackdlg.cpp" line="149" />
@@ -8087,7 +8079,7 @@ column is filled linearly between its ends. Select at least 3 cells.</translatio
     <message>
         <location filename="../src/mappackdlg.cpp" line="179" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/mappackdlg.cpp" line="199" />
@@ -8180,7 +8172,7 @@ column is filled linearly between its ends. Select at least 3 cells.</translatio
     <message>
         <location filename="../src/mappackdlg.cpp" line="350" />
         <source>Apply</source>
-        <translation>Apply</translation>
+        <translation>Toepassen</translation>
     </message>
     <message>
         <location filename="../src/mappackdlg.cpp" line="358" />
@@ -8195,7 +8187,7 @@ column is filled linearly between its ends. Select at least 3 cells.</translatio
     <message>
         <location filename="../src/mappackdlg.cpp" line="361" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/mappackdlg.cpp" line="390" />
@@ -8279,7 +8271,7 @@ Warnings:
     <message>
         <location filename="../src/mappropertiesdlg.cpp" line="134" />
         <source>Tools</source>
-        <translation>Tools</translation>
+        <translation>Gereedschappen</translation>
     </message>
     <message>
         <location filename="../src/mappropertiesdlg.cpp" line="241" />
@@ -8388,7 +8380,7 @@ Warnings:
     <message>
         <location filename="../src/mappropertiesdlg.cpp" line="339" />
         <source>Difference</source>
-        <translation>Difference</translation>
+        <translation>Verschil</translation>
     </message>
     <message>
         <location filename="../src/mappropertiesdlg.cpp" line="340" />
@@ -8768,7 +8760,7 @@ to define maps manually.</translation>
     <message>
         <location filename="../src/patcheditordlg.cpp" line="151" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/patcheditordlg.cpp" line="222" />
@@ -8837,7 +8829,7 @@ Apply checksum bytes anyway?</translation>
     <message>
         <location filename="../src/patcheditordlg.cpp" line="380" />
         <source>Warning</source>
-        <translation>Warning</translation>
+        <translation>Waarschuwing</translation>
     </message>
     <message>
         <location filename="../src/patcheditordlg.cpp" line="384" />
@@ -8916,20 +8908,19 @@ Link a ROM first via the Compare menu.</translation>
         <location filename="../src/patcheditordlg.cpp" line="487" />
         <location filename="../src/patcheditordlg.cpp" line="539" />
         <source>Apply</source>
-        <translation>Apply</translation>
+        <translation>Toepassen</translation>
     </message>
     <message>
         <location filename="../src/patcheditordlg.cpp" line="275" />
         <location filename="../src/patcheditordlg.cpp" line="540" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message numerus="yes">
         <location filename="../src/patcheditordlg.cpp" line="463" />
         <source>%n cell(s)</source>
-        <translation>
-            <numerusform>%n cell(s)</numerusform>
-            <numerusform />
+        <translation><numerusform>%n cell</numerusform>
+            <numerusform>%n cell's</numerusform>
         </translation>
     </message>
     <message>
@@ -8940,9 +8931,8 @@ Link a ROM first via the Compare menu.</translation>
     <message numerus="yes">
         <location filename="../src/patcheditordlg.cpp" line="472" />
         <source>%n byte(s)</source>
-        <translation>
-            <numerusform>%n byte(s)</numerusform>
-            <numerusform />
+        <translation><numerusform>%n byte</numerusform>
+            <numerusform>%n byte's</numerusform>
         </translation>
     </message>
     <message>
@@ -8975,7 +8965,7 @@ Link a ROM first via the Compare menu.</translation>
         <location filename="../src/patcheditordlg.cpp" line="566" />
         <location filename="../src/patcheditordlg.cpp" line="586" />
         <source>Error</source>
-        <translation>Error</translation>
+        <translation>Fout</translation>
     </message>
     <message>
         <location filename="../src/patcheditordlg.cpp" line="560" />
@@ -9070,7 +9060,7 @@ Link a ROM first via the Compare menu.</translation>
         <location filename="../src/projectmanagerdlg.cpp" line="215" />
         <location filename="../src/projectmanagerdlg.cpp" line="524" />
         <source>Open</source>
-        <translation>Open</translation>
+        <translation>Openen</translation>
     </message>
     <message>
         <location filename="../src/projectmanagerdlg.cpp" line="165" />
@@ -9114,7 +9104,7 @@ Link a ROM first via the Compare menu.</translation>
         <location filename="../src/projectmanagerdlg.cpp" line="181" />
         <location filename="../src/projectmanagerdlg.cpp" line="527" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/projectmanagerdlg.cpp" line="218" />
@@ -9171,7 +9161,7 @@ Link a ROM first via the Compare menu.</translation>
     <message>
         <location filename="../src/projectmanagerdlg.cpp" line="391" />
         <source>Remove</source>
-        <translation>Remove</translation>
+        <translation>Verwijderen</translation>
     </message>
     <message>
         <location filename="../src/projectmanagerdlg.cpp" line="410" />
@@ -9191,12 +9181,12 @@ Link a ROM first via the Compare menu.</translation>
     <message>
         <location filename="../src/projectmanagerdlg.cpp" line="415" />
         <source>Delete</source>
-        <translation>Delete</translation>
+        <translation>Verwijderen</translation>
     </message>
     <message>
         <location filename="../src/projectmanagerdlg.cpp" line="424" />
         <source>Error</source>
-        <translation>Error</translation>
+        <translation>Fout</translation>
     </message>
     <message>
         <location filename="../src/projectmanagerdlg.cpp" line="425" />
@@ -9278,7 +9268,7 @@ Link a ROM first via the Compare menu.</translation>
     <message>
         <location filename="../src/projectmanagerdlg.cpp" line="507" />
         <source>File</source>
-        <translation>File</translation>
+        <translation>Bestand</translation>
     </message>
     <message>
         <location filename="../src/projectmanagerdlg.cpp" line="507" />
@@ -9387,7 +9377,7 @@ Total scan-fallback roots: %3.</translation>
     <message>
         <location filename="../src/projectpropertiesdlg.cpp" line="125" />
         <source>Project Properties  —  %1</source>
-        <translation>Project Properties  —  %1</translation>
+        <translation>Projecteigenschappen  —  %1</translation>
     </message>
     <message>
         <location filename="../src/projectpropertiesdlg.cpp" line="133" />
@@ -9888,7 +9878,7 @@ defined</translation>
     <message>
         <location filename="../src/projectpropertiesdlg.cpp" line="377" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
 </context>
 <context>
@@ -10050,7 +10040,7 @@ defined</translation>
     <message>
         <location filename="../src/projectview.cpp" line="538" />
         <source>Original</source>
-        <translation>Original</translation>
+        <translation>Origineel</translation>
     </message>
     <message>
         <location filename="../src/projectview.cpp" line="555" />
@@ -10073,7 +10063,7 @@ defined</translation>
         <location filename="../src/projectview.cpp" line="777" />
         <location filename="../src/projectview.cpp" line="787" />
         <source>Import A2L…</source>
-        <translation>Import A2L…</translation>
+        <translation>A2L importeren…</translation>
     </message>
     <message>
         <location filename="../src/projectview.cpp" line="642" />
@@ -10137,7 +10127,7 @@ defined</translation>
     <message>
         <location filename="../src/mappackdlg.cpp" line="85" />
         <source>Import Map Pack</source>
-        <translation>Import Map Pack</translation>
+        <translation>Map Pack importeren</translation>
     </message>
     <message>
         <location filename="../src/mappackdlg.cpp" line="87" />
@@ -10235,7 +10225,7 @@ defined</translation>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="173" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="189" />
@@ -10285,7 +10275,7 @@ defined</translation>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="300" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="730" />
@@ -10405,7 +10395,7 @@ defined</translation>
     <message>
         <location filename="../src/romlinkdialog.cpp" line="38" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/romlinkdialog.cpp" line="39" />
@@ -10510,7 +10500,7 @@ defined</translation>
     <message>
         <location filename="../src/romlinkdialog.cpp" line="216" />
         <source>Error</source>
-        <translation>Error</translation>
+        <translation>Fout</translation>
     </message>
     <message>
         <location filename="../src/romlinkdialog.cpp" line="216" />
@@ -10598,7 +10588,7 @@ Please load the reference HEX file into the project first.</translation>
     <message>
         <location filename="../src/savepoints/SavepointsPanel.cpp" line="103" />
         <source>Delete</source>
-        <translation>Delete</translation>
+        <translation>Verwijderen</translation>
     </message>
     <message>
         <location filename="../src/savepoints/SavepointsPanel.cpp" line="118" />
@@ -10679,7 +10669,7 @@ This cannot be undone.</translation>
     <message>
         <location filename="../src/uiwidgets.cpp" line="365" />
         <source>Apply</source>
-        <translation>Apply</translation>
+        <translation>Toepassen</translation>
     </message>
     <message>
         <location filename="../src/uiwidgets.cpp" line="417" />
@@ -10719,7 +10709,7 @@ This cannot be undone.</translation>
     <message>
         <location filename="../src/uiwidgets.cpp" line="505" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/uiwidgets.cpp" line="587" />
@@ -10837,12 +10827,12 @@ This cannot be undone.</translation>
     <message>
         <location filename="../src/valuesearchdlg.cpp" line="118" />
         <source>Search</source>
-        <translation>Search</translation>
+        <translation>Zoeken</translation>
     </message>
     <message>
         <location filename="../src/valuesearchdlg.cpp" line="135" />
         <source>Address</source>
-        <translation>Address</translation>
+        <translation>Adres</translation>
     </message>
     <message>
         <location filename="../src/valuesearchdlg.cpp" line="135" />
@@ -10857,7 +10847,7 @@ This cannot be undone.</translation>
     <message>
         <location filename="../src/valuesearchdlg.cpp" line="150" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/valuesearchdlg.cpp" line="152" />
@@ -10877,8 +10867,7 @@ This cannot be undone.</translation>
     <message numerus="yes">
         <location filename="../src/valuesearchdlg.cpp" line="220" />
         <source>%n match(es)</source>
-        <translation>
-            <numerusform>%n match(es)</numerusform>
+        <translation><numerusform>%n match(es)</numerusform>
             <numerusform>%n match(es)</numerusform>
         </translation>
     </message>
@@ -11238,7 +11227,7 @@ This cannot be undone.</translation>
     <message>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="48" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="59" />
@@ -11393,7 +11382,7 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/datalog/LogViewerWindow.cpp" line="84" />
         <source>Description</source>
-        <translation>Description</translation>
+        <translation>Beschrijving</translation>
     </message>
     <message>
         <location filename="../src/datalog/LogViewerWindow.cpp" line="84" />
@@ -11418,7 +11407,7 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/datalog/LogViewerWindow.cpp" line="105" />
         <source>View</source>
-        <translation>View</translation>
+        <translation>Weergave</translation>
     </message>
     <message>
         <location filename="../src/datalog/LogViewerWindow.cpp" line="107" />
@@ -11524,7 +11513,7 @@ A family: %1 · B family: %2</translation>
         <location filename="../src/io/legion/LegionDlg.cpp" line="156" />
         <location filename="../src/io/legion/LegionDlg.cpp" line="369" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/io/legion/LegionDlg.cpp" line="177" />
@@ -11560,7 +11549,7 @@ A family: %1 · B family: %2</translation>
         <location filename="../src/io/legion/LegionDlg.cpp" line="191" />
         <location filename="../src/io/legion/LegionDlg.cpp" line="250" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/io/legion/LegionDlg.cpp" line="207" />
@@ -11570,7 +11559,7 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/io/legion/LegionDlg.cpp" line="223" />
         <source>Apply</source>
-        <translation>Apply</translation>
+        <translation>Toepassen</translation>
     </message>
     <message>
         <location filename="../src/io/legion/LegionDlg.cpp" line="223" />
@@ -11580,12 +11569,12 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/io/legion/LegionDlg.cpp" line="223" />
         <source>Address</source>
-        <translation>Address</translation>
+        <translation>Adres</translation>
     </message>
     <message>
         <location filename="../src/io/legion/LegionDlg.cpp" line="224" />
         <source>Size</source>
-        <translation>Size</translation>
+        <translation>Grootte</translation>
     </message>
     <message>
         <location filename="../src/io/legion/LegionDlg.cpp" line="224" />
@@ -11922,7 +11911,7 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/io/ols/OlsImporter.cpp" line="93" />
         <source>Default</source>
-        <translation>Default</translation>
+        <translation>Standaard</translation>
     </message>
     <message>
         <location filename="../src/io/ols/OlsImporter.cpp" line="134" />
@@ -12022,7 +12011,7 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/io/winols/BuildIndexProgressDlg.cpp" line="144" />
         <source>Cancel</source>
-        <translation>Cancel</translation>
+        <translation>Annuleren</translation>
     </message>
     <message>
         <location filename="../src/io/winols/BuildIndexProgressDlg.cpp" line="160" />
@@ -12072,7 +12061,7 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/io/winols/BuildIndexProgressDlg.cpp" line="245" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
 </context>
 <context>
@@ -12160,7 +12149,7 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="429" />
         <source>File</source>
-        <translation>File</translation>
+        <translation>Bestand</translation>
     </message>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="448" />
@@ -12180,7 +12169,7 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="452" />
         <source>Open</source>
-        <translation>Open</translation>
+        <translation>Openen</translation>
     </message>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="455" />
@@ -12190,7 +12179,7 @@ A family: %1 · B family: %2</translation>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="457" />
         <source>Close</source>
-        <translation>Close</translation>
+        <translation>Sluiten</translation>
     </message>
     <message>
         <location filename="../src/io/winols/SimilarFilesDlg.cpp" line="509" />

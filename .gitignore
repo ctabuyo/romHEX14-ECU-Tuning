@@ -62,3 +62,6 @@ wols_inspect/
 !/checksumhelper.exe
 !/ChecksumDLL/
 !/ChecksumDLL/*.dll
+
+# Internal agent rules & skills — never commit
+.agents/
