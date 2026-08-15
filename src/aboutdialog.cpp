@@ -387,6 +387,8 @@ AboutDialog::AboutDialog(QWidget *parent)
         QVector<Contributor> contributors = {
             { QStringLiteral("ogorek"),
               tr("Edit ops, annotations, savepoints, diff panel, map fingerprint, bulk edit") },
+            { QStringLiteral("Mordaur"),
+              tr("ADS docking workspace, centralized patch engine, multi-view sync, versioned KP codec, Dutch translation") },
         };
 
         for (const auto &c : contributors) {
