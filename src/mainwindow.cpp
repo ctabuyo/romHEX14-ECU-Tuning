@@ -2980,13 +2980,22 @@ void MainWindow::retranslateUi()
     m_actClose->setText(tr("Close Project"));
     m_actHome->setText(tr("Home"));
     m_actImportA2L->setText(tr("Import A2L…"));
+    m_actImportA2L->setToolTip(tr("Import an A2L description file (.a2l) and map labels"));
     m_actImportKP->setText(tr("Import KP…"));
+    m_actImportKP->setToolTip(tr("Import a .kp map pack and apply map labels to the current project"));
     m_actImportXDF->setText(tr("Import XDF…"));
-    if (m_actImportFRF) m_actImportFRF->setText(tr("Import FRF / ODX…"));
+    m_actImportXDF->setToolTip(tr("Import a TunerPro .xdf definition and apply its maps to the current project"));
+    if (m_actImportFRF) {
+        m_actImportFRF->setText(tr("Import FRF / ODX…"));
+        m_actImportFRF->setToolTip(tr("Extract a VAG .frf / .sgo / .odx flash container to a ROM binary"));
+    }
     m_actImportOLS->setText(tr("Import OLS…"));
+    m_actImportOLS->setToolTip(tr("Import a WinOLS project file (.ols)"));
     m_actAddVersion->setText(tr("Save Version Snapshot…"));
     m_actExport->setText(tr("Export ROM…"));
+    m_actExport->setToolTip(tr("Export modified ROM file"));
     m_actExportOLS->setText(tr("Export WinOLS Project (.ols)…"));
+    m_actExportOLS->setToolTip(tr("Export as WinOLS project file (.ols)"));
     m_actLinkRom->setText(tr("Link ROM to Project…"));
     m_actImportLinkedVer->setText(tr("Import ROM as Version…"));
     m_actCompareRoms->setText(tr("Compare ROM / Version…"));
@@ -3050,10 +3059,22 @@ void MainWindow::retranslateUi()
     m_actHeightColors->setToolTip(tr("Turn height colours on / off"));
 
     // ── PR3 feature actions ───────────────────────────────────────────
-    if (m_actToggleAI)        m_actToggleAI->setText(tr("AI Assistant"));
-    if (m_actToggleDiff)      m_actToggleDiff->setText(tr("Differences"));
-    if (m_actToggleSavepoints) m_actToggleSavepoints->setText(tr("Tuning Branches"));
-    if (m_actDiffOriginal)    m_actDiffOriginal->setText(tr("Differences vs Original"));
+    if (m_actToggleAI)        { m_actToggleAI->setText(tr("AI Assistant")); m_actToggleAI->setToolTip(tr("Show / hide the AI Assistant panel  (Ctrl+\\)")); }
+    if (m_actToggleDiff)      { m_actToggleDiff->setText(tr("Differences")); m_actToggleDiff->setToolTip(tr("Show / hide the Differences dock")); }
+    if (m_actToggleSavepoints) { m_actToggleSavepoints->setText(tr("Tuning Branches")); m_actToggleSavepoints->setToolTip(tr("Show / hide the Tuning Branches (Savepoints) dock")); }
+    if (m_actDiffOriginal)    { m_actDiffOriginal->setText(tr("Differences vs Original")); m_actDiffOriginal->setToolTip(tr("Compare active ROM against the original unmodified file")); }
+    if (m_actVerifyChecksum)  m_actVerifyChecksum->setToolTip(tr("Verify the ROM checksum using the ECU-specific algorithm"));
+    if (m_actCorrectChecksum) m_actCorrectChecksum->setToolTip(tr("Recalculate and write the correct ROM checksum"));
+    if (m_actLinkRom)         m_actLinkRom->setToolTip(tr("Link another ROM file to this project and auto-locate all maps"));
+    if (m_actImportLinkedVer) m_actImportLinkedVer->setToolTip(tr("Import a ROM file as a new version snapshot of this project"));
+    if (m_actCompareRoms)     m_actCompareRoms->setToolTip(tr("Compare current ROM against a linked ROM or saved version"));
+    if (m_actImportMapPack)   m_actImportMapPack->setToolTip(tr("Import a .rxpack map pack and apply selected maps to the current ROM"));
+    if (m_actImportCsvList)   m_actImportCsvList->setToolTip(tr("Import a CSV map list (Address;Name;Size) and add the map definitions to the project"));
+    if (m_actPatchEditor)     m_actPatchEditor->setToolTip(tr("Open a .rxpatch script file in the patch editor"));
+    if (m_actTile)            m_actTile->setToolTip(tr("Restore the default per-project tab layout  (Shift+F4)"));
+    if (m_actCascade)         m_actCascade->setToolTip(tr("Save the current dock arrangement as a named layout  (Shift+F5)"));
+    if (m_actFloatWindow)     m_actFloatWindow->setToolTip(tr("Float / Re-dock Active Window"));
+    if (m_actLoadWorkspaceLayout) m_actLoadWorkspaceLayout->setToolTip(tr("Restore a saved workspace layout"));
     if (m_actValPlus1)        m_actValPlus1->setText(tr("Value +1"));
     if (m_actValMinus1)       m_actValMinus1->setText(tr("Value \u22121"));
     if (m_actChangeAbs)       m_actChangeAbs->setText(tr("Change absolute\u2026"));
@@ -3064,10 +3085,10 @@ void MainWindow::retranslateUi()
     if (m_actInterpolate)     m_actInterpolate->setText(tr("Interpolate"));
     if (m_actSmooth)          m_actSmooth->setText(tr("Smooth"));
     if (m_actFlatten)         m_actFlatten->setText(tr("Flatten (set to mean)"));
-    if (m_actAgain)           m_actAgain->setText(tr("Again"));
-    if (m_actInsertComment)   m_actInsertComment->setText(tr("Insert comment\u2026"));
-    if (m_actInsertMarker)    m_actInsertMarker->setText(tr("Insert marker"));
-    if (m_actDeleteComment)   m_actDeleteComment->setText(tr("Delete annotation here"));
+    if (m_actAgain)           { m_actAgain->setText(tr("Again")); m_actAgain->setToolTip(tr("Repeat the last edit operation")); }
+    if (m_actInsertComment)   { m_actInsertComment->setText(tr("Insert comment\u2026")); m_actInsertComment->setToolTip(tr("Insert comment / annotation at current location")); }
+    if (m_actInsertMarker)    { m_actInsertMarker->setText(tr("Insert marker")); m_actInsertMarker->setToolTip(tr("Insert marker at current location")); }
+    if (m_actDeleteComment)   { m_actDeleteComment->setText(tr("Delete annotation here")); m_actDeleteComment->setToolTip(tr("Delete annotation at current location")); }
     if (m_actNextMarker)      m_actNextMarker->setText(tr("Next marker"));
     if (m_actPrevMarker)      m_actPrevMarker->setText(tr("Previous marker"));
     if (m_diffDock)           m_diffDock->setWindowTitle(tr("Differences"));
