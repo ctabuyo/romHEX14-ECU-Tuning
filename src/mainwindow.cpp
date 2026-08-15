@@ -340,13 +340,34 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ADS gives document windows proper tab/split/float/re-dock behaviour
     // without reserving geometry for an inert central widget.
+#ifdef Q_OS_MACOS
+    // macOS compositing handles live (opaque) undocking poorly — flicker and
+    // stuck drags when a panel is torn out. Use the non-opaque drag preview.
+    ads::CDockManager::setConfigFlags(
+        ads::CDockManager::DefaultNonOpaqueConfig
+        | ads::CDockManager::AllTabsHaveCloseButton
+        | ads::CDockManager::FocusHighlighting);
+#else
     ads::CDockManager::setConfigFlags(
         ads::CDockManager::DefaultOpaqueConfig
         | ads::CDockManager::AllTabsHaveCloseButton
         | ads::CDockManager::FocusHighlighting);
+#endif
     m_dockManager = new ads::CDockManager();
     m_dockManager->setObjectName(QStringLiteral("workspaceDockManager"));
-    m_dockManager->setColorSchemeMode(ads::CDockManager::ColorSchemeMode::FollowPalette);
+    m_dockManager->setColorSchemeMode(ads::CDockManager::ColorSchemeMode::Dark);
+    // ADS's default_dark.css paints the active tab with a palette(window)->palette(dark)
+    // gradient; this app themes via stylesheet so its QPalette stays light and that
+    // gradient renders white->grey. Flatten the dock chrome with explicit dark colors.
+    m_dockManager->setStyleSheet(m_dockManager->styleSheet() + QStringLiteral(
+        "\nads--CDockWidgetTab { background:#0d1117; border-right:1px solid #21262d; }"
+        "\nads--CDockWidgetTab[activeTab=\"true\"] { background:#161b22; }"
+        "\nads--CDockWidgetTab QLabel { color:#7d8590; }"
+        "\nads--CDockWidgetTab[activeTab=\"true\"] QLabel { color:#e7eefc; }"
+        "\nads--CDockAreaTitleBar { background:#0d1117; border-bottom:1px solid #21262d; }"
+        "\nads--CDockWidget { background:#0d1117; border-top:1px solid #21262d; }"
+        "\nads--CDockContainerWidget { background:#0d1117; }"
+        "\nads--CDockAreaWidget { background:#0d1117; }"));
     connect(m_dockManager, &ads::CDockManager::focusedDockWidgetChanged, this,
             [this](ads::CDockWidget *, ads::CDockWidget *current) {
         if (!current)
@@ -9098,8 +9119,19 @@ void MainWindow::applyUiTheme()
     // ADS owns its theme stylesheet. FollowPalette keeps its tab, splitter and
     // drag-overlay assets coherent with the application palette; replacing the
     // manager stylesheet here would discard those assets.
-    if (m_dockManager)
-        m_dockManager->setColorSchemeMode(ads::CDockManager::ColorSchemeMode::FollowPalette);
+    if (m_dockManager) {
+        m_dockManager->setColorSchemeMode(ads::CDockManager::ColorSchemeMode::Dark);
+        // Re-apply the flat dark dock chrome — setColorSchemeMode reloads ADS's CSS.
+        m_dockManager->setStyleSheet(m_dockManager->styleSheet() + QStringLiteral(
+            "\nads--CDockWidgetTab { background:#0d1117; border-right:1px solid #21262d; }"
+            "\nads--CDockWidgetTab[activeTab=\"true\"] { background:#161b22; }"
+            "\nads--CDockWidgetTab QLabel { color:#7d8590; }"
+            "\nads--CDockWidgetTab[activeTab=\"true\"] QLabel { color:#e7eefc; }"
+            "\nads--CDockAreaTitleBar { background:#0d1117; border-bottom:1px solid #21262d; }"
+            "\nads--CDockWidget { background:#0d1117; border-top:1px solid #21262d; }"
+            "\nads--CDockContainerWidget { background:#0d1117; }"
+            "\nads--CDockAreaWidget { background:#0d1117; }"));
+    }
 
     // Left panel & tree
     auto hex = [](const QColor &col) { return col.name(); };
