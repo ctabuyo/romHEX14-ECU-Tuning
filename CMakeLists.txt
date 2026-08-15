@@ -431,6 +431,7 @@ set(TS_FILES
     translations/rx14_zh_CN.ts
     translations/rx14_es.ts
     translations/rx14_th.ts
+    translations/rx14_nl.ts
 )
 if(Qt6_VERSION VERSION_GREATER_EQUAL "6.7.0")
     qt_add_translations(rx14

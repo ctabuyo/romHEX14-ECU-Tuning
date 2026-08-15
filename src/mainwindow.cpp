@@ -3423,6 +3423,7 @@ void MainWindow::retranslateUi()
     struct LangEntry { QString code; QString label; };
     const LangEntry langs[] = {
         { "en",    "English"                                         },
+        { "nl",    "Nederlands (Dutch)"                             },
         { "zh_CN", "\u7B80\u4F53\u4E2D\u6587 (Chinese Simplified)"  },
         { "es",    "Espa\u00F1ol (Spanish)"                          },
         { "th",    "\u0E20\u0E32\u0E29\u0E32\u0E44\u0E17\u0E22 (Thai)" },
