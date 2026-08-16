@@ -241,9 +241,9 @@ ChecksumDllInfo ChecksumManager::findDllForEcu(const QString& ecuType) const {
             if (q.contains(k) && desc.contains(k)) score += kFamilies[i].bonus;
         }
 
-        // DEV094 is the primary ALL BRAND algorithm for MEDVC17 / TC179x / TC176x / TC172x
-        if (dll.devNum == 94 && (q.contains("MED17") || q.contains("TC179") || q.contains("TC176") || q.contains("TC172") || q.contains("MEDVC17"))) {
-            score += 150;
+        // DEV094 is the primary ALL BRAND algorithm for MEDVC17 / MED17 / EDC17 / TC179x / TC176x / TC172x
+        if (dll.devNum == 94 && (q.contains("MED17") || q.contains("EDC17") || q.contains("TC179") || q.contains("TC176") || q.contains("TC172") || q.contains("MEDVC17"))) {
+            score += 200;
         }
 
         // Penalise if description is for a specific heavy machinery brand when query is general
