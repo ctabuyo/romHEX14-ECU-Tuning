@@ -174,6 +174,7 @@ set(SOURCES
     src/checksumelectdlg.cpp
     src/checksums/BoschMED17.cpp
     src/checksums/BoschMED17.h
+    src/checksums/IChecksumPlugin.h
     src/alignmentmap.cpp
     src/olsparser.cpp
     src/kpimportdlg.cpp
@@ -598,3 +599,7 @@ if(WIN32)
             COMMENT "Deploying ChecksumDLL folder (152 ECU DLLs)")
     endif()
 endif()
+
+# ── Dynamic Checksum Plugins ──────────────────────────────────────────────────
+add_subdirectory(plugins/checksums/bosch_med17)
+

@@ -9,6 +9,7 @@
 #include <QByteArray>
 #include <QString>
 #include <QVector>
+#include <QMap>
 
 // ── DLL registry entry ────────────────────────────────────────────────────────
 struct ChecksumDllInfo {
@@ -26,6 +27,8 @@ enum class ChecksumResult {
     Error         // I/O error, DLL load failure, etc.
 };
 
+namespace Checksum { class IChecksumPlugin; }
+
 // ── ChecksumManager ───────────────────────────────────────────────────────────
 class ChecksumManager : public QObject {
     Q_OBJECT
@@ -42,7 +45,7 @@ public:
     // then fall back to ecuType string. Preferred entry point for UI.
     ChecksumDllInfo autoDetect(const QByteArray& rom, const QString& ecuType) const;
 
-    // Verify checksum using best available method (native or DLL bridge)
+    // Verify checksum using best available method (plugin, native, or DLL bridge)
     ChecksumResult verify(const QByteArray& rom, const ChecksumDllInfo& dll, QString& errorMsg);
 
     // Correct checksum in-place using best available method
@@ -61,13 +64,17 @@ public:
     bool isDllAvailable(const ChecksumDllInfo& dll) const;
     bool isHelperAvailable() const;
 
+    // Dynamic plugin search directories
+    QStringList pluginSearchPaths() const;
+
+    // Reload all dynamic plugins
+    void loadPlugins();
+
     /// Returns a platform warning string if DLL bridge is unavailable
     static QString platformNote();
 
 private:
     explicit ChecksumManager(QObject* parent = nullptr);
-
-    // Native C++ implementations (cross-platform)
 
     // 32-bit DLL bridge via subprocess (Windows only)
     ChecksumResult bridgeVerify(const QByteArray& rom, const ChecksumDllInfo& dll, QString& errorMsg);
@@ -79,4 +86,5 @@ private:
 
     static ChecksumManager* s_instance;
     QVector<ChecksumDllInfo> m_dlls;
+    QMap<uint32_t, Checksum::IChecksumPlugin*> m_plugins;
 };

@@ -1,17 +1,14 @@
-/*
- * This file is part of romHEX14.
- * Copyright (C) 2026 Cristian Tabuyo <contact@romhex14.com>
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 #include "checksummanager.h"
 #include "checksums/BoschMED17.h"
+#include "checksums/IChecksumPlugin.h"
 #include <QCoreApplication>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QPluginLoader>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QTemporaryFile>
@@ -29,6 +26,7 @@ ChecksumManager* ChecksumManager::instance() {
 
 ChecksumManager::ChecksumManager(QObject* parent) : QObject(parent) {
     buildRegistry();
+    loadPlugins();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -461,6 +459,51 @@ bool ChecksumManager::isHelperAvailable() const {
 #endif
 }
 
+QStringList ChecksumManager::pluginSearchPaths() const {
+    QStringList paths;
+    const QString appDir = QCoreApplication::applicationDirPath();
+    paths << appDir + "/plugins/checksums";
+    paths << appDir + "/../plugins/checksums";
+    paths << appDir + "/plugins";
+    paths << QDir::cleanPath(appDir + "/../../plugins/checksums");
+    paths << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/checksums";
+    return paths;
+}
+
+void ChecksumManager::loadPlugins() {
+    const QStringList searchDirs = pluginSearchPaths();
+    for (const QString& dirPath : searchDirs) {
+        if (!QDir(dirPath).exists()) continue;
+
+        QDirIterator it(dirPath, QStringList() << "*.so" << "*.dylib" << "*.dll",
+                        QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            const QString pluginFile = it.next();
+            QPluginLoader loader(pluginFile);
+            QObject* instance = loader.instance();
+            if (!instance) continue;
+
+            auto* plugin = qobject_cast<Checksum::IChecksumPlugin*>(instance);
+            if (!plugin) {
+                // Fallback for non-qobject or static cast
+                plugin = dynamic_cast<Checksum::IChecksumPlugin*>(instance);
+            }
+            if (plugin) {
+                const uint32_t dNum = plugin->devNum();
+                m_plugins[dNum] = plugin;
+
+                // Update registry info
+                for (auto& info : m_dlls) {
+                    if (static_cast<uint32_t>(info.devNum) == dNum) {
+                        info.hasNative = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 32-bit DLL bridge (Windows only)
@@ -611,7 +654,14 @@ ChecksumResult ChecksumManager::verify(const QByteArray& rom, const ChecksumDllI
         errorMsg = tr("Unknown ECU \u2014 no checksum DLL matched");
         return ChecksumResult::Unsupported;
     }
-    // DEV094: Bosch MEDVC17 / MED17 / EDC17 native engine
+    // 1. Dynamic Checksum Plugin
+    if (m_plugins.contains(dll.devNum) && m_plugins[dll.devNum]) {
+        int r = m_plugins[dll.devNum]->verify(rom, errorMsg);
+        if (r == 0) return ChecksumResult::OK;
+        if (r == 1) return ChecksumResult::Mismatch;
+        return ChecksumResult::Error;
+    }
+    // 2. Built-in C++ Native Engine Fallback
     if (dll.devNum == 94) {
         Checksum::BoschMED17::Status st = Checksum::BoschMED17::verify(rom, errorMsg);
         if (st == Checksum::BoschMED17::Status::OK) return ChecksumResult::OK;
@@ -638,7 +688,13 @@ ChecksumResult ChecksumManager::correct(QByteArray& rom, const ChecksumDllInfo& 
         errorMsg = tr("Unknown ECU \u2014 no checksum DLL matched");
         return ChecksumResult::Unsupported;
     }
-    // DEV094: Bosch MEDVC17 / MED17 / EDC17 native engine
+    // 1. Dynamic Checksum Plugin
+    if (m_plugins.contains(dll.devNum) && m_plugins[dll.devNum]) {
+        int r = m_plugins[dll.devNum]->correct(rom, errorMsg);
+        if (r == 0) return ChecksumResult::OK;
+        return ChecksumResult::Error;
+    }
+    // 2. Built-in C++ Native Engine Fallback
     if (dll.devNum == 94) {
         Checksum::BoschMED17::Status st = Checksum::BoschMED17::correct(rom, errorMsg);
         if (st == Checksum::BoschMED17::Status::OK) return ChecksumResult::OK;
