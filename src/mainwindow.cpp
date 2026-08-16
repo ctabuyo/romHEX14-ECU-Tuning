@@ -9836,7 +9836,8 @@ void MainWindow::actVerifyChecksum()
 
     switch (result) {
     case ChecksumResult::OK:
-        // Non-destructive success → status-bar message instead of modal popup.
+        QMessageBox::information(this, tr("Verify Checksum"),
+            tr("✓ Checksum OK\n\nECU: %1\nAlgorithm: %2\n\nAll checksum blocks are valid and match.").arg(proj->ecuType, dll.description));
         statusBar()->showMessage(
             tr("Checksum OK — %1 (%2)").arg(proj->ecuType, dll.description), 5000);
         break;
