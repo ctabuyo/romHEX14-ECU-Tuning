@@ -228,12 +228,12 @@ ChecksumDllInfo ChecksumManager::findDllForEcu(const QString& ecuType) const {
         // ECU family keywords — bonus for exact family match
         static const struct { const char* key; int bonus; } kFamilies[] = {
             {"EDC17", 50}, {"EDC16", 50}, {"EDC15", 50},
-            {"MED17", 50}, {"MED9", 40},  {"MED7", 40},
+            {"MED17", 80}, {"MEDVC17", 100}, {"MED9", 40},  {"MED7", 40},
             {"ME7",   40}, {"ME9",  40},  {"ME2",  40},
             {"SIMOS", 40}, {"PCR",  30},  {"PPD",  30},
             {"SID",   30}, {"MSS",  30},  {"MSV",  30}, {"MSD", 30},
             {"MS41",  35}, {"MS45", 35},  {"BMS",  30},
-            {"TC1797",40}, {"TC176",40},  {"MPC55",35},
+            {"TC1797",40}, {"TC1793",80}, {"TC179", 70}, {"TC176",70}, {"MPC55",35},
             {nullptr, 0}
         };
         for (int i = 0; kFamilies[i].key; i++) {
@@ -241,11 +241,15 @@ ChecksumDllInfo ChecksumManager::findDllForEcu(const QString& ecuType) const {
             if (q.contains(k) && desc.contains(k)) score += kFamilies[i].bonus;
         }
 
-        // Penalise if description is for a totally different brand
+        // DEV094 is the primary ALL BRAND algorithm for MEDVC17 / TC179x / TC176x / TC172x
+        if (dll.devNum == 94 && (q.contains("MED17") || q.contains("TC179") || q.contains("TC176") || q.contains("TC172") || q.contains("MEDVC17"))) {
+            score += 150;
+        }
+
+        // Penalise if description is for a specific heavy machinery brand when query is general
         static const QStringList kBrands = {"BOSCH","SIEMENS","DELPHI","DENSO",
                                              "MARELLI","MOTOROLA","CONTINENTAL","VISTEON",
                                              "LUCAS","SAGEM","VALEO"};
-        // If user typed a brand name and it's NOT in this description, penalise
         for (const QString& brand : kBrands) {
             if (q.contains(brand) && !desc.contains(brand)) score -= 20;
         }
@@ -264,7 +268,8 @@ ChecksumDllInfo ChecksumManager::findDllForEcu(const QString& ecuType) const {
 static QString scanRomForEcuType(const QByteArray& rom) {
     // ECU families to look for in embedded ASCII strings, ordered by specificity
     static const struct { const char* pat; int priority; } kPatterns[] = {
-        {"MED17",  100}, {"EDC17",  100}, {"MED9.",   90}, {"MED7.",   90},
+        {"MED17",  100}, {"EDC17",  100}, {"MEDVC17", 110}, {"TC1793", 105}, {"TC1797", 100},
+        {"MED9.",   90}, {"MED7.",   90},
         {"EDC16+",  95}, {"EDC16C",  95}, {"EDC16",   85},
         {"EDC15C",  90}, {"EDC15P",  90}, {"EDC15V",  90}, {"EDC15",   80},
         {"ME9.",    85}, {"ME7.",    85}, {"ME2.",     80},
@@ -275,7 +280,7 @@ static QString scanRomForEcuType(const QByteArray& rom) {
         {"SID208",  75}, {"SID20",   70}, {"SID80",   70}, {"SID",     60},
         {"BMS46",   75}, {"BMS",     60},
         {"MS45",    75}, {"MS41",    75},
-        {"TC1797",  85}, {"TC1767",  85}, {"TC176",   80},
+        {"TC1767",  85}, {"TC176",   80},
         {nullptr,    0}
     };
 
