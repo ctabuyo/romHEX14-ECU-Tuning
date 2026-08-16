@@ -12,6 +12,16 @@
 
 namespace Checksum {
 
+struct Med17BlockDescriptor {
+    uint32_t type;
+    size_t startOffset;
+    size_t endOffset;
+    size_t trailerOffset;
+    uint32_t storedCrc;
+    uint32_t calculatedCrc;
+    bool valid;
+};
+
 class BoschMED17 {
 public:
     enum class Status {
@@ -26,6 +36,9 @@ public:
 
     /// Calculate 32-bit IEEE 802.3 CRC-32 over a byte range
     static uint32_t calculateCrc32(const uint8_t* data, size_t start, size_t end);
+
+    /// Scan and parse all TriCore MED17/EDC17 dynamic block descriptors (0xFADECAFE / 0xCAFEAFFE / 0xDEADBEEF)
+    static std::vector<Med17BlockDescriptor> scanBlocks(const uint8_t* data, size_t size);
 
     /// Verify Bosch MED17 / EDC17 checksums natively in ROM buffer
     static Status verify(const QByteArray& rom, QString& errorMsg);
