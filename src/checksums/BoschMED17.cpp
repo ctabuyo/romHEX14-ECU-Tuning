@@ -47,12 +47,12 @@ struct Med17Partition {
 static std::vector<Med17Partition> getMed17Partitions(size_t size) {
     std::vector<Med17Partition> parts;
     if (size >= 0x200000) {
-        // Partition 1: Cal Flash (0x020000 - 0x1FFF00)
-        parts.push_back({0x020000, 0x1FFEF0, 0x1FFF00});
+        // Partition 1: Cal Flash (0x020000 up to byte before trailer - 16)
+        parts.push_back({0x020000, 0x1FFF00 - 17, 0x1FFF00});
     }
     if (size >= 0x400000) {
-        // Partition 2: Full Code Flash (0x200000 - 0x3FFF00)
-        parts.push_back({0x200000, 0x3FFEF0, 0x3FFF00});
+        // Partition 2: Full Code Flash (0x200000 up to byte before trailer - 16)
+        parts.push_back({0x200000, 0x3FFF00 - 17, 0x3FFF00});
     }
     return parts;
 }
@@ -73,16 +73,26 @@ BoschMED17::Status BoschMED17::verify(const QByteArray& rom, QString& errorMsg) 
         return Status::OK;
     }
 
-    // Check if any partition data hash differs from stored calibration block words
-    bool modified = false;
+    int mismatches = 0;
     for (const auto& p : parts) {
-        if (p.trailer + 4 <= size) {
+        if (p.trailer + 4 <= size && p.trailer >= 16) {
             uint32_t magic = udata[p.trailer] | (uint32_t(udata[p.trailer+1]) << 8) | 
                              (uint32_t(udata[p.trailer+2]) << 16) | (uint32_t(udata[p.trailer+3]) << 24);
             if (magic == 0xDEADBEEF) {
-                // Verify 0xDEADBEEF trailer presence
+                size_t off = p.trailer - 16;
+                uint32_t storedCrc = udata[off] | (uint32_t(udata[off+1]) << 8) |
+                                     (uint32_t(udata[off+2]) << 16) | (uint32_t(udata[off+3]) << 24);
+                uint32_t calcCrc = calculateCrc32(udata, p.start, p.end);
+                if (storedCrc != calcCrc) {
+                    mismatches++;
+                }
             }
         }
+    }
+
+    if (mismatches > 0) {
+        errorMsg = QString("%1 MED17 partition checksum(s) mismatched").arg(mismatches);
+        return Status::Mismatch;
     }
 
     errorMsg.clear();
@@ -101,7 +111,7 @@ BoschMED17::Status BoschMED17::correct(QByteArray& rom, QString& errorMsg) {
 
     auto parts = getMed17Partitions(size);
     for (const auto& p : parts) {
-        if (p.trailer + 4 <= size) {
+        if (p.trailer + 4 <= size && p.trailer >= 16) {
             uint32_t magic = udata[p.trailer] | (uint32_t(udata[p.trailer+1]) << 8) | 
                              (uint32_t(udata[p.trailer+2]) << 16) | (uint32_t(udata[p.trailer+3]) << 24);
             if (magic == 0xDEADBEEF) {
