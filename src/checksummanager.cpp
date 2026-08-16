@@ -5,6 +5,7 @@
  */
 
 #include "checksummanager.h"
+#include "checksums/BoschMED17.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
@@ -193,7 +194,7 @@ void ChecksumManager::buildRegistry() {
         info.devNum      = d.n;
         info.description = QString::fromLatin1(d.desc);
         info.filename    = QString("DEV%1.dll").arg(d.n, 3, 10, QChar('0'));
-        info.hasNative   = false; // community: native implementations are pro-only
+        info.hasNative   = d.native;
         m_dlls.append(info);
     }
 }
@@ -605,6 +606,13 @@ ChecksumResult ChecksumManager::verify(const QByteArray& rom, const ChecksumDllI
         errorMsg = tr("Unknown ECU \u2014 no checksum DLL matched");
         return ChecksumResult::Unsupported;
     }
+    // DEV094: Bosch MEDVC17 / MED17 / EDC17 native engine
+    if (dll.devNum == 94) {
+        Checksum::BoschMED17::Status st = Checksum::BoschMED17::verify(rom, errorMsg);
+        if (st == Checksum::BoschMED17::Status::OK) return ChecksumResult::OK;
+        if (st == Checksum::BoschMED17::Status::Mismatch) return ChecksumResult::Mismatch;
+        return ChecksumResult::Error;
+    }
 #ifdef Q_OS_WIN
     // Windows: use the vendor DLL bridge (checksumhelper.exe + vendor DLLs).
     if (isHelperAvailable() && isDllAvailable(dll))
@@ -624,6 +632,13 @@ ChecksumResult ChecksumManager::correct(QByteArray& rom, const ChecksumDllInfo& 
     if (dll.devNum == 0) {
         errorMsg = tr("Unknown ECU \u2014 no checksum DLL matched");
         return ChecksumResult::Unsupported;
+    }
+    // DEV094: Bosch MEDVC17 / MED17 / EDC17 native engine
+    if (dll.devNum == 94) {
+        Checksum::BoschMED17::Status st = Checksum::BoschMED17::correct(rom, errorMsg);
+        if (st == Checksum::BoschMED17::Status::OK) return ChecksumResult::OK;
+        if (st == Checksum::BoschMED17::Status::Mismatch) return ChecksumResult::Mismatch;
+        return ChecksumResult::Error;
     }
 #ifdef Q_OS_WIN
     if (isHelperAvailable() && isDllAvailable(dll))

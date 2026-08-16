@@ -172,6 +172,8 @@ set(SOURCES
     src/hexdifflistwidget.cpp
     src/checksummanager.cpp
     src/checksumelectdlg.cpp
+    src/checksums/BoschMED17.cpp
+    src/checksums/BoschMED17.h
     src/alignmentmap.cpp
     src/olsparser.cpp
     src/kpimportdlg.cpp
