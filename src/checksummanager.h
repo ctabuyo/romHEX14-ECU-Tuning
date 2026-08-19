@@ -83,8 +83,11 @@ private:
                              bool correctMode, QByteArray& romOut, QString& errorMsg);
 
     void buildRegistry();
+    Checksum::IChecksumPlugin* pluginForDev(uint32_t devNum) const;
 
     static ChecksumManager* s_instance;
     QVector<ChecksumDllInfo> m_dlls;
     QMap<uint32_t, Checksum::IChecksumPlugin*> m_plugins;
+    QMap<QString, class QPluginLoader*> m_loaders;
+    class QFileSystemWatcher* m_watcher = nullptr;
 };

@@ -11,6 +11,7 @@
 #include <cstdint>
 
 #define RX14_CHECKSUM_PLUGIN_IID "com.romhex14.ChecksumPlugin/1.0"
+#define RX14_CHECKSUM_PLUGIN_VERSION 1
 
 namespace Checksum {
 
@@ -21,8 +22,13 @@ public:
     /// Plugin ABI Version (default 1)
     virtual uint32_t pluginVersion() const = 0;
 
-    /// Corresponding OLS devNum identifier (e.g. 94 for Bosch MED17)
+    /// Corresponding Alientech/WinOLS devNum identifier (e.g. 94 for Bosch MED17)
     virtual uint32_t devNum() const = 0;
+
+    /// All corresponding/compatible DEV numbers handled by this plugin family
+    virtual QVector<uint32_t> supportedDevNums() const {
+        return { devNum() };
+    }
 
     /// Plugin identifier slug (e.g. "bosch_med17")
     virtual QString pluginId() const = 0;

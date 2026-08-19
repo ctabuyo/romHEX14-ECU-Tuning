@@ -6,6 +6,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QPluginLoader>
@@ -25,6 +26,14 @@ ChecksumManager* ChecksumManager::instance() {
 }
 
 ChecksumManager::ChecksumManager(QObject* parent) : QObject(parent) {
+    m_watcher = new QFileSystemWatcher(this);
+    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString&) {
+        loadPlugins();
+    });
+    connect(m_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString&) {
+        loadPlugins();
+    });
+
     buildRegistry();
     loadPlugins();
 }
@@ -179,12 +188,42 @@ void ChecksumManager::buildRegistry() {
         {148, "",                                                                           false},
         {149, "",                                                                           false},
         {150, "",                                                                           false},
-        {151, "DENSO NEC_NBD - TOYOTA",                                                     false},
-        {152, "SIEMENS SID 904/913 - INTERNATIONAL",                                        false},
-        {154, "DELPHI DCM6.1/DCM6.2 - FORD/PSA/SSANGYONG/VAG",                            false},
-        {155, "MOTOROLA ECM0563 - MAXXFORCE",                                               false},
+        {151, "DENSO NEC_NBD - TOYOTA",                                                     true},
+        {152, "SIEMENS SID 904/913 - INTERNATIONAL",                                        true},
+        {154, "DELPHI DCM6.1/DCM6.2 - FORD/PSA/SSANGYONG/VAG",                            true},
+        {155, "MOTOROLA ECM0563 - MAXXFORCE",                                               true},
         {156, "BOSCH EDC17CV42 TC1797 - FENDT/MAN TRUCK",                                   true},
-        {157, "SIEMENS SIM271DE/KE - MEB CAR",                                              false},
+        {157, "SIEMENS SIM271DE/KE - MEB CAR",                                              true},
+        {158, "BOSCH MD1/MG1 TC298/TC299 - ALL BRAND",                                      true},
+        {159, "CONTINENTAL EMS S8 - SCANIA TRUCK",                                          true},
+        {194, "CONTINENTAL SIMOS 18.1/18.2 - VAG 2.0 TFSI",                                 true},
+        {195, "DELPHI DCM7.1A / DCM7.1AP - PSA / HYUNDAI",                                  true},
+        {196, "BOSCH MD1CS006 / MG1CS001 - VAG / BMW",                                     true},
+        {197, "DENSO GEN3 D-4S / D-4D - TOYOTA",                                           true},
+        {198, "MARELLI 9GF / 8GMK / 9DF - FCA GROUP",                                      true},
+        {199, "CONTINENTAL EMS3125 / EMS3155 - RENAULT / NISSAN",                           true},
+        {200, "BOSCH MED17.7.7 / MED17.7.8 - MERCEDES AMG",                                 true},
+        {201, "SIEMENS / CONTINENTAL SID310 - RENAULT / NISSAN / MERCEDES",                 true},
+        {202, "DELPHI CRD3 / CRD3P - MERCEDES BENZ",                                       true},
+        {203, "BOSCH EDC17C69 / EDC17C79 - FCA JEEP / FIAT",                               true},
+        {204, "DENSO 4J / 4N DIESEL - ISUZU / MITSUBISHI",                                  true},
+        {205, "CONTINENTAL SDI21 / SDI10 - PORSCHE",                                        true},
+        {206, "BOSCH ME17.8.32 / ME17.8.33 - POLARIS / CAN-AM",                            true},
+        {207, "MARELLI MM10JA - ALFA ROMEO GIULIA / STELVIO",                               true},
+        {208, "BOSCH MD1CP004 / MD1CS003 - BMW / MERCEDES",                                 true},
+        {209, "DELPHI DCM6.2V - VAG 1.4 / 1.6 TDI",                                        true},
+        {210, "BOSCH MG1CS011 / MG1CS028 - FORD ECOBOOST",                                  true},
+        {211, "CONTINENTAL EMS2211 / EMS24xx - FORD",                                       true},
+        {212, "DENSO R7F701202 / R7F701216 - TOYOTA / LEXUS",                              true},
+        {213, "BOSCH EDC17C57 / EDC17C60 - HYUNDAI / KIA",                                  true},
+        {214, "SIEMENS SIMOS 18.10 - VAG 2.0 TSI GPF",                                      true},
+        {215, "DELPHI ETC4 - DAF XF / CF TRUCK",                                           true},
+        {216, "MARELLI 11GF - FIAT FIREFLY",                                               true},
+        {217, "BOSCH MD1CS018 / MG1CS018 - PSA / OPEL",                                    true},
+        {218, "CONTINENTAL SID211 - FORD TRANSIT 2.0 ECOBLUE",                              true},
+        {219, "DENSO 89661-xxxxx GEN3 - TOYOTA HILUX / LAND CRUISER",                       true},
+        {220, "BOSCH MG1CS080 / MG1CS163 - PORSCHE / AUDI",                                 true},
+        {221, "BOSCH EDC17C84 - NISSAN / RENAULT 1.6 DCI",                                  true},
     };
 
     for (const auto& d : kDlls) {
@@ -239,7 +278,7 @@ ChecksumDllInfo ChecksumManager::findDllForEcu(const QString& ecuType) const {
             if (q.contains(k) && desc.contains(k)) score += kFamilies[i].bonus;
         }
 
-        // DEV094 is the primary ALL BRAND algorithm for MEDVC17 / MED17 / EDC17 / TC179x / TC176x / TC172x
+        // MED17 is the primary ALL BRAND algorithm for MEDVC17 / MED17 / EDC17 / TC179x / TC176x / TC172x
         if (dll.devNum == 94 && (q.contains("MED17") || q.contains("EDC17") || q.contains("TC179") || q.contains("TC176") || q.contains("TC172") || q.contains("MEDVC17"))) {
             score += 200;
         }
@@ -470,33 +509,75 @@ QStringList ChecksumManager::pluginSearchPaths() const {
     return paths;
 }
 
+Checksum::IChecksumPlugin* ChecksumManager::pluginForDev(uint32_t devNum) const {
+    return m_plugins.value(devNum, nullptr);
+}
+
 void ChecksumManager::loadPlugins() {
+    // 1. Unload and delete any previously created loaders
+    for (auto* loader : m_loaders) {
+        if (loader) {
+            loader->unload();
+            delete loader;
+        }
+    }
+    m_loaders.clear();
+    m_plugins.clear();
+
     const QStringList searchDirs = pluginSearchPaths();
     for (const QString& dirPath : searchDirs) {
-        if (!QDir(dirPath).exists()) continue;
+        if (!QDir(dirPath).exists()) {
+            QDir().mkpath(dirPath);
+        }
+        if (m_watcher && !m_watcher->directories().contains(dirPath)) {
+            m_watcher->addPath(dirPath);
+        }
 
         QDirIterator it(dirPath, QStringList() << "*.so" << "*.dylib" << "*.dll",
                         QDir::Files, QDirIterator::Subdirectories);
         while (it.hasNext()) {
             const QString pluginFile = it.next();
-            QPluginLoader loader(pluginFile);
-            QObject* instance = loader.instance();
-            if (!instance) continue;
+            if (m_watcher && !m_watcher->files().contains(pluginFile)) {
+                m_watcher->addPath(pluginFile);
+            }
+            auto* loader = new QPluginLoader(pluginFile, this);
+            QObject* instance = loader->instance();
+            if (!instance) {
+                delete loader;
+                continue;
+            }
 
             auto* plugin = qobject_cast<Checksum::IChecksumPlugin*>(instance);
             if (!plugin) {
-                // Fallback for non-qobject or static cast
                 plugin = dynamic_cast<Checksum::IChecksumPlugin*>(instance);
             }
-            if (plugin) {
-                const uint32_t dNum = plugin->devNum();
+            if (!plugin) {
+                loader->unload();
+                delete loader;
+                continue;
+            }
+
+            // ABI Version Validation
+            if (plugin->pluginVersion() != RX14_CHECKSUM_PLUGIN_VERSION) {
+                qWarning() << "ChecksumManager: Rejecting plugin" << pluginFile
+                           << "due to ABI mismatch (" << plugin->pluginVersion()
+                           << "expected" << RX14_CHECKSUM_PLUGIN_VERSION << ")";
+                loader->unload();
+                delete loader;
+                continue;
+            }
+
+            m_loaders.insert(pluginFile, loader);
+
+            // Register plugin for its primary devNum and all supported DEV numbers
+            const auto supportedDevs = plugin->supportedDevNums();
+            for (uint32_t dNum : supportedDevs) {
                 m_plugins[dNum] = plugin;
 
                 // Update registry info
                 for (auto& info : m_dlls) {
                     if (static_cast<uint32_t>(info.devNum) == dNum) {
                         info.hasNative = true;
-                        break;
                     }
                 }
             }
@@ -654,32 +735,28 @@ ChecksumResult ChecksumManager::verify(const QByteArray& rom, const ChecksumDllI
         errorMsg = tr("Unknown ECU \u2014 no checksum DLL matched");
         return ChecksumResult::Unsupported;
     }
-    // 1. Dynamic Checksum Plugin
-    if (m_plugins.contains(dll.devNum) && m_plugins[dll.devNum]) {
-        int r = m_plugins[dll.devNum]->verify(rom, errorMsg);
+#ifdef Q_OS_WIN
+    // Windows: strictly use the battle-tested vendor DLL bridge
+    if (isHelperAvailable() && isDllAvailable(dll))
+        return bridgeVerify(rom, dll, errorMsg);
+#else
+    // Linux / macOS: use native cross-platform open-source plugins
+    if (m_plugins.isEmpty()) {
+        loadPlugins();
+    }
+    if (auto* plugin = pluginForDev(static_cast<uint32_t>(dll.devNum))) {
+        if (!plugin->canHandle(rom, dll.description)) {
+            errorMsg = tr("Plugin '%1' rejected ROM: incompatible structure, missing magic markers, or size out of range.")
+                       .arg(plugin->name());
+            return ChecksumResult::Unsupported;
+        }
+        int r = plugin->verify(rom, errorMsg);
         if (r == 0) return ChecksumResult::OK;
         if (r == 1) return ChecksumResult::Mismatch;
         return ChecksumResult::Error;
     }
-    // 2. Built-in C++ Native Engine Fallback
-    if (dll.devNum == 94) {
-        Checksum::BoschMED17::Status st = Checksum::BoschMED17::verify(rom, errorMsg);
-        if (st == Checksum::BoschMED17::Status::OK) return ChecksumResult::OK;
-        if (st == Checksum::BoschMED17::Status::Mismatch) return ChecksumResult::Mismatch;
-        return ChecksumResult::Error;
-    }
-#ifdef Q_OS_WIN
-    // Windows: use the vendor DLL bridge (checksumhelper.exe + vendor DLLs).
-    if (isHelperAvailable() && isDllAvailable(dll))
-        return bridgeVerify(rom, dll, errorMsg);
 #endif
-#ifdef Q_OS_WIN
-    errorMsg = tr("checksumhelper.exe or DLL not found for %1").arg(dll.description);
-#else
-    errorMsg = tr("Checksum support for %1 requires the Windows "
-                  "DLL bridge (checksumhelper.exe + the vendor checksum DLLs).")
-                   .arg(dll.description);
-#endif
+    errorMsg = tr("No checksum plugin found for %1. Please install the plugin to plugins/checksums/.").arg(dll.description);
     return ChecksumResult::Unsupported;
 }
 
@@ -688,30 +765,27 @@ ChecksumResult ChecksumManager::correct(QByteArray& rom, const ChecksumDllInfo& 
         errorMsg = tr("Unknown ECU \u2014 no checksum DLL matched");
         return ChecksumResult::Unsupported;
     }
-    // 1. Dynamic Checksum Plugin
-    if (m_plugins.contains(dll.devNum) && m_plugins[dll.devNum]) {
-        int r = m_plugins[dll.devNum]->correct(rom, errorMsg);
+#ifdef Q_OS_WIN
+    // Windows: strictly use the battle-tested vendor DLL bridge
+    if (isHelperAvailable() && isDllAvailable(dll))
+        return bridgeCorrect(rom, dll, errorMsg);
+#else
+    // Linux / macOS: use native cross-platform open-source plugins
+    if (m_plugins.isEmpty()) {
+        loadPlugins();
+    }
+    if (auto* plugin = pluginForDev(static_cast<uint32_t>(dll.devNum))) {
+        if (!plugin->canHandle(rom, dll.description)) {
+            errorMsg = tr("Plugin '%1' cannot correct checksum: ROM structure or markers not recognized for %2.")
+                       .arg(plugin->name(), dll.description);
+            return ChecksumResult::Unsupported;
+        }
+        int r = plugin->correct(rom, errorMsg);
         if (r == 0) return ChecksumResult::OK;
         return ChecksumResult::Error;
     }
-    // 2. Built-in C++ Native Engine Fallback
-    if (dll.devNum == 94) {
-        Checksum::BoschMED17::Status st = Checksum::BoschMED17::correct(rom, errorMsg);
-        if (st == Checksum::BoschMED17::Status::OK) return ChecksumResult::OK;
-        if (st == Checksum::BoschMED17::Status::Mismatch) return ChecksumResult::Mismatch;
-        return ChecksumResult::Error;
-    }
-#ifdef Q_OS_WIN
-    if (isHelperAvailable() && isDllAvailable(dll))
-        return bridgeCorrect(rom, dll, errorMsg);
 #endif
-#ifdef Q_OS_WIN
-    errorMsg = tr("checksumhelper.exe or DLL not found for %1").arg(dll.description);
-#else
-    errorMsg = tr("Checksum support for %1 requires the Windows "
-                  "DLL bridge (checksumhelper.exe + the vendor checksum DLLs).")
-                   .arg(dll.description);
-#endif
+    errorMsg = tr("No checksum plugin found for %1. Please install the plugin to plugins/checksums/.").arg(dll.description);
     return ChecksumResult::Unsupported;
 }
 

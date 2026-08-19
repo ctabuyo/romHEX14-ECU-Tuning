@@ -65,3 +65,5 @@ wols_inspect/
 
 # Internal agent rules & skills — never commit
 .agents/
+analysis/
+*.pdf

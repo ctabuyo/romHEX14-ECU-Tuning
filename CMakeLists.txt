@@ -16,19 +16,10 @@ set(RX14_VERSION_NUMERIC "${RX14_VERSION_MAJOR}.${RX14_VERSION_MINOR}.${RX14_VER
 
 project(RX14 VERSION ${RX14_VERSION_NUMERIC} LANGUAGES C CXX)
 
-# Fetch ADS 5.0.0 during configuration rather than requiring a nested Git
-# checkout. The immutable release commit keeps every developer and CI build on
-# the same code while avoiding an unreleased master snapshot.
-include(FetchContent)
+# Vendored Qt Advanced Docking System 5.0.0 (LGPL-2.1-or-later)
+set(ADS_VERSION "5.0.0" CACHE STRING "ADS version" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build ADS example applications" FORCE)
-FetchContent_Declare(
-    QtAdvancedDockingSystem
-    GIT_REPOSITORY https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System.git
-    # ADS 5.0.0 release commit
-    GIT_TAG 433b0c90b44d8f17d059204176ff6e0d6d3783e3
-    EXCLUDE_FROM_ALL
-)
-FetchContent_MakeAvailable(QtAdvancedDockingSystem)
+add_subdirectory(third_party/qt-advanced-docking-system EXCLUDE_FROM_ALL)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" CACHE PATH "" FORCE)
 
 configure_file(
@@ -57,10 +48,13 @@ if(NOT DEFINED RX14_DEBUG_RPC_DEFAULT)
     endif()
 endif()
 option(RX14_DEBUG_RPC "Enable in-app TCP debug RPC + D:\\rx14-debug logging" ${RX14_DEBUG_RPC_DEFAULT})
+option(RX14_BUILD_APP "Build the romHEX14 main application executable" ON)
+option(RX14_BUILD_PLUGINS "Build the standalone dynamic checksum plugins" ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Concurrent Network Sql LinguistTools)
 find_package(ZLIB QUIET)
 
+if(RX14_BUILD_APP)
 # ── BLAKE3 (portable C, no SIMD) ────────────────────────────────────────────
 add_library(blake3 STATIC
     third_party/blake3/blake3.c
@@ -145,8 +139,6 @@ set(SOURCES
     src/romparser.cpp
     src/appconfig.cpp
     src/configdialog.cpp
-    src/uiscale.cpp
-    src/uiscale.h
     src/romlinker.cpp
     src/romlinkdialog.cpp
     src/rompatch.cpp
@@ -166,6 +158,8 @@ set(SOURCES
     src/createmapdlg.cpp
     src/dtcdialog.cpp
     src/diffpanel.cpp
+    src/uiscale.cpp
+    src/uiscale.h
     src/hexcomparedlg.cpp
     src/romcompare.cpp
     src/romcomparedlg.cpp
@@ -176,6 +170,24 @@ set(SOURCES
     src/checksumelectdlg.cpp
     src/checksums/BoschMED17.cpp
     src/checksums/BoschMED17.h
+    src/checksums/Med17Rsa.cpp
+    src/checksums/Med17Rsa.h
+    src/checksums/Med17Descriptor.cpp
+    src/checksums/Med17Descriptor.h
+    src/checksums/Med17Keys.cpp
+    src/checksums/Med17Keys.h
+    src/checksums/Med17Correction.cpp
+    src/checksums/Med17Correction.h
+    src/checksums/Med17Variant.cpp
+    src/checksums/Med17Variant.h
+    src/checksums/Med17BlockChecksum.cpp
+    src/checksums/Med17BlockChecksum.h
+    src/checksums/Med17CustomerBlock.cpp
+    src/checksums/Med17CustomerBlock.h
+    src/checksums/common/RsaMath1024.cpp
+    src/checksums/common/RsaMath1024.h
+    src/checksums/common/BleichenbacherForge.cpp
+    src/checksums/common/BleichenbacherForge.h
     src/checksums/IChecksumPlugin.h
     src/alignmentmap.cpp
     src/olsparser.cpp
@@ -518,8 +530,6 @@ elseif(APPLE)
         set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/resources/icon.icns"
             PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     endif()
-    # CoreGraphics: display metrics for the auto UI scale (src/uiscale.cpp)
-    target_link_libraries(rx14 PRIVATE "-framework CoreGraphics")
 endif()
 
 # ── Deploy checksumhelper.exe and ChecksumDLL next to the executable ──────────
@@ -584,8 +594,24 @@ else()
     target_link_libraries(test_mapdetect_corpus PRIVATE z)
 endif()
 
+# ── Checksum plugin & engine unit/regression test harness ───────────────────
+add_executable(test_checksum_plugins tests/test_checksum_plugins.cpp
+    src/checksums/BoschMED17.cpp
+    src/checksums/Med17Rsa.cpp
+    src/checksums/Med17Descriptor.cpp
+    src/checksums/Med17Keys.cpp
+    src/checksums/Med17Correction.cpp
+    src/checksums/Med17Variant.cpp
+    src/checksums/Med17BlockChecksum.cpp
+    src/checksums/Med17CustomerBlock.cpp
+    src/checksums/common/RsaMath1024.cpp
+    src/checksums/common/BleichenbacherForge.cpp
+)
+target_include_directories(test_checksum_plugins PRIVATE src)
+target_link_libraries(test_checksum_plugins PRIVATE Qt6::Core Qt6::Gui)
+
 # ── Deploy checksumhelper.exe and ChecksumDLL next to the executable ──────────
-# The 32-bit checksumhelper.exe bridges 64-bit rx14 to 32-bit OLS checksum DLLs.
+# The 32-bit checksumhelper.exe bridges 64-bit rx14 to 32-bit WinOLS checksum DLLs.
 # Both must sit alongside rx14.exe for the DLL-bridge checksums to work (Windows only).
 if(WIN32)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/checksumhelper.exe")
@@ -603,7 +629,47 @@ if(WIN32)
             COMMENT "Deploying ChecksumDLL folder (152 ECU DLLs)")
     endif()
 endif()
+endif() # RX14_BUILD_APP
 
 # ── Dynamic Checksum Plugins ──────────────────────────────────────────────────
-add_subdirectory(plugins/checksums/bosch_med17)
+if(RX14_BUILD_PLUGINS)
+    add_subdirectory(plugins/checksums/bosch_med17)
+    add_subdirectory(plugins/checksums/bosch_edc15)
+    add_subdirectory(plugins/checksums/bosch_me7)
+    add_subdirectory(plugins/checksums/bosch_edc16)
+    add_subdirectory(plugins/checksums/bosch_med9)
+    add_subdirectory(plugins/checksums/siemens_simos_pcr21)
+    add_subdirectory(plugins/checksums/marelli_multijet)
+    add_subdirectory(plugins/checksums/delphi_dcm)
+    add_subdirectory(plugins/checksums/siemens_sid)
+    add_subdirectory(plugins/checksums/siemens_ms)
+    add_subdirectory(plugins/checksums/denso_ecu)
+    add_subdirectory(plugins/checksums/bosch_bms)
+    add_subdirectory(plugins/checksums/trw_lucas)
+    add_subdirectory(plugins/checksums/visteon_ford)
+    add_subdirectory(plugins/checksums/hitachi_mitsu)
+    add_subdirectory(plugins/checksums/continental_generic)
 
+    add_custom_target(checksum_plugins
+        DEPENDS
+            checksum_bosch_med17
+            checksum_bosch_edc15
+            checksum_bosch_me7
+            checksum_bosch_edc16
+            checksum_bosch_med9
+            checksum_siemens_simos_pcr21
+            checksum_marelli_multijet
+            checksum_delphi_dcm
+            checksum_siemens_sid
+            checksum_siemens_ms
+            checksum_denso_ecu
+            checksum_bosch_bms
+            checksum_trw_lucas
+            checksum_visteon_ford
+            checksum_hitachi_mitsu
+            checksum_continental_generic
+        COMMENT "Building all standalone dynamic checksum plugins"
+    )
+
+    add_custom_target(plugins DEPENDS checksum_plugins)
+endif()

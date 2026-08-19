@@ -5,6 +5,17 @@
  */
 
 #include "BoschMED17.h"
+#include "Med17BlockChecksum.h"
+#include "Med17Correction.h"
+#include "Med17CustomerBlock.h"
+#include "Med17Descriptor.h"
+#include "Med17Keys.h"
+#include "Med17Rsa.h"
+#include "Med17Variant.h"
+
+#include <QStringList>
+
+#include <algorithm>
 #include <cstring>
 #include <vector>
 
@@ -16,130 +27,64 @@ uint32_t BoschMED17::s_crcTable[256];
 void BoschMED17::initCrcTable() {
     if (s_crcInit) return;
     for (uint32_t i = 0; i < 256; i++) {
-        uint32_t c = i;
-        for (int k = 0; k < 8; k++) {
-            if (c & 1)
-                c = (c >> 1) ^ 0xEDB88320;
-            else
-                c >>= 1;
-        }
+        uint32_t c = i << 24;
+        for (int k = 0; k < 8; k++)
+            c = (c & 0x80000000u) ? ((c << 1) ^ 0x04C11DB7u) : (c << 1);
         s_crcTable[i] = c;
     }
     s_crcInit = true;
 }
 
 uint32_t BoschMED17::calculateCrc32(const uint8_t* data, size_t start, size_t end) {
-    if (!s_crcInit) initCrcTable();
+    if (!data || start > end)
+        return 0;
+    if (!s_crcInit)
+        initCrcTable();
     uint32_t crc = 0xFFFFFFFF;
-    for (size_t i = start; i <= end; i++) {
-        uint8_t b = data[i];
-        crc = (crc >> 8) ^ s_crcTable[(crc ^ b) & 0xFF];
-    }
+    for (size_t i = start; i <= end; i++)
+        crc = (crc << 8) ^ s_crcTable[((crc >> 24) ^ data[i]) & 0xFF];
     return ~crc;
+}
+
+bool BoschMED17::canHandle(const QByteArray& rom, const QString& ecuType) {
+    Q_UNUSED(ecuType);
+    return !MED17::parseDescriptors(rom).empty();
 }
 
 std::vector<Med17BlockDescriptor> BoschMED17::scanBlocks(const uint8_t* data, size_t size) {
     std::vector<Med17BlockDescriptor> blocks;
-    if (size < 0x80000) return blocks;
+    if (!data || size == 0)
+        return blocks;
 
-    initCrcTable();
-
-    // 1. Dynamic Header Scan (0xFADECAFE + 0xCAFEAFFE)
-    for (size_t i = 0x40; i + 8 <= size; i += 0x20) {
-        uint32_t sig1 = data[i] | (uint32_t(data[i+1]) << 8) | (uint32_t(data[i+2]) << 16) | (uint32_t(data[i+3]) << 24);
-        uint32_t sig2 = data[i+4] | (uint32_t(data[i+5]) << 8) | (uint32_t(data[i+6]) << 16) | (uint32_t(data[i+7]) << 24);
-        
-        if (sig1 == 0xFADECAFE && sig2 == 0xCAFEAFFE && i >= 0x40) {
-            size_t hdr_off = i - 0x40;
-            if (hdr_off + 64 <= size) {
-                const uint32_t* w = reinterpret_cast<const uint32_t*>(data + hdr_off);
-                uint32_t b_type = w[0] & 0xFF;
-                uint32_t b_trailer = w[3] & 0x7FFFFFFF;
-                const uint32_t* w2 = reinterpret_cast<const uint32_t*>(data + hdr_off + 32);
-                uint32_t b_start = w2[6] & 0x7FFFFFFF;
-                uint32_t b_end = w2[7] & 0x7FFFFFFF;
-
-                if (b_start < size && b_trailer <= size && b_start < b_trailer && b_trailer >= 16) {
-                    // Verify 0xDEADBEEF trailer footer
-                    uint32_t magic = data[b_trailer] | (uint32_t(data[b_trailer+1]) << 8) |
-                                     (uint32_t(data[b_trailer+2]) << 16) | (uint32_t(data[b_trailer+3]) << 24);
-                    if (magic == 0xDEADBEEF) {
-                        Med17BlockDescriptor blk;
-                        blk.type = b_type;
-                        blk.startOffset = b_start;
-                        blk.trailerOffset = b_trailer;
-                        blk.endOffset = b_trailer - 17;
-
-                        size_t off = b_trailer - 16;
-                        blk.storedCrc = data[off] | (uint32_t(data[off+1]) << 8) |
-                                        (uint32_t(data[off+2]) << 16) | (uint32_t(data[off+3]) << 24);
-                        blk.calculatedCrc = calculateCrc32(data, blk.startOffset, blk.endOffset);
-                        blk.valid = (blk.storedCrc == blk.calculatedCrc);
-                        blocks.push_back(blk);
-                    }
-                }
-            }
-        }
+    const QByteArray rom(reinterpret_cast<const char*>(data), static_cast<qsizetype>(size));
+    for (const auto& descriptor : MED17::parseDescriptors(rom)) {
+        Med17BlockDescriptor block;
+        block.type = descriptor.type;
+        block.startOffset = descriptor.crcStart;
+        block.endOffset = descriptor.crcEndInclusive;
+        block.trailerOffset = descriptor.trailerOffset;
+        // MED17 stores/verifies this value through the RSA/CVN signature, not
+        // as a raw uint32_t adjacent to DEADBEEF.
+        block.storedCrc = 0;
+        block.calculatedCrc = 0;
+        block.valid = descriptor.rsaSignatureValid;
+        blocks.push_back(block);
     }
-
-    // 2. Fallback Partition Trailer Scan (0xDEADBEEF) if dynamic header table was not present
-    if (blocks.empty()) {
-        static const struct { size_t start; size_t trailer; } kStandardPartitions[] = {
-            {0x020000, 0x1FFF00}, // 2MB / 4MB Calibration Flash
-            {0x200000, 0x3FFF00}, // 4MB Total Flash
-            {0, 0}
-        };
-        for (int p = 0; kStandardPartitions[p].trailer != 0; ++p) {
-            size_t tr = kStandardPartitions[p].trailer;
-            if (tr + 4 <= size && tr >= 16) {
-                uint32_t magic = data[tr] | (uint32_t(data[tr+1]) << 8) |
-                                 (uint32_t(data[tr+2]) << 16) | (uint32_t(data[tr+3]) << 24);
-                if (magic == 0xDEADBEEF) {
-                    Med17BlockDescriptor blk;
-                    blk.type = 0x40;
-                    blk.startOffset = kStandardPartitions[p].start;
-                    blk.trailerOffset = tr;
-                    blk.endOffset = tr - 17;
-
-                    size_t off = tr - 16;
-                    blk.storedCrc = data[off] | (uint32_t(data[off+1]) << 8) |
-                                    (uint32_t(data[off+2]) << 16) | (uint32_t(data[off+3]) << 24);
-                    blk.calculatedCrc = calculateCrc32(data, blk.startOffset, blk.endOffset);
-                    blk.valid = (blk.storedCrc == blk.calculatedCrc);
-                    blocks.push_back(blk);
-                }
-            }
-        }
-    }
-
     return blocks;
 }
 
 BoschMED17::Status BoschMED17::verify(const QByteArray& rom, QString& errorMsg) {
-    if (rom.size() < 0x80000) {
-        errorMsg = "ROM binary size too small for Bosch MED17/EDC17";
+    const auto descriptors = MED17::parseDescriptors(rom);
+    if (descriptors.empty()) {
+        errorMsg = QStringLiteral("No MED17 MED17/EDC17 checksum descriptors found in ROM");
         return Status::InvalidFormat;
     }
-    initCrcTable();
 
-    const uint8_t* udata = reinterpret_cast<const uint8_t*>(rom.constData());
-    size_t size = rom.size();
-
-    std::vector<Med17BlockDescriptor> blocks = scanBlocks(udata, size);
-    if (blocks.empty()) {
-        errorMsg = "No MED17 TriCore block headers or trailers found in ROM";
-        return Status::OK;
-    }
-
-    int mismatches = 0;
-    for (const auto& b : blocks) {
-        if (!b.valid) {
-            mismatches++;
-        }
-    }
-
-    if (mismatches > 0) {
-        errorMsg = QString("%1 MED17 block checksum(s) mismatched").arg(mismatches);
+    const auto invalidSignatures = static_cast<int>(std::count_if(
+        descriptors.cbegin(), descriptors.cend(),
+        [](const auto& descriptor) { return !descriptor.rsaSignatureValid; }));
+    if (invalidSignatures != 0) {
+        errorMsg = QStringLiteral("%1 MED17 RSA/CVN signature(s) mismatched").arg(invalidSignatures);
         return Status::Mismatch;
     }
 
@@ -148,31 +93,113 @@ BoschMED17::Status BoschMED17::verify(const QByteArray& rom, QString& errorMsg) 
 }
 
 BoschMED17::Status BoschMED17::correct(QByteArray& rom, QString& errorMsg) {
-    if (rom.size() < 0x80000) {
-        errorMsg = "ROM binary size too small for Bosch MED17/EDC17";
+    const QByteArray snapshot = rom;
+    const auto descriptors = MED17::parseDescriptors(rom);
+    if (descriptors.empty()) {
+        errorMsg = QStringLiteral("No MED17 MED17/EDC17 checksum descriptors found in ROM");
         return Status::InvalidFormat;
     }
-    initCrcTable();
 
-    uint8_t* udata = reinterpret_cast<uint8_t*>(rom.data());
-    size_t size = rom.size();
+    int correctedCount = 0;
+    int structurallyInvalidCount = 0;
+    int blankSignatureCount = 0;
+    int forgeFailedCount = 0;
+    for (const auto& descriptor : descriptors) {
+        if (descriptor.rsaSignatureValid)
+            continue;
 
-    std::vector<Med17BlockDescriptor> blocks = scanBlocks(udata, size);
-    if (blocks.empty()) {
-        errorMsg.clear();
-        return Status::OK;
+        // No RSA key decodes this signature.  A signature block still holding
+        // all 0xAFAFAFAF filler was never flashed (blank); any other
+        // non-decodable block is structurally invalid — the ROM may be
+        // corrupted or signed with an unsupported key.
+        if (descriptor.signatureKeyIndex > 0x8b) {
+            if (descriptor.hasNonBlankWord)
+                ++structurallyInvalidCount;
+            else
+                ++blankSignatureCount;
+            continue;
+        }
+        const auto key = MED17::publicKeyForIndex(descriptor.signatureKeyIndex);
+        if (!key) {
+            ++structurallyInvalidCount;
+            continue;
+        }
+
+        // Decode the existing (structurally valid) signature block to recover
+        // the metadata bytes the forged template must preserve.
+        const QByteArray existingSignature =
+            rom.mid(static_cast<qsizetype>(descriptor.signatureOffset), 128);
+        const auto decoded = MED17::verifyRsaSignatureBlock(existingSignature, *key);
+        if (decoded.status != MED17::RsaSignatureStatus::Valid) {
+            ++structurallyInvalidCount;
+            continue;
+        }
+
+        const auto result = MED17::forgeCorrectedSignature(rom, descriptor, decoded);
+        if (result.status != MED17::CorrectionStatus::Corrected) {
+            ++forgeFailedCount;
+            continue;
+        }
+
+        rom.replace(static_cast<qsizetype>(descriptor.signatureOffset),
+                    static_cast<qsizetype>(result.signature.size()), result.signature);
+        ++correctedCount;
     }
 
-    for (const auto& b : blocks) {
-        if (b.trailerOffset + 4 <= size && b.trailerOffset >= 16) {
-            uint32_t newCrc = calculateCrc32(udata, b.startOffset, b.endOffset);
-            size_t off = b.trailerOffset - 16;
-            udata[off]     = static_cast<uint8_t>(newCrc & 0xFF);
-            udata[off + 1] = static_cast<uint8_t>((newCrc >> 8) & 0xFF);
-            udata[off + 2] = static_cast<uint8_t>((newCrc >> 16) & 0xFF);
-            udata[off + 3] = static_cast<uint8_t>((newCrc >> 24) & 0xFF);
+    if (correctedCount == 0
+        && (structurallyInvalidCount + blankSignatureCount + forgeFailedCount) != 0) {
+        QStringList reasons;
+        if (structurallyInvalidCount != 0)
+            reasons << QStringLiteral(
+                           "%1 signature(s) structurally invalid — ROM may be corrupted or uses an "
+                           "unsupported RSA key").arg(structurallyInvalidCount);
+        if (blankSignatureCount != 0)
+            reasons << QStringLiteral("%1 signature(s) blank (all 0xAFAFAFAF) — never flashed")
+                           .arg(blankSignatureCount);
+        if (forgeFailedCount != 0)
+            reasons << QStringLiteral("%1 signature(s) could not be re-signed (forge failed)")
+                           .arg(forgeFailedCount);
+        errorMsg = reasons.join(QStringLiteral("; "));
+        return Status::Error;
+    }
+
+    // Full MED17 correction flow: detection -> (forge, above) -> block checksums
+    // (opcode 0x80) -> CVN -> CP-variant marker patch (opcode 0x82).
+    const auto variant = MED17::detectVariant(rom, descriptors);
+    if (!MED17::processBlockChecksums(rom, descriptors, true, &snapshot)) {
+        errorMsg = QStringLiteral("MED17 block checksum correction failed");
+        return Status::Error;
+    }
+    if (variant.flags.med1722) {
+        MED17::CvnConfig cvn;
+        if (MED17::locateCvnConfig(rom, descriptors, cvn) && cvn.valid)
+            MED17::computeOrCorrectCvn(rom, descriptors, cvn, true);
+    }
+    // Opcode 0x82 (FUN_1003ed20): ValidateDescriptorSetForKey selects between the
+    // 0x30 customer-block descriptor correction and the signature-marker patch.
+    uint32_t keyIndex = UINT32_MAX;
+    for (const auto& descriptor : descriptors) {
+        if (descriptor.type == 0x30) {
+            keyIndex = descriptor.signatureKeyIndex;
+            break;
         }
     }
+    if (keyIndex == UINT32_MAX && !descriptors.empty())
+        keyIndex = descriptors.front().signatureKeyIndex;
+
+    if (MED17::validateDescriptorSetForKey(rom, descriptors, keyIndex)) {
+        int flag = 0;
+        MED17::processCustomerBlock(rom, descriptors, true, &flag);
+    } else if (!MED17::hasEdc17CpVariant(variant.flags.edc17cp48, variant.flags.edc17cp68,
+                                               variant.flags.edc17cp22)) {
+        MED17::SignatureMarker marker;
+        MED17::findSignatureMarker(rom, variant.ecuType, marker);
+        if (marker.found)
+            MED17::clearSignatureMarker(rom, marker);
+    }
+    // The CP branch (PatchVariantMarker) reads DAT_1005820c, which is never
+    // populated in this DLL build; the single-buffer correct() API has no
+    // pre-tune image, so this branch is intentionally not exercised.
 
     errorMsg.clear();
     return Status::OK;

@@ -16,6 +16,7 @@ class BoschMED17Plugin : public QObject, public Checksum::IChecksumPlugin {
 public:
     uint32_t pluginVersion() const override { return 1; }
     uint32_t devNum() const override { return 94; }
+    QVector<uint32_t> supportedDevNums() const override { return { 94, 95, 96, 120, 145, 156, 200, 203, 206, 213, 221 }; }
     QString pluginId() const override { return QStringLiteral("bosch_med17"); }
     QString name() const override { return QStringLiteral("Bosch MED17 / EDC17 (TriCore TC176x/179x/172x)"); }
     QString description() const override { return QStringLiteral("BOSCH MEDVC17 TC176x/TC179x/TC172x - ALL BRAND"); }

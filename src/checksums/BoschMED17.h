@@ -31,19 +31,22 @@ public:
         Error
     };
 
-    /// Initialize global IEEE 802.3 CRC-32 table (0xEDB88320 polynomial)
+    /// Initialize the MED17 non-reflected CRC-32 table (0x04C11DB7 polynomial).
     static void initCrcTable();
 
-    /// Calculate 32-bit IEEE 802.3 CRC-32 over a byte range
+    /// Calculate MED17's CRC-32/BZIP2-style checksum over an inclusive byte range.
     static uint32_t calculateCrc32(const uint8_t* data, size_t start, size_t end);
 
-    /// Scan and parse all TriCore MED17/EDC17 dynamic block descriptors (0xFADECAFE / 0xCAFEAFFE / 0xDEADBEEF)
+    /// Check if ROM can be handled by Bosch MED17/EDC17 engine
+    static bool canHandle(const QByteArray& rom, const QString& ecuType = QString());
+
+    /// Scan recovered MED17 TriCore descriptors (FADECAFE / CAFEAFFE / DEADBEEF).
     static std::vector<Med17BlockDescriptor> scanBlocks(const uint8_t* data, size_t size);
 
-    /// Verify Bosch MED17 / EDC17 checksums natively in ROM buffer
+    /// Verify MED17 RSA/CVN signatures natively in the ROM buffer.
     static Status verify(const QByteArray& rom, QString& errorMsg);
 
-    /// Correct Bosch MED17 / EDC17 checksums in-place in ROM buffer
+    /// Forge and write corrected MED17 RSA/CVN signatures in-place in the ROM buffer.
     static Status correct(QByteArray& rom, QString& errorMsg);
 
 private:
