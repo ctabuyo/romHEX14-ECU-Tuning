@@ -71,6 +71,8 @@
 #include "cloud/CloudToolsDlg.h"
 #include "checksummanager.h"
 #include "checksumelectdlg.h"
+#include "obdunlock/obdunlock.h"
+#include "logger.h"
 #include "aifunctionsdlg.h"
 #include "aiassistant.h"
 #include "uiwidgets.h"
@@ -328,6 +330,7 @@ static QString fmtSize(qint64 b)
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    LOG_INFO(QStringLiteral("MainWindow ctor BEGIN"));
     // Keep the application side panels flexible. Document docking itself is
     // handled by the ADS workspace below.
     setDockOptions(dockOptions() | QMainWindow::AllowNestedDocks
@@ -904,6 +907,7 @@ MainWindow::MainWindow(QWidget *parent)
     // from external dev tools.  See src/debug/DebugRpc.h.
     m_debugRpc = new DebugRpc(this, this);
     m_debugRpc->start(48714);
+    LOG_INFO(QStringLiteral("DebugRpc start() returned"));
 #endif
 }
 
@@ -2485,8 +2489,10 @@ void MainWindow::buildActions()
     m_actAIFunctions     = new QAction(tr("AI Functions…"), this);
     m_actVerifyChecksum  = new QAction(tr("Verify Checksum"),   this);
     m_actCorrectChecksum = new QAction(tr("Correct Checksum…"), this);
+    m_actOBDUnlock       = new QAction(tr("OBD Unlock (MG1)…"), this);
     m_actVerifyChecksum->setToolTip(tr("Verify the ROM checksum using the ECU-specific algorithm"));
     m_actCorrectChecksum->setToolTip(tr("Recalculate and write the correct ROM checksum"));
+    m_actOBDUnlock->setToolTip(tr("Apply the MG1 / MEVD17.2.G OBD unlock patch to the ROM"));
     m_actLinkRom->setToolTip(tr("Link another ROM file to this project and auto-locate all maps"));
     m_actImportLinkedVer->setToolTip(tr("Import a ROM file as a new version snapshot of this project"));
     m_actCompareRoms->setToolTip(tr("Compare current ROM against a linked ROM or saved version"));
@@ -2860,6 +2866,7 @@ void MainWindow::buildActions()
     });
     connect(m_actVerifyChecksum, &QAction::triggered, this, &MainWindow::actVerifyChecksum);
     connect(m_actCorrectChecksum, &QAction::triggered, this, &MainWindow::actCorrectChecksum);
+    connect(m_actOBDUnlock, &QAction::triggered, this, &MainWindow::actOBDUnlock);
     connect(m_actTile,       &QAction::triggered, this, &MainWindow::actTileWindows);
     connect(m_actCascade,    &QAction::triggered, this, &MainWindow::actCascadeWindows);
     connect(m_actCompare,    &QAction::triggered, this, &MainWindow::actCompareProjects);
@@ -3005,6 +3012,7 @@ void MainWindow::retranslateUi()
     m_actAIFunctions->setText(tr("AI Functions…"));
     m_actVerifyChecksum->setText(tr("Verify Checksum"));
     m_actCorrectChecksum->setText(tr("Correct Checksum…"));
+    m_actOBDUnlock->setText(tr("OBD Unlock (MG1)…"));
     if (m_actCmdPalette) m_actCmdPalette->setText(tr("Command Palette\u2026"));
     if (m_actPreferences) m_actPreferences->setText(tr("Settings\u2026"));
     m_actTile->setText(tr("Restore Workspace Layout"));
@@ -3179,6 +3187,8 @@ void MainWindow::retranslateUi()
 #endif
     m_menuProject->addAction(m_actVerifyChecksum);
     m_menuProject->addAction(m_actCorrectChecksum);
+    m_menuProject->addSeparator();
+    m_menuProject->addAction(m_actOBDUnlock);
     m_menuProject->addSeparator();
     // Sprint D — map list export
     m_menuProject->addAction(tr("Export map list as &CSV…"),
@@ -9986,6 +9996,58 @@ void MainWindow::actCorrectChecksum()
         break;
     default: break;
     }
+}
+
+void MainWindow::actOBDUnlock()
+{
+    auto *proj = activeProject();
+    if (!proj) { QMessageBox::information(this, tr("OBD Unlock (MG1)"), tr("Open a project first.")); return; }
+    if (proj->currentData.isEmpty()) { QMessageBox::information(this, tr("OBD Unlock (MG1)"), tr("No ROM data loaded.")); return; }
+
+    const ObdUnlock::Detection det = ObdUnlock::detect(proj->currentData);
+    if (det.kind == ObdUnlock::Kind::None) {
+        QMessageBox::information(this, tr("OBD Unlock (MG1)"),
+            tr("No MG1/MEVD17 OBD-unlock signature found in this ROM.\n\n"
+               "Supported: Gen1 MG1, Gen2 MG1 (post-2020), Gen2 MG1 (pre-2020), MEVD17.2.G."));
+        return;
+    }
+    if (det.kind == ObdUnlock::Kind::Mevd172G && !det.canPatch) {
+        QMessageBox::warning(this, tr("OBD Unlock (MG1)"),
+            tr("MEVD17.2.G detected but this ECU version is not supported\n"
+               "(too many patch sites contain unexpected bytes)."));
+        return;
+    }
+    if (det.alreadyPatched) {
+        QMessageBox::information(this, tr("OBD Unlock (MG1)"),
+            tr("This ROM is already OBD unlocked.\n\nECU: %1").arg(det.describe()));
+        return;
+    }
+
+    if (QMessageBox::question(this, tr("OBD Unlock (MG1)"),
+            tr("Apply the OBD unlock patch to the ROM?\n\n"
+               "ECU: %1\n\nThis modifies ROM data in memory (not saved until export).")
+               .arg(det.describe()),
+            QMessageBox::Yes | QMessageBox::Cancel) != QMessageBox::Yes) return;
+
+    QByteArray romCopy = proj->currentData;
+    const ObdUnlock::ApplyReport rep = ObdUnlock::applyUnlock(romCopy, det);
+
+    if (rep.success) {
+        proj->currentData = romCopy;
+        proj->modified = true;
+        emit proj->dataChanged();
+        statusBar()->showMessage(
+            tr("OBD unlock applied — %1").arg(det.describe()), 5000);
+        if (!rep.messages.isEmpty())
+            QMessageBox::information(this, tr("OBD Unlock (MG1)"),
+                tr("OBD unlock applied.\n\nECU: %1\n\n%2")
+                    .arg(det.describe(), rep.messages.join(QLatin1Char('\n'))));
+        return;
+    }
+
+    QMessageBox::critical(this, tr("OBD Unlock (MG1)"),
+        tr("OBD unlock could not be fully applied:\n\n%1")
+            .arg(rep.messages.join(QLatin1Char('\n'))));
 }
 
 bool MainWindow::confirmChecksumBeforeExport(Project *proj, QByteArray &data)

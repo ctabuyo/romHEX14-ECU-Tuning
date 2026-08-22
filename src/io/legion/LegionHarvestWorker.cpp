@@ -21,8 +21,12 @@ namespace legion {
 
 namespace {
 // Auto-register QVector<LegionVoice> the first time the worker compiles in.
-const int kVoiceVectorMetaId =
-    qRegisterMetaType<QVector<legion::LegionVoice>>("QVector<legion::LegionVoice>");
+void ensureRegistered()
+{
+    static const int kVoiceVectorMetaId =
+        qRegisterMetaType<QVector<legion::LegionVoice>>("QVector<legion::LegionVoice>");
+    (void)kVoiceVectorMetaId;
+}
 }
 
 LegionHarvestWorker::LegionHarvestWorker(QByteArray baseline,
@@ -35,7 +39,9 @@ LegionHarvestWorker::LegionHarvestWorker(QByteArray baseline,
       m_selfPath(std::move(selfPath)),
       m_minPercent(minPercent),
       m_maxVoices(maxVoices)
-{}
+{
+    ensureRegistered();
+}
 
 void LegionHarvestWorker::run()
 {

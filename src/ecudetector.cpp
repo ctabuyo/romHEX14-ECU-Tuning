@@ -28,6 +28,11 @@ static const Pattern kPatterns[] = {
     { "MED17",      "MED17", 0x80000000, ByteOrder::LittleEndian,  80 },
     { "ME17.9",     "ME17",  0x80000000, ByteOrder::LittleEndian, 100 },
     { "ME17",       "ME17",  0x80000000, ByteOrder::LittleEndian,  80 },
+    { "MEVD17.2.G", "MG1",   0x80000000, ByteOrder::LittleEndian, 100 },
+    { "MEVD17.2.4", "MG1",   0x80000000, ByteOrder::LittleEndian, 100 },
+    { "MEVD17.2.5", "MG1",   0x80000000, ByteOrder::LittleEndian, 100 },
+    { "MEVD17.2",   "MG1",   0x80000000, ByteOrder::LittleEndian,  90 },
+    { "MEVD17",     "MG1",   0x80000000, ByteOrder::LittleEndian,  80 },
     // ── Bosch EDC17 (TriCore TC179x, LE, 0x80000000) ─────────────────────
     { "EDC17C46",   "EDC17", 0x80000000, ByteOrder::LittleEndian, 100 },
     { "EDC17C64",   "EDC17", 0x80000000, ByteOrder::LittleEndian, 100 },
