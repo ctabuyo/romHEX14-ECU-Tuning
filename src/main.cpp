@@ -291,6 +291,7 @@ int main(int argc, char *argv[])
 
     // ── Qt message handler ─────────────────────────────────────────────────
     qInstallMessageHandler(qtMessageHandler);
+    LOG_INFO(QStringLiteral("main(): qInstallMessageHandler done"));
 
 #ifdef RX14_PRO_BUILD
     // ── Anti-debug check (release builds only) ────────────────────────────
@@ -325,6 +326,7 @@ int main(int argc, char *argv[])
     app.setApplicationName(QString::fromUtf8(rx14::kAppName));
     app.setOrganizationName(QString::fromUtf8(rx14::kOrgName));
     app.setApplicationVersion(RX14_VERSION_STRING);
+    LOG_INFO(QStringLiteral("main(): QApplication constructed"));
 
     // ── Settings migration ─────────────────────────────────────────────────
     // Pre-2026 builds wrote to CT14/RX14; everything since uses

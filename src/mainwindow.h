@@ -185,6 +185,7 @@ private slots:
     void actExportOlsProject();
     void actVerifyChecksum();
     void actCorrectChecksum();
+    void actOBDUnlock();
 
     // Export-time checksum guard. Verifies the bytes about to be written and,
     // on a mismatch, prompts the user to correct them (correcting `data` in
@@ -503,6 +504,7 @@ private:
     QAction *m_actAIFunctions     = nullptr;
     QAction *m_actVerifyChecksum  = nullptr;
     QAction *m_actCorrectChecksum = nullptr;
+    QAction *m_actOBDUnlock       = nullptr;
 
     // ── Window actions ─────────────────────────────────────────────────
     QAction *m_actTile        = nullptr;

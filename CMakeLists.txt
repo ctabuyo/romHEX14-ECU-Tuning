@@ -16,6 +16,8 @@ set(RX14_VERSION_NUMERIC "${RX14_VERSION_MAJOR}.${RX14_VERSION_MINOR}.${RX14_VER
 
 project(RX14 VERSION ${RX14_VERSION_NUMERIC} LANGUAGES C CXX)
 
+enable_testing()
+
 # Vendored Qt Advanced Docking System 5.0.0 (LGPL-2.1-or-later)
 set(ADS_VERSION "5.0.0" CACHE STRING "ADS version" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build ADS example applications" FORCE)
@@ -136,6 +138,8 @@ set(SOURCES
     src/communityupdatechecker.cpp
     src/communityupdatechecker.h
     src/ecudetector.cpp
+    src/obdunlock/obdunlock.cpp
+    src/obdunlock/obdunlock.h
     src/romparser.cpp
     src/appconfig.cpp
     src/configdialog.cpp
@@ -609,6 +613,17 @@ add_executable(test_checksum_plugins tests/test_checksum_plugins.cpp
 )
 target_include_directories(test_checksum_plugins PRIVATE src)
 target_link_libraries(test_checksum_plugins PRIVATE Qt6::Core Qt6::Gui)
+
+add_executable(test_obdunlock
+    tests/test_obdunlock.cpp
+    src/obdunlock/obdunlock.cpp
+)
+target_include_directories(test_obdunlock PRIVATE src)
+target_link_libraries(test_obdunlock PRIVATE Qt6::Core)
+
+add_test(NAME mapdetect_corpus COMMAND test_mapdetect_corpus)
+add_test(NAME checksum_plugins COMMAND test_checksum_plugins)
+add_test(NAME obdunlock COMMAND test_obdunlock)
 
 # ── Deploy checksumhelper.exe and ChecksumDLL next to the executable ──────────
 # The 32-bit checksumhelper.exe bridges 64-bit rx14 to 32-bit WinOLS checksum DLLs.
