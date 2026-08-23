@@ -8018,6 +8018,87 @@ Size: %2 KB%3</source>
         <source>&amp;Clear list</source>
         <translation>ล้างรายการ(&amp;C)</translation>
     </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="2492"/>
+        <location filename="../src/mainwindow.cpp" line="3015"/>
+        <source>OBD Unlock (MG1)…</source>
+        <translation>ปลดล็อก OBD (MG1)…</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="2495"/>
+        <source>Apply the MG1 / MEVD17.2.G OBD unlock patch to the ROM</source>
+        <translation>ใช้แพตช์ปลดล็อก OBD MG1 / MEVD17.2.G กับ ROM</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10004"/>
+        <source>OBD Unlock (MG1)</source>
+        <translation>ปลดล็อก OBD (MG1)</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10010"/>
+        <source>No MG1/MEVD17 OBD-unlock signature found in this ROM.
+
+Supported: Gen1 MG1, Gen2 MG1 (post-2020), Gen2 MG1 (pre-2020), MEVD17.2.G.</source>
+        <translation>ไม่พบลายเซ็นการปลดล็อก OBD ของ MG1/MEVD17 ใน ROM นี้
+
+รองรับ: Gen1 MG1, Gen2 MG1 (หลังปี 2020), Gen2 MG1 (ก่อนปี 2020), MEVD17.2.G</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10016"/>
+        <source>MEVD17.2.G detected but this ECU version is not supported
+(too many patch sites contain unexpected bytes).</source>
+        <translation>ตรวจพบ MEVD17.2.G แต่ไม่รองรับ ECU เวอร์ชันนี้
+(ตำแหน่งแพตช์จำนวนมากมีไบต์ที่ไม่คาดคิด)</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10022"/>
+        <source>This ROM is already OBD unlocked.
+
+ECU: %1</source>
+        <translation>ROM นี้ปลดล็อก OBD อยู่แล้ว
+
+ECU: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10027"/>
+        <source>Apply the OBD unlock patch to the ROM?
+
+ECU: %1
+
+This modifies ROM data in memory (not saved until export).</source>
+        <translation>ใช้แพตช์ปลดล็อก OBD กับ ROM หรือไม่?
+
+ECU: %1
+
+การดำเนินการนี้จะแก้ไขข้อมูล ROM ในหน่วยความจำ (จะยังไม่บันทึกจนกว่าจะส่งออก)</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10040"/>
+        <source>OBD unlock applied — %1</source>
+        <translation>ใช้การปลดล็อก OBD แล้ว — %1</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10044"/>
+        <source>OBD unlock applied.
+
+ECU: %1
+
+%2</source>
+        <translation>ใช้การปลดล็อก OBD แล้ว
+
+ECU: %1
+
+%2</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10049"/>
+        <source>OBD unlock could not be fully applied:
+
+%1</source>
+        <translation>ไม่สามารถใช้การปลดล็อก OBD ได้อย่างสมบูรณ์:
+
+%1</translation>
+    </message>
 </context>
 <context>
     <name>Map3DSimWidget</name>

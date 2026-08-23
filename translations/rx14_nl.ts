@@ -8020,6 +8020,87 @@ ECU: %1</translation>
         <source>Translated %1 maps in group &quot;%2&quot;.</source>
         <translation>Translated %1 mappen in group &quot;%2&quot;.</translation>
     </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="2492"/>
+        <location filename="../src/mainwindow.cpp" line="3015"/>
+        <source>OBD Unlock (MG1)…</source>
+        <translation>OBD-ontgrendeling (MG1)…</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="2495"/>
+        <source>Apply the MG1 / MEVD17.2.G OBD unlock patch to the ROM</source>
+        <translation>Pas de MG1 / MEVD17.2.G OBD-ontgrendelingspatch toe op de ROM</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10004"/>
+        <source>OBD Unlock (MG1)</source>
+        <translation>OBD-ontgrendeling (MG1)</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10010"/>
+        <source>No MG1/MEVD17 OBD-unlock signature found in this ROM.
+
+Supported: Gen1 MG1, Gen2 MG1 (post-2020), Gen2 MG1 (pre-2020), MEVD17.2.G.</source>
+        <translation>Geen MG1/MEVD17 OBD-ontgrendelingssignatuur gevonden in deze ROM.
+
+Ondersteund: Gen1 MG1, Gen2 MG1 (na 2020), Gen2 MG1 (vóór 2020), MEVD17.2.G.</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10016"/>
+        <source>MEVD17.2.G detected but this ECU version is not supported
+(too many patch sites contain unexpected bytes).</source>
+        <translation>MEVD17.2.G gedetecteerd, maar deze ECU-versie wordt niet ondersteund
+(te veel patchlocaties bevatten onverwachte bytes).</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10022"/>
+        <source>This ROM is already OBD unlocked.
+
+ECU: %1</source>
+        <translation>Deze ROM is al OBD-ontgrendeld.
+
+ECU: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10027"/>
+        <source>Apply the OBD unlock patch to the ROM?
+
+ECU: %1
+
+This modifies ROM data in memory (not saved until export).</source>
+        <translation>De OBD-ontgrendelingspatch op de ROM toepassen?
+
+ECU: %1
+
+Dit wijzigt de ROM-gegevens in het geheugen (pas opgeslagen bij exporteren).</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10040"/>
+        <source>OBD unlock applied — %1</source>
+        <translation>OBD-ontgrendeling toegepast — %1</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10044"/>
+        <source>OBD unlock applied.
+
+ECU: %1
+
+%2</source>
+        <translation>OBD-ontgrendeling toegepast.
+
+ECU: %1
+
+%2</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10049"/>
+        <source>OBD unlock could not be fully applied:
+
+%1</source>
+        <translation>OBD-ontgrendeling kon niet volledig worden toegepast:
+
+%1</translation>
+    </message>
 </context>
 <context>
     <name>Map3DSimWidget</name>

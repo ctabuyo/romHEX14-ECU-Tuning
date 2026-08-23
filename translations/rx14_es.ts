@@ -8016,6 +8016,87 @@ Tamaño: %2 KB%3</translation>
         <source>&amp;Clear list</source>
         <translation>&amp;Limpiar lista</translation>
     </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="2492"/>
+        <location filename="../src/mainwindow.cpp" line="3015"/>
+        <source>OBD Unlock (MG1)…</source>
+        <translation>Desbloqueo OBD (MG1)…</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="2495"/>
+        <source>Apply the MG1 / MEVD17.2.G OBD unlock patch to the ROM</source>
+        <translation>Aplicar el parche de desbloqueo OBD MG1 / MEVD17.2.G a la ROM</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10004"/>
+        <source>OBD Unlock (MG1)</source>
+        <translation>Desbloqueo OBD (MG1)</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10010"/>
+        <source>No MG1/MEVD17 OBD-unlock signature found in this ROM.
+
+Supported: Gen1 MG1, Gen2 MG1 (post-2020), Gen2 MG1 (pre-2020), MEVD17.2.G.</source>
+        <translation>No se encontró ninguna firma de desbloqueo OBD MG1/MEVD17 en esta ROM.
+
+Compatibles: Gen1 MG1, Gen2 MG1 (posterior a 2020), Gen2 MG1 (anterior a 2020), MEVD17.2.G.</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10016"/>
+        <source>MEVD17.2.G detected but this ECU version is not supported
+(too many patch sites contain unexpected bytes).</source>
+        <translation>Se detectó MEVD17.2.G, pero esta versión de ECU no es compatible
+(demasiados puntos de parche contienen bytes inesperados).</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10022"/>
+        <source>This ROM is already OBD unlocked.
+
+ECU: %1</source>
+        <translation>Esta ROM ya está desbloqueada por OBD.
+
+ECU: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10027"/>
+        <source>Apply the OBD unlock patch to the ROM?
+
+ECU: %1
+
+This modifies ROM data in memory (not saved until export).</source>
+        <translation>¿Aplicar el parche de desbloqueo OBD a la ROM?
+
+ECU: %1
+
+Esto modifica los datos de la ROM en memoria (no se guardan hasta exportar).</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10040"/>
+        <source>OBD unlock applied — %1</source>
+        <translation>Desbloqueo OBD aplicado — %1</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10044"/>
+        <source>OBD unlock applied.
+
+ECU: %1
+
+%2</source>
+        <translation>Desbloqueo OBD aplicado.
+
+ECU: %1
+
+%2</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10049"/>
+        <source>OBD unlock could not be fully applied:
+
+%1</source>
+        <translation>No se pudo aplicar por completo el desbloqueo OBD:
+
+%1</translation>
+    </message>
 </context>
 <context>
     <name>Map3DSimWidget</name>

@@ -8008,6 +8008,87 @@ Size: %2 KB%3</source>
         <source>&amp;Clear list</source>
         <translation>清除列表(&amp;C)</translation>
     </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="2492"/>
+        <location filename="../src/mainwindow.cpp" line="3015"/>
+        <source>OBD Unlock (MG1)…</source>
+        <translation>OBD 解锁 (MG1)…</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="2495"/>
+        <source>Apply the MG1 / MEVD17.2.G OBD unlock patch to the ROM</source>
+        <translation>将 MG1 / MEVD17.2.G OBD 解锁补丁应用到 ROM</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10004"/>
+        <source>OBD Unlock (MG1)</source>
+        <translation>OBD 解锁 (MG1)</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10010"/>
+        <source>No MG1/MEVD17 OBD-unlock signature found in this ROM.
+
+Supported: Gen1 MG1, Gen2 MG1 (post-2020), Gen2 MG1 (pre-2020), MEVD17.2.G.</source>
+        <translation>在此 ROM 中未找到 MG1/MEVD17 OBD 解锁特征。
+
+支持：Gen1 MG1、Gen2 MG1（2020 年后）、Gen2 MG1（2020 年前）、MEVD17.2.G。</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10016"/>
+        <source>MEVD17.2.G detected but this ECU version is not supported
+(too many patch sites contain unexpected bytes).</source>
+        <translation>检测到 MEVD17.2.G，但不支持此 ECU 版本
+（补丁位置中包含过多意外字节）。</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10022"/>
+        <source>This ROM is already OBD unlocked.
+
+ECU: %1</source>
+        <translation>此 ROM 已完成 OBD 解锁。
+
+ECU：%1</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10027"/>
+        <source>Apply the OBD unlock patch to the ROM?
+
+ECU: %1
+
+This modifies ROM data in memory (not saved until export).</source>
+        <translation>是否将 OBD 解锁补丁应用到 ROM？
+
+ECU：%1
+
+此操作会修改内存中的 ROM 数据（导出前不会保存）。</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10040"/>
+        <source>OBD unlock applied — %1</source>
+        <translation>已应用 OBD 解锁 — %1</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10044"/>
+        <source>OBD unlock applied.
+
+ECU: %1
+
+%2</source>
+        <translation>已应用 OBD 解锁。
+
+ECU：%1
+
+%2</translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="10049"/>
+        <source>OBD unlock could not be fully applied:
+
+%1</source>
+        <translation>OBD 解锁未能完全应用：
+
+%1</translation>
+    </message>
 </context>
 <context>
     <name>Map3DSimWidget</name>
