@@ -58,6 +58,7 @@ jobs:
         run: |
           mkdir deploy
           copy build\rx14.exe deploy\
+          copy build\libqtadvanceddocking-qt6.dll deploy\
           windeployqt deploy\rx14.exe --no-translations --no-opengl-sw
       - name: Package
         run: |

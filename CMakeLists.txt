@@ -519,6 +519,15 @@ if(WIN32)
     endif()
     # dbghelp: stack-walk + symbol resolution in windowsExceptionFilter
     target_link_libraries(rx14 PRIVATE dbghelp)
+    # Deploy the Qt Advanced Docking System DLL next to rx14.exe. windeployqt
+    # only handles Qt's own DLLs, so this third-party runtime dependency must
+    # be copied explicitly, or the app fails to start with a missing
+    # libqtadvanceddocking-qt6.dll error.
+    add_custom_command(TARGET rx14 POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:qtadvanceddocking-qt6>"
+            "$<TARGET_FILE_DIR:rx14>/$<TARGET_FILE_NAME:qtadvanceddocking-qt6>"
+        COMMENT "Deploying Qt Advanced Docking System DLL")
 elseif(APPLE)
     # macOS app bundle
     set_target_properties(rx14 PROPERTIES
