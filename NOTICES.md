@@ -16,3 +16,5 @@ line endings normalized for the MinGW build).
 
 For the Qt 6 framework linked at build time, see Qt's license terms shipped
 with the Qt SDK (LGPL-3.0 or commercial).
+
+Author of the OBD-unlock logic: Marty.
