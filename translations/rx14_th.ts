@@ -2753,8 +2753,8 @@ DLL ของ checksum เป็นแบบ 32 บิตและต้อง�
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="663"/>
-        <source>When enabled, shows the full description (e.g. &quot;Kennfeld Momentenindizierter Motor&quot;) instead of the short identifier (e.g. &quot;KFMIOP&quot;).</source>
-        <translation>เมื่อเปิดใช้งาน จะแสดงคำอธิบายเต็ม (เช่น &quot;Kennfeld Momentenindizierter Motor&quot;) แทนตัวระบุย่อ (เช่น &quot;KFMIOP&quot;)</translation>
+        <source>When enabled, the map list shows the full description after the short identifier (e.g. &quot;KFMIOP  Kennfeld Momentenindizierter Motor&quot;). The default follows the interface language: Chinese shows descriptions, other languages show short names.</source>
+        <translation>เมื่อเปิดใช้งาน รายการแมปจะแสดงคำอธิบายเต็มต่อท้ายตัวระบุย่อ (เช่น &quot;KFMIOP  Kennfeld Momentenindizierter Motor&quot;) ค่าเริ่มต้นจะเป็นไปตามภาษาของอินเทอร์เฟซ: ภาษาจีนแสดงคำอธิบาย ภาษาอื่นแสดงชื่อย่อ</translation>
     </message>
 </context>
 <context>

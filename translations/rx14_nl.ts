@@ -2747,8 +2747,8 @@ Expected path: %1</source>
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="663"/>
-        <source>When enabled, shows the full description (e.g. &quot;Kennfeld Momentenindizierter Motor&quot;) instead of the short identifier (e.g. &quot;KFMIOP&quot;).</source>
-        <translation>When ingeschakeld, shows the full description (e.g. &quot;Kennfeld Momentenindizierter Motor&quot;) instead of the short identifier (e.g. &quot;KFMIOP&quot;).</translation>
+        <source>When enabled, the map list shows the full description after the short identifier (e.g. &quot;KFMIOP  Kennfeld Momentenindizierter Motor&quot;). The default follows the interface language: Chinese shows descriptions, other languages show short names.</source>
+        <translation>Indien ingeschakeld toont de kaartenlijst de volledige omschrijving achter de korte identifier (bijv. &quot;KFMIOP  Kennfeld Momentenindizierter Motor&quot;). De standaardinstelling volgt de interfacetaal: Chinees toont omschrijvingen, andere talen tonen korte namen.</translation>
     </message>
 </context>
 <context>

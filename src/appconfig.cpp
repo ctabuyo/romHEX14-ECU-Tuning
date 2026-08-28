@@ -5,11 +5,13 @@
  */
 
 #include "appconfig.h"
+#include "appconstants.h"
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocale>
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSettings>
@@ -573,7 +575,8 @@ void AppConfig::load()
         const QColor c(v);
         if (c.isValid()) target = c;
     });
-    showLongMapNames = s.value("display/showLongMapNames", true).toBool();
+    showLongMapNames = s.value("display/showLongMapNames",
+                               languageDefaultsToLongNames()).toBool();
 
     int sh = s.value("wave2d/shape",
                      static_cast<int>(WaveStyle::Shape::LineDots)).toInt();
@@ -589,13 +592,42 @@ void AppConfig::load()
     aiPermissionMode = static_cast<PermissionMode>(pm);
 }
 
+// Chinese users read maps by their full description; everywhere else the
+// short German identifiers (KFMIOP, ...) are the convention — community
+// issue #56.  Only the *default* is language-driven: once the user applies
+// a choice in Preferences the stored value wins.
+bool AppConfig::languageDefaultsToLongNames()
+{
+    const QString lang = rx14::appSettings()
+                             .value("language",
+                                    QLocale::system().name().section('_', 0, 0))
+                             .toString();
+    return lang.startsWith(QLatin1String("zh"));
+}
+
+void AppConfig::reapplyLanguageDefaults()
+{
+    QSettings s("CT14", "RX14");
+    if (s.contains("display/showLongMapNames"))
+        return;                                  // user made an explicit choice
+    const bool def = languageDefaultsToLongNames();
+    if (def == showLongMapNames)
+        return;
+    showLongMapNames = def;
+    emit displaySettingsChanged();
+}
+
 void AppConfig::save()
 {
     QSettings s("CT14", "RX14");
     forEachColor(colors, [&](const QString &key, QColor &c) {
         s.setValue("colors/" + key, c.name(QColor::HexArgb));
     });
-    s.setValue("display/showLongMapNames", showLongMapNames);
+    // Persist only an explicit deviation from the language default — while
+    // the key is absent the default keeps tracking the UI language.
+    if (s.contains("display/showLongMapNames")
+        || showLongMapNames != languageDefaultsToLongNames())
+        s.setValue("display/showLongMapNames", showLongMapNames);
 
     s.setValue("wave2d/shape",        static_cast<int>(waveStyle.shape));
     s.setValue("wave2d/lineWidth",    waveStyle.lineWidth);

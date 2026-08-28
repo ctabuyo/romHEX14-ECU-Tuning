@@ -2753,8 +2753,8 @@ Expected path: %1</translation>
     </message>
     <message>
         <location filename="../src/configdialog.cpp" line="663"/>
-        <source>When enabled, shows the full description (e.g. &quot;Kennfeld Momentenindizierter Motor&quot;) instead of the short identifier (e.g. &quot;KFMIOP&quot;).</source>
-        <translation>When enabled, shows the full description (e.g. &quot;Kennfeld Momentenindizierter Motor&quot;) instead of the short identifier (e.g. &quot;KFMIOP&quot;).</translation>
+        <source>When enabled, the map list shows the full description after the short identifier (e.g. &quot;KFMIOP  Kennfeld Momentenindizierter Motor&quot;). The default follows the interface language: Chinese shows descriptions, other languages show short names.</source>
+        <translation>When enabled, the map list shows the full description after the short identifier (e.g. &quot;KFMIOP  Kennfeld Momentenindizierter Motor&quot;). The default follows the interface language: Chinese shows descriptions, other languages show short names.</translation>
     </message>
 </context>
 <context>

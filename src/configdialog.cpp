@@ -660,7 +660,10 @@ void ConfigDialog::buildDisplayPage()
             this, [this](bool) { previewNow(); });
     mapLay->addWidget(m_showLongNamesCheck);
 
-    auto *hint = new QLabel(tr("When enabled, shows the full description (e.g. \"Kennfeld Momentenindizierter Motor\") instead of the short identifier (e.g. \"KFMIOP\")."));
+    auto *hint = new QLabel(tr("When enabled, the map list shows the full description after the "
+                               "short identifier (e.g. \"KFMIOP  Kennfeld Momentenindizierter "
+                               "Motor\"). The default follows the interface language: Chinese "
+                               "shows descriptions, other languages show short names."));
     hint->setStyleSheet("color:#6e7681; font-size:8pt;");
     hint->setWordWrap(true);
     mapLay->addWidget(hint);

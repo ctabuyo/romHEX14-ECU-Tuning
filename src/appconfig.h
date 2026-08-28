@@ -109,12 +109,17 @@ public:
 
     AppColors      colors;
     WaveStyle      waveStyle;                               ///< 2D waveform draw style
-    bool           showLongMapNames = true;                 ///< Show map description instead of short name
+    bool           showLongMapNames = true;                 ///< Map list: append the description to the short name
     PermissionMode aiPermissionMode = PermissionMode::Ask;  ///< AI assistant write-tool gate
 
     void load();
     void save();
     void resetToDefaults();
+
+    // Language-driven default for showLongMapNames: Chinese UI → long names.
+    // Applies only until the user pins a choice in Preferences (issue #56).
+    static bool languageDefaultsToLongNames();
+    void reapplyLanguageDefaults();   ///< Call after a UI language switch
 
     // ── Theme skins (.rx14theme, JSON) ──────────────────────────────────────
     // Enumerates every themable color as (key, member ref). The QSettings

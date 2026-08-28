@@ -477,6 +477,10 @@ MainWindow::MainWindow(QWidget *parent)
     // ── Load persisted config (colors etc.) ───────────────────────────
     AppConfig::instance().load();
     applyUiTheme();
+    // Map-list label style (short id vs id + description) is a display
+    // setting — rebuild the tree so toggling it in Preferences shows live.
+    connect(&AppConfig::instance(), &AppConfig::displaySettingsChanged,
+            this, [this]() { refreshProjectTree(); });
     connect(&AppConfig::instance(), &AppConfig::colorsChanged,
             this, [this]() {
         applyUiTheme();
@@ -937,6 +941,11 @@ void MainWindow::loadLanguage(const QString &lang)
     qApp->installTranslator(&m_appTr);
 
     rx14::appSettings().setValue("language", lang);
+
+    // Map-list naming default follows the language (Chinese → long names)
+    // until the user pins a choice in Preferences.  Emits
+    // displaySettingsChanged, which rebuilds the project tree.
+    AppConfig::instance().reapplyLanguageDefaults();
 
     retranslateUi();
 
@@ -6298,6 +6307,9 @@ void MainWindow::refreshProjectTreeNow()
             if (mapIdentifier.isEmpty())
                 mapIdentifier = m.name;
             QString displayName = m.name;
+            if (AppConfig::instance().showLongMapNames
+                && !m.description.isEmpty() && m.description != m.name)
+                displayName += "  " + m.description;
             if (changed)                displayName.prepend("\u25cf ");
             if (!m.userNotes.isEmpty()) displayName.prepend("\u270e ");
             if (starred)                displayName.prepend("\u2605 ");
