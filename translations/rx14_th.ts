@@ -7930,8 +7930,8 @@ Size: %2 KB%3</source>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="11123"/>
-        <source>Vehical logs (*.csv);;All files (*)</source>
-        <translation>บันทึก Vehical (*.csv);;ไฟล์ทั้งหมด (*)</translation>
+        <source>Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;All files (*)</source>
+        <translation>ไฟล์บันทึก CSV — VehiCAL / Autotuner / VCDS (*.csv);;ไฟล์ทั้งหมด (*)</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="11131"/>
@@ -12354,8 +12354,8 @@ This cannot be undone.</translation>
     <message>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="61"/>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="77"/>
-        <source>Vehical logs (*.csv);;All files (*)</source>
-        <translation>บันทึก Vehical (*.csv);;ไฟล์ทั้งหมด (*)</translation>
+        <source>Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;All files (*)</source>
+        <translation>ไฟล์บันทึก CSV — VehiCAL / Autotuner / VCDS (*.csv);;ไฟล์ทั้งหมด (*)</translation>
     </message>
     <message>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="69"/>

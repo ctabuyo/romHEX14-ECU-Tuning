@@ -7920,8 +7920,8 @@ Size: %2 KB%3</source>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="11123"/>
-        <source>Vehical logs (*.csv);;All files (*)</source>
-        <translation>Vehical 日志 (*.csv);;所有文件 (*)</translation>
+        <source>Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;All files (*)</source>
+        <translation>数据日志 CSV — VehiCAL / Autotuner / VCDS (*.csv);;所有文件 (*)</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="11131"/>
@@ -12344,8 +12344,8 @@ This cannot be undone.</source>
     <message>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="61"/>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="77"/>
-        <source>Vehical logs (*.csv);;All files (*)</source>
-        <translation>Vehical 日志 (*.csv);;所有文件 (*)</translation>
+        <source>Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;All files (*)</source>
+        <translation>数据日志 CSV — VehiCAL / Autotuner / VCDS (*.csv);;所有文件 (*)</translation>
     </message>
     <message>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="69"/>

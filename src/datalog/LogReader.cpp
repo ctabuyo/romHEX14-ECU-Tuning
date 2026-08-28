@@ -1,10 +1,13 @@
 #include "LogReader.h"
 
 #include <QFile>
+#include <QHash>
 #include <QTextStream>
 #include <QStringConverter>
 #include <QStringList>
 #include <QRegularExpression>
+#include <algorithm>
+#include <utility>
 
 namespace datalog {
 
@@ -73,6 +76,221 @@ QString decodeText(const QByteArray &raw, const QString &encoding)
 }
 
 enum class SourceFormat { Vehical, Autotuner };
+
+// Tolerant numeric parse: VCDS from European locales can emit ',' decimals.
+double parseNum(QString s, bool *ok)
+{
+    s = s.trimmed();
+    double v = s.toDouble(ok);
+    if (!*ok && s.contains(QLatin1Char(','))) {
+        s.replace(QLatin1Char(','), QLatin1Char('.'));
+        v = s.toDouble(ok);
+    }
+    return v;
+}
+
+// ── VCDS (Ross-Tech) group logs ──────────────────────────────────────────
+//
+//   row 0: Sunday,23,August,2026,10:44:27:...,VCDS Version: Release 25.3.2,...
+//   row 1: 8P0 907 115 P,,2.0l R4/4V TFSI 0010,
+//   row 2: (blank)
+//   row 3: ,Group A:,'020,,,,Group B:,'031,,,,Group C:,'230
+//   row 4: ,,Timing Retardation,...,,Lambda Control,...        (locations)
+//   row 5: ,TIME,Cylinder 1,...,TIME,Bank 1 (actual),...       (labels)
+//   row 6: Marker,STAMP,°KW,...,STAMP,,...                     (units)
+//   row 7+: ,0.06,0.0,...,0.11,0.96,...                        (data)
+//
+// Every group carries its own TIME column with stamps in seconds; the
+// groups sample independently, so channels are merged onto the union of
+// all stamps by linear interpolation (clamped at both ends).
+
+// Returns the index of the units row (the one holding "STAMP" cells, with
+// "TIME" cells directly above), or -1 when the file is not a VCDS log.
+int sniffVcdsStampRow(const QStringList &lines, QChar delim)
+{
+    const int scan = qMin(lines.size(), 12);
+    for (int r = 1; r < scan; ++r) {
+        const QStringList cells = splitRow(lines[r], delim);
+        bool hasStamp = false;
+        for (const QString &c : cells) {
+            if (c.trimmed().compare(QStringLiteral("STAMP"), Qt::CaseInsensitive) == 0) {
+                hasStamp = true;
+                break;
+            }
+        }
+        if (!hasStamp) continue;
+        const QStringList above = splitRow(lines[r - 1], delim);
+        for (const QString &c : above) {
+            if (c.trimmed().compare(QStringLiteral("TIME"), Qt::CaseInsensitive) == 0)
+                return r;
+        }
+    }
+    return -1;
+}
+
+LogTable parseVcds(const QStringList &lines, QChar delim, const QString &enc,
+                   const QString &path, int stampRow, QString *err)
+{
+    LogTable t;
+    t.sourcePath = path;
+    t.encoding   = enc;
+    t.delimiter  = delim;
+
+    if (stampRow + 1 >= lines.size()) {
+        if (err) *err = QStringLiteral("VCDS log has no data rows after the header");
+        return t;
+    }
+
+    const QStringList unitsRow = splitRow(lines[stampRow], delim);
+    const QStringList labelRow = splitRow(lines[stampRow - 1], delim);
+    QStringList locRow = (stampRow >= 2) ? splitRow(lines[stampRow - 2], delim)
+                                         : QStringList();
+    // Guard against a missing location row (the cell pattern "Group X:"
+    // means we grabbed the group-number row instead).
+    static const QRegularExpression rxGroup(QStringLiteral("^\\s*Group\\s+\\S+:"));
+    for (const QString &c : std::as_const(locRow)) {
+        if (rxGroup.match(c).hasMatch()) { locRow.clear(); break; }
+    }
+
+    QVector<int> timeCols;
+    for (int c = 0; c < unitsRow.size(); ++c) {
+        if (unitsRow[c].trimmed().compare(QStringLiteral("STAMP"), Qt::CaseInsensitive) == 0)
+            timeCols.push_back(c);
+    }
+    if (timeCols.isEmpty()) {
+        if (err) *err = QStringLiteral("VCDS log has no TIME/STAMP columns");
+        return t;
+    }
+
+    // Channel columns: everything right of the first TIME column that is not
+    // itself a TIME column and carries a label. Owner group = nearest TIME
+    // column to the left.
+    struct Chan {
+        int      col;
+        int      group;      // index into timeCols
+        QString  name;
+        QString  desc;
+        QString  unit;
+        QVector<double> ts;  // seconds
+        QVector<double> vs;
+    };
+    QVector<Chan> chans;
+    const int nCols = qMax(labelRow.size(), unitsRow.size());
+    for (int c = timeCols.first() + 1; c < nCols; ++c) {
+        if (timeCols.contains(c)) continue;
+        int group = 0;
+        for (int g = 0; g < timeCols.size(); ++g)
+            if (timeCols[g] < c) group = g;
+        const QString loc   = (c < locRow.size())   ? locRow[c].trimmed()   : QString();
+        const QString label = (c < labelRow.size()) ? labelRow[c].trimmed() : QString();
+        QString name = loc.isEmpty() ? label
+                     : label.isEmpty() ? loc
+                     : loc + QLatin1Char(' ') + label;
+        if (name.isEmpty()) continue;                 // filler column
+        Chan ch;
+        ch.col   = c;
+        ch.group = group;
+        ch.name  = name;
+        ch.desc  = loc.isEmpty() ? label : loc;
+        ch.unit  = (c < unitsRow.size()) ? unitsRow[c].trimmed() : QString();
+        chans.push_back(ch);
+    }
+    if (chans.isEmpty()) {
+        if (err) *err = QStringLiteral("VCDS log has no labelled channels");
+        return t;
+    }
+
+    // Duplicate names across groups get the group letter appended.
+    {
+        QHash<QString, int> seen;
+        for (const Chan &ch : std::as_const(chans)) seen[ch.name]++;
+        for (Chan &ch : chans) {
+            if (seen.value(ch.name) > 1)
+                ch.name += QStringLiteral(" [%1]").arg(QChar('A' + ch.group));
+        }
+    }
+
+    // Collect each group's samples on its own time base.
+    QVector<double> axis;                  // union of all stamps, seconds
+    for (int r = stampRow + 1; r < lines.size(); ++r) {
+        const QString &line = lines[r];
+        if (line.trimmed().isEmpty()) continue;
+        const QStringList vals = splitRow(line, delim);
+        QVector<double> groupTime(timeCols.size(), -1.0);
+        for (int g = 0; g < timeCols.size(); ++g) {
+            const int tc = timeCols[g];
+            if (tc >= vals.size()) continue;
+            bool ok = false;
+            const double tv = parseNum(vals[tc], &ok);
+            if (ok) { groupTime[g] = tv; axis.push_back(tv); }
+        }
+        for (Chan &ch : chans) {
+            const double tv = groupTime[ch.group];
+            if (tv < 0.0 || ch.col >= vals.size()) continue;
+            bool ok = false;
+            const double v = parseNum(vals[ch.col], &ok);
+            if (!ok) continue;                        // gap — leave for interp
+            ch.ts.push_back(tv);
+            ch.vs.push_back(v);
+        }
+    }
+
+    std::sort(axis.begin(), axis.end());
+    axis.erase(std::unique(axis.begin(), axis.end()), axis.end());
+    if (axis.isEmpty()) {
+        if (err) *err = QStringLiteral("VCDS log has no parsable data rows");
+        return t;
+    }
+
+    // Column 0: normalized Time in milliseconds (stamps are seconds).
+    LogColumn timeCol;
+    timeCol.name        = QStringLiteral("Time");
+    timeCol.description = QStringLiteral("Elapsed time");
+    timeCol.unitRaw     = QStringLiteral("ms");
+    timeCol.index       = 0;
+    t.columns.push_back(timeCol);
+
+    t.data.resize(1 + chans.size());
+    t.data[0].reserve(axis.size());
+    t.timeMs.reserve(axis.size());
+    for (double sec : std::as_const(axis)) {
+        t.data[0].push_back(sec * 1000.0);
+        t.timeMs.push_back(sec * 1000.0);
+    }
+
+    // Merge each channel onto the union axis: linear interpolation between
+    // its own samples, clamped to first/last outside its range.
+    for (int i = 0; i < chans.size(); ++i) {
+        const Chan &ch = chans[i];
+        LogColumn c;
+        c.name        = ch.name;
+        c.description = ch.desc;
+        c.unitRaw     = ch.unit;
+        c.index       = 1 + i;
+        t.columns.push_back(c);
+
+        QVector<double> &out = t.data[1 + i];
+        out.reserve(axis.size());
+        int k = 0;                          // ch.ts is naturally sorted
+        for (double sec : std::as_const(axis)) {
+            double v = 0.0;
+            if (ch.ts.isEmpty()) {
+                v = 0.0;
+            } else if (sec <= ch.ts.first()) {
+                v = ch.vs.first();
+            } else if (sec >= ch.ts.last()) {
+                v = ch.vs.last();
+            } else {
+                while (k + 1 < ch.ts.size() && ch.ts[k + 1] < sec) ++k;
+                const double t0 = ch.ts[k],  t1 = ch.ts[k + 1];
+                const double v0 = ch.vs[k],  v1 = ch.vs[k + 1];
+                v = (t1 > t0) ? v0 + (v1 - v0) * (sec - t0) / (t1 - t0) : v0;
+            }
+            out.push_back(v);
+        }
+    }
+    return t;
+}
 
 // Sniff whether the CSV is Autotuner (single header, "timestamp" first col,
 // units embedded as "(unit)" at end of name) or Vehical (3-row header with
@@ -266,6 +484,13 @@ LogTable LogReader::read(const QString &path, QString *err)
     }
 
     QChar delim = detectDelimiter(lines[0]);
+
+    // VCDS group logs have a structure of their own (per-group TIME/STAMP
+    // columns) — detect them before the two single-time-column formats.
+    const int stampRow = sniffVcdsStampRow(lines, delim);
+    if (stampRow > 0)
+        return parseVcds(lines, delim, encoding, path, stampRow, err);
+
     QStringList line0 = splitRow(lines[0], delim);
     QStringList line1 = splitRow(lines[1], delim);
     SourceFormat fmt = sniff(line0, line1);

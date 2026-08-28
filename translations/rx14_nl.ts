@@ -7307,8 +7307,8 @@ Openen it now?</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="11123"/>
-        <source>Vehical logs (*.csv);;All files (*)</source>
-        <translation>Vehical logs (*.csv);;Alle bestanden (*)</translation>
+        <source>Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;All files (*)</source>
+        <translation>Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;Alle bestanden (*)</translation>
     </message>
     <message>
         <location filename="../src/mainwindow.cpp" line="11131"/>
@@ -12356,8 +12356,8 @@ This cannot be undone.</translation>
     <message>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="61"/>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="77"/>
-        <source>Vehical logs (*.csv);;All files (*)</source>
-        <translation>Vehical logs (*.csv);;Alle bestanden (*)</translation>
+        <source>Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;All files (*)</source>
+        <translation>Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;Alle bestanden (*)</translation>
     </message>
     <message>
         <location filename="../src/datalog/CompareLogsDialog.cpp" line="69"/>

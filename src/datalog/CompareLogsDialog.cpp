@@ -58,7 +58,7 @@ void CompareLogsDialog::onPickA()
 {
     QString p = QFileDialog::getOpenFileName(this, tr("Pick log A"),
                                              QString(),
-                                             tr("Vehical logs (*.csv);;All files (*)"));
+                                             tr("Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;All files (*)"));
     if (p.isEmpty()) return;
     m_pathA = p;
     QString err;
@@ -74,7 +74,7 @@ void CompareLogsDialog::onPickB()
 {
     QString p = QFileDialog::getOpenFileName(this, tr("Pick log B"),
                                              QString(),
-                                             tr("Vehical logs (*.csv);;All files (*)"));
+                                             tr("Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;All files (*)"));
     if (p.isEmpty()) return;
     m_pathB = p;
     QString err;

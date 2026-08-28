@@ -11196,7 +11196,7 @@ void MainWindow::openDatalog()
 {
     QString p = QFileDialog::getOpenFileName(
         this, tr("Open datalog"), QString(),
-        tr("Vehical logs (*.csv);;All files (*)"));
+        tr("Datalog CSV — VehiCAL / Autotuner / VCDS (*.csv);;All files (*)"));
     if (p.isEmpty()) return;
 
     auto *w = new datalog::LogViewerWindow(this);
