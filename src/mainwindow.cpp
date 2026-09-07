@@ -8,6 +8,7 @@
 #include "io/MapListExporter.h"
 #include "io/TuneReport.h"
 #include "io/XdfIo.h"
+#include "io/OlsMapJson.h"
 #include "edit/FindSimilarMapsDlg.h"
 #include "edit/MapFingerprint.h"
 #include "io/winols/SimilarFilesDlg.h"
@@ -2469,6 +2470,8 @@ void MainWindow::buildActions()
     m_actImportKP->setToolTip(tr("Import a .kp map pack and apply map labels to the current project"));
     m_actImportXDF  = new QAction(tr("Import XDF…"),            this);
     m_actImportXDF->setToolTip(tr("Import a TunerPro .xdf definition and apply its maps to the current project"));
+    m_actImportOlsJson = new QAction(tr("Import OLS map pack (JSON)…"), this);
+    m_actImportOlsJson->setToolTip(tr("Import an OLS map-pack .json (map definitions) into the current project"));
     m_actImportFRF  = new QAction(tr("Import FRF / ODX…"),      this);
     m_actImportFRF->setToolTip(tr("Extract a VAG .frf / .sgo / .odx flash container to a ROM binary"));
     // Single OLS-import action — replaces the previous Import OLS / Import
@@ -2800,6 +2803,7 @@ void MainWindow::buildActions()
     connect(m_actImportA2L,  &QAction::triggered, this, [this]{ actImportA2L(); });
     connect(m_actImportKP,      &QAction::triggered, this, [this]{ actImportKP(); });
     connect(m_actImportXDF,     &QAction::triggered, this, [this]{ actImportXdf(); });
+    connect(m_actImportOlsJson, &QAction::triggered, this, [this]{ actImportOlsJson(); });
     connect(m_actImportFRF,     &QAction::triggered, this, &MainWindow::actImportFrf);
     connect(m_actImportOLS, &QAction::triggered, this, &MainWindow::actImportOlsProject);
     connect(m_actAddVersion,   &QAction::triggered, this, &MainWindow::actAddVersion);
@@ -2998,6 +3002,8 @@ void MainWindow::retranslateUi()
     m_actImportKP->setToolTip(tr("Import a .kp map pack and apply map labels to the current project"));
     m_actImportXDF->setText(tr("Import XDF…"));
     m_actImportXDF->setToolTip(tr("Import a TunerPro .xdf definition and apply its maps to the current project"));
+    m_actImportOlsJson->setText(tr("Import OLS map pack (JSON)…"));
+    m_actImportOlsJson->setToolTip(tr("Import an OLS map-pack .json (map definitions) into the current project"));
     if (m_actImportFRF) {
         m_actImportFRF->setText(tr("Import FRF / ODX…"));
         m_actImportFRF->setToolTip(tr("Extract a VAG .frf / .sgo / .odx flash container to a ROM binary"));
@@ -3139,6 +3145,7 @@ void MainWindow::retranslateUi()
     m_menuProject->addAction(m_actImportOLS);   // "Import OLS…"
     m_menuProject->addAction(m_actImportKP);
     m_menuProject->addAction(m_actImportXDF);
+    m_menuProject->addAction(m_actImportOlsJson);
     m_menuProject->addAction(m_actImportFRF);
     m_menuProject->addAction(m_actExport);
     m_menuProject->addAction(m_actExportOLS);
@@ -3206,6 +3213,8 @@ void MainWindow::retranslateUi()
                              this, [this]() { exportMapListJson(); });
     m_menuProject->addAction(tr("Export XD&F (TunerPro)…"),
                              this, [this]() { actExportXdf(); });
+    m_menuProject->addAction(tr("Export &OLS map pack (JSON)…"),
+                             this, [this]() { actExportOlsJson(); });
     m_menuProject->addAction(tr("Export &Tuning Report…"),
                              this, [this]() { exportTuningReport(); });
     m_menuProject->addSeparator();
@@ -9095,6 +9104,8 @@ void MainWindow::dropEvent(QDropEvent *e)
             actImportKP(path);
         } else if (ext == QLatin1String("xdf")) {
             actImportXdf(path);
+        } else if (ext == QLatin1String("json")) {
+            actImportOlsJson(path);
         } else if (ext == QLatin1String("csv")) {
             if (auto *proj = activeProject())
                 MapPackDlg::importPack(proj, this, /*preferCsv=*/true, path);
@@ -10756,6 +10767,103 @@ void MainWindow::actExportXdf()
         return;
     }
     out.write(xml);
+    out.close();
+    statusBar()->showMessage(tr("Exported %1 maps to %2").arg(p->maps.size()).arg(path), 6000);
+}
+
+void MainWindow::actImportOlsJson(const QString &droppedPath)
+{
+    auto *proj = activeProject();
+    if (!proj || proj->currentData.isEmpty()) {
+        QMessageBox::information(this, tr("Import OLS map pack"),
+            tr("Open a project with ROM data first. OLS map-pack JSON files carry "
+               "map definitions that are added on top of an existing ROM."));
+        return;
+    }
+    QString path = droppedPath;
+    if (path.isEmpty())
+        path = QFileDialog::getOpenFileName(this,
+            tr("Import OLS map pack (JSON)"), {}, tr("OLS map pack (*.json);;All files (*)"));
+    if (path.isEmpty()) return;
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly)) {
+        QMessageBox::critical(this, tr("Error"), tr("Cannot open file: %1").arg(path));
+        return;
+    }
+    const QByteArray data = f.readAll();
+    f.close();
+
+    if (!olsjson::looksLikeOlsMapJson(data)) {
+        QMessageBox::warning(this, tr("Import OLS map pack"),
+            tr("%1 is not an OLS map-pack JSON file (expected a top-level \"maps\" array "
+               "with OLS map properties).").arg(QFileInfo(path).fileName()));
+        return;
+    }
+    auto res = olsjson::importFromJson(data);
+    if (!res.error.isEmpty()) {
+        QMessageBox::critical(this, tr("Import OLS map pack"), res.error);
+        return;
+    }
+    if (res.maps.isEmpty()) {
+        QMessageBox::information(this, tr("Import OLS map pack"),
+            tr("No usable maps were found in this file."));
+        return;
+    }
+
+    // De-dupe against existing maps by (name + address), then apply. Each
+    // entry carries its own FolderName, so the tree groups itself.
+    QSet<QPair<QString, uint32_t>> existing;
+    for (const auto &m : proj->maps)
+        existing.insert({m.name, m.address});
+    const int romSize = proj->currentData.size();
+    int added = 0, skipped = 0, outOfBounds = 0;
+    for (auto &m : res.maps) {
+        if (m.address >= (uint32_t)romSize
+            || m.address + (uint32_t)m.length > (uint32_t)romSize) { ++outOfBounds; continue; }
+        if (existing.contains({m.name, m.address})) { ++skipped; continue; }
+        proj->maps.append(m);
+        existing.insert({m.name, m.address});
+        ++added;
+    }
+
+    if (added == 0) {
+        QMessageBox::information(this, tr("Import OLS map pack"),
+            tr("No new maps were added (%1 already present, %2 outside the ROM).")
+                .arg(skipped).arg(outOfBounds));
+        return;
+    }
+    proj->modified = true;
+    emit proj->dataChanged();   // tree refresh + autosave
+    QString msg = tr("Imported %1 maps from OLS map pack").arg(added);
+    if (skipped)     msg += tr(", %1 already present").arg(skipped);
+    if (outOfBounds) msg += tr(", %1 outside ROM").arg(outOfBounds);
+    if (!res.warnings.isEmpty()) msg += tr(", %1 warnings").arg(res.warnings.size());
+    statusBar()->showMessage(msg, 8000);
+}
+
+void MainWindow::actExportOlsJson()
+{
+    auto *p = activeProject();
+    if (!p || p->maps.isEmpty()) {
+        QMessageBox::information(this, tr("Export OLS map pack"),
+            tr("Open a project with at least one map first."));
+        return;
+    }
+    const QString suggested = QDir::homePath() + "/" + p->displayName() + ".json";
+    const QString path = QFileDialog::getSaveFileName(this,
+        tr("Export OLS map pack (JSON)"), suggested, tr("OLS map pack (*.json)"));
+    if (path.isEmpty()) return;
+
+    olsjson::ExportOptions opt;
+    opt.projectByteOrder = p->byteOrder;
+    const QByteArray json = olsjson::exportToJson(p->maps, opt);
+
+    QFile out(path);
+    if (!out.open(QIODevice::WriteOnly)) {
+        QMessageBox::warning(this, tr("Export OLS map pack"), tr("Could not write %1").arg(path));
+        return;
+    }
+    out.write(json);
     out.close();
     statusBar()->showMessage(tr("Exported %1 maps to %2").arg(p->maps.size()).arg(path), 6000);
 }

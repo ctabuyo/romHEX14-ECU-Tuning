@@ -481,6 +481,7 @@ private:
     QAction *m_actImportA2L  = nullptr;
     QAction *m_actImportKP     = nullptr;
     QAction *m_actImportXDF     = nullptr;
+    QAction *m_actImportOlsJson = nullptr;
     QAction *m_actImportFRF     = nullptr;
     // Single OLS-import action — toolbar OLS button + Project menu
     // "Import OLS…" entry both reference this. Replaces the previous
@@ -631,6 +632,9 @@ private:
     void exportMapListJson();
     void exportTuningReport();
     void actImportXdf(const QString &droppedPath = {});
+    // OLS map-pack JSON (definition-only, same shape as the OLS-Files exporter).
+    void actImportOlsJson(const QString &droppedPath = {});
+    void actExportOlsJson();
     void actImportFrf();
     // Open a decoded VAG flash block (raw bytes) as a fresh project.
     void openExtractedRom(const QByteArray &romBytes, const QString &suggestedName);

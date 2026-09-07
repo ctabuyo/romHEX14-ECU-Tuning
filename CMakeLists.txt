@@ -228,6 +228,7 @@ set(SOURCES
     src/io/MapListExporter.cpp
     src/io/TuneReport.cpp
     src/io/XdfIo.cpp
+    src/io/OlsMapJson.cpp
     src/io/vag/FrfCodec.cpp
     src/io/vag/Aes128.cpp
     src/io/vag/FrfExtractor.cpp
@@ -630,9 +631,17 @@ add_executable(test_obdunlock
 target_include_directories(test_obdunlock PRIVATE src)
 target_link_libraries(test_obdunlock PRIVATE Qt6::Core)
 
+# ── Test for OLS map-pack JSON import/export ──────────────────────────────
+add_executable(test_ols_mapjson tests/test_ols_mapjson.cpp
+    src/io/OlsMapJson.cpp
+)
+target_include_directories(test_ols_mapjson PRIVATE src)
+target_link_libraries(test_ols_mapjson PRIVATE Qt6::Core Qt6::Gui)
+
 add_test(NAME mapdetect_corpus COMMAND test_mapdetect_corpus)
 add_test(NAME checksum_plugins COMMAND test_checksum_plugins)
 add_test(NAME obdunlock COMMAND test_obdunlock)
+add_test(NAME ols_mapjson COMMAND test_ols_mapjson WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # ── Deploy checksumhelper.exe and ChecksumDLL next to the executable ──────────
 # The 32-bit checksumhelper.exe bridges 64-bit rx14 to 32-bit WinOLS checksum DLLs.
